@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 // -*- js -*-
 
-var LMD_JS = '../src/lmd.js',
+var LMD_JS = __dirname + '/../src/lmd_min.js',
     fs = require('fs'),
     parser = require("uglify-js").parser,
     uglify = require("uglify-js").uglify,
@@ -41,6 +41,7 @@ if (!configFile) {
         lazy = typeof config.lazy === "undefined" ? true : config.lazy,
         mainModuleName = config.main,
         pack = lazy ? true : typeof config.pack === "undefined" ? true : config.pack,
+        path =  config.path || '',
         configDir = fs.realpathSync(configFile),
         moduleContent,
         modulePath,
@@ -53,8 +54,11 @@ if (!configFile) {
     configDir = configDir.join('/');
 
     if (config.modules) {
+        if (path[0] !== '/') { // non-absolute
+            path = configDir + '/' + path;
+        }
         for (var moduleName in config.modules) {
-            modulePath = fs.realpathSync(configDir + '/' + config.modules[moduleName]);
+            modulePath = fs.realpathSync(path + config.modules[moduleName]);
             moduleContent = fs.readFileSync(modulePath, 'utf8');
 
             if (pack) {
