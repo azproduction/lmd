@@ -35,9 +35,10 @@ function depA(require){
 
 ```javascript
 {
+    "path": "../modules/",
     "modules": {
-        "main": "modules/main.js",
-        "depA": "modules/depA.js"
+        "main": "main.js",
+        "depA": "depA.js"
     },
     "main": "main",
     "lazy": false,
