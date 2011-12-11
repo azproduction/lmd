@@ -32,6 +32,7 @@ function depA(require){
 2. Write config file
 
 **index.development.lmd.json**
+
 ```javascript
 {
     "modules": {
@@ -51,6 +52,7 @@ function depA(require){
 4. Results
 
 **index.development.lmd.js**
+
 ```javascript
 (function (window) {
     /* ... LMD content ... */
@@ -67,6 +69,7 @@ function depA(require){
 ```
 
 **index.production.lmd.js**
+
 ```javascript
 (function(a){/* ... LMD content ... */})(window)
 ({depA:"function depA(a){return function(a){console.log(a)}}"})
