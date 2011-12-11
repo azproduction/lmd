@@ -1,0 +1,9 @@
+{
+    "modules": {
+        "main": "modules/main.js",
+        "depA": "modules/depA.js"
+    },
+    "main": "main",
+    "lazy": false,
+    "pack": false
+}

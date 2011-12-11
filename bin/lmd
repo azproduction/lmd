@@ -1,0 +1,82 @@
+#! /usr/bin/env node
+// -*- js -*-
+
+var LMD_JS = '../src/lmd.js',
+    fs = require('fs'),
+    parser = require("uglify-js").parser,
+    uglify = require("uglify-js").uglify,
+    configFile = process.argv[2],
+    outputFile = process.argv[3];
+
+function compress(code) {
+    var ast = parser.parse(code);
+    ast = uglify.ast_mangle(ast);
+    ast = uglify.ast_squeeze(ast);
+
+    return uglify.gen_code(ast);
+}
+
+function escape(file) {
+    return JSON.stringify(file);
+}
+
+function render(lmd_modules, lmd_main, pack) {
+    var lmd_js = fs.readFileSync(LMD_JS, 'utf8').replace(/\/\*\{\*\/.*\/\*\}\*\//g, ''),
+        result;
+
+    lmd_modules = '{\n' + lmd_modules.join('\n') + '\n}';
+    result = lmd_js + '(' + lmd_modules + ')(' + lmd_main + ')';
+
+    if (pack) {
+        result = compress(result);
+    }
+
+    return result;
+}
+
+if (!configFile) {
+    console.log('lmd usage:\n\t    lmd config.lmd.json [output.lmd.js]');
+} else {
+    var config = JSON.parse(fs.readFileSync(configFile, 'utf8')),
+        lazy = typeof config.lazy === "undefined" ? true : config.lazy,
+        mainModuleName = config.main,
+        pack = lazy ? true : typeof config.pack === "undefined" ? true : config.pack,
+        configDir = fs.realpathSync(configFile),
+        moduleContent,
+        modulePath,
+        lmdModules = [],
+        lmdMain,
+        lmdFile;
+
+    configDir = configDir.split('/');
+    configDir.pop();
+    configDir = configDir.join('/');
+
+    if (config.modules) {
+        for (var moduleName in config.modules) {
+            modulePath = fs.realpathSync(configDir + '/' + config.modules[moduleName]);
+            moduleContent = fs.readFileSync(modulePath, 'utf8');
+
+            if (pack) {
+                moduleContent = compress(moduleContent);
+            }
+
+            if (moduleName === mainModuleName) {
+                lmdMain = moduleContent;
+            } else {
+                if (lazy) {
+                    moduleContent = escape(moduleContent);
+                }
+                lmdModules.push(escape(moduleName) + ': ' + moduleContent);
+            }
+        }
+
+        lmdFile = render(lmdModules, lmdMain, pack);
+
+        if (outputFile) {
+            fs.writeFileSync(outputFile, lmdFile,'utf8')
+        } else {
+            process.stdout.write(lmdFile);
+        }
+    }
+}

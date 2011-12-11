@@ -1,0 +1,20 @@
+{
+    "name": "lmd",
+    "description" : "LMD: Lazy (and synchronous) Module Declaration",
+    "author"  : {
+        "name": "Mikhail Davydov",
+        "email": "azazel.private@gmail.com"
+    },
+    "version" : "1.0",
+    "bin"     : {
+        "lmd" : "./bin/lmd"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:azproduction/lmd.git"
+    },
+    "keywords": ["lmd", "amd", "module", "builder"],
+    "dependencies": {
+        "uglify-js": ">= 1.2.0"
+    }
+}
