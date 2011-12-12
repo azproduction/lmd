@@ -3,7 +3,6 @@
  *
  * @author  Mikhail Davydov
  * @licence MIT
- * @version 1.0.1
  */
 /*{*/var lmd = /*}*/(function (window) {
     var modules = {},

@@ -48,7 +48,7 @@ function depA(require){
 
 3. Build
 
-`lmd example/cfgs/index.development.lmd.json example/out/index.development.lmd.js`
+`lmd example/cfgs/index.development.lmd.json example/out/index.development.lmd.js` or `node ./lmd/bin/lmd.js ... `
 
 Or print to `STDOUT`
 
