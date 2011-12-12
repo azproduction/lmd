@@ -19,7 +19,11 @@ Installing
 Usage
 -----
 
-1. Create modules
+1\. Create modules
+
+1\.1\. Module - functions
+
+**main.js**
 
 ```javascript
 function main(require) { // passes only require
@@ -27,6 +31,8 @@ function main(require) { // passes only require
     depA('ololo');
 }
 ```
+
+**depA.js**
 
 ```javascript
 function depA(require){
@@ -36,24 +42,34 @@ function depA(require){
 }
 ```
 
-2. Write config file
+1\.2\. Module - objects (for config, i18n and other cases)
+
+**i18n.ru.json**
+
+```javascript
+{
+    "hello": "Привет"
+}
+```
+
+2\. Write config file
 
 **index.development.lmd.json**
 
 ```javascript
 {
-    "path": "../modules/",
+    "path": "../modules/", // if starts with "/" it is absolute path else path is relative to config file
     "modules": {
-        "main": "main.js",
-        "depA": "depA.js"
+        "main": "main.js", // "module_pseudonym": "module_file"
+        "depA": "depA.js"  // 
     },
-    "main": "main",
-    "lazy": false,
-    "pack": false
+    "main": "main", // a main module - content of that module will be called on start (no reason to eval)
+    "lazy": false,  // if true - all modules will be evaled on demand [default=true]
+    "pack": false   // if true - module will be packed using uglifyjs [default=true]
 }
 ```
 
-3. Build
+3\. Build
 
 `lmd example/cfgs/index.development.lmd.json example/out/index.development.lmd.js` or `node ./lmd/bin/lmd.js ... `
 
@@ -61,7 +77,7 @@ Or print to `STDOUT`
 
 `lmd example/cfgs/index.development.lmd.json`
 
-4. Results
+4\. Use
 
 **index.development.lmd.js**
 
