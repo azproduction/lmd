@@ -35,7 +35,7 @@ LmdBuilder.prototype.render = function (lmd_modules, lmd_main, pack) {
     var lmd_js = fs.readFileSync(LMD_JS, 'utf8').replace(/\/\*\{\*\/.*\/\*\}\*\//g, ''),
         result;
 
-    lmd_modules = '{\n' + lmd_modules.join('\n') + '\n}';
+    lmd_modules = '{\n' + lmd_modules.join(',\n') + '\n}';
     result = lmd_js + '(' + lmd_modules + ')(' + lmd_main + ')';
 
     if (pack) {
@@ -64,7 +64,8 @@ LmdBuilder.prototype.build = function () {
         modulePath,
         lmdModules = [],
         lmdMain,
-        lmdFile;
+        lmdFile,
+        isJson;
 
     configDir = configDir.split('/');
     configDir.pop();
@@ -78,14 +79,21 @@ LmdBuilder.prototype.build = function () {
             modulePath = fs.realpathSync(path + config.modules[moduleName]);
             moduleContent = fs.readFileSync(modulePath, 'utf8');
 
-            if (pack) {
+            try {
+                JSON.parse(moduleContent);
+                isJson = true;
+            } catch (e) {
+                isJson = false;
+            }
+
+            if (!isJson && pack) {
                 moduleContent = this.compress(moduleContent);
             }
 
             if (moduleName === mainModuleName) {
                 lmdMain = moduleContent;
             } else {
-                if (lazy) {
+                if (!isJson && lazy) {
                     moduleContent = this.escape(moduleContent);
                 }
                 lmdModules.push(this.escape(moduleName) + ': ' + moduleContent);

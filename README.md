@@ -7,7 +7,7 @@ Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initi
 2. LMD does not create globals
 3. LMD is standalone and tiny - only +300 extra bytes
 4. All modules are loaded at startup
-5. Each module is initialized (evaled) on demand
+5. Each function-module is initialized (evaled) on demand
 6. LMD module is as easy to debug as normal JavaScript file
 7. Build system compresses JavaScript files using uglifyjs (or any other)
 
@@ -42,7 +42,7 @@ function depA(require){
 }
 ```
 
-1\.2\. Module - objects (for config, i18n and other cases)
+1\.2\. Module - objects (for config, i18n and other resources)
 
 **i18n.ru.json**
 
@@ -60,8 +60,9 @@ function depA(require){
 {
     "path": "../modules/", // if starts with "/" it is absolute path else path is relative to config file
     "modules": {
-        "main": "main.js", // "module_pseudonym": "module_file"
-        "depA": "depA.js"  // 
+        "main": "main.js",     // "module_pseudonym": "module_file"
+        "depA": "depA.js",     // require("module_pseudonym").doModuleStuff()
+        "i18n": "i18n.ru.json"
     },
     "main": "main", // a main module - content of that module will be called on start (no reason to eval)
     "lazy": false,  // if true - all modules will be evaled on demand [default=true]

@@ -2,7 +2,8 @@
     "path": "../modules/",
     "modules": {
         "main": "main.js",
-        "depA": "depA.js"
+        "depA": "depA.js",
+        "i18n": "i18n.ru.json"
     },
     "main": "main",
     "lazy": false,
