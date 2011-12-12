@@ -1,8 +1,15 @@
 LMD: Lazy (and synchronous) Module Declaration
 ==============================================
 
-Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without touching any part of DOM.
-LMD is inspired by AMD and provides similar module interface. It evals module only when they are required.
+Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without touching any part of DOM. LMD is inspired by AMD and provides similar module interface. It evals module only when they are required.
+
+1. Modules are similar to AMD: there is a require, but no define (all defined on startup) nor exports (module function returns object)
+2. LMD does not create globals
+3. LMD is standalone and tiny - only +300 extra bytes
+4. All modules are loaded at startup
+5. Each module is initialized (evaled) on demand
+6. LMD module is as easy to debug as normal JavaScript file
+7. Build system compresses JavaScript files using uglifyjs (or any other)
 
 Installing
 ----------
