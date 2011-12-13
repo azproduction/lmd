@@ -101,7 +101,7 @@ Or print to `STDOUT`
 
 ```javascript
 (function(a){/* ... LMD content ... */})(window)
-({depA:"function depA(a){return function(a){console.log(a)}}"})
+({depA:"(function(a){return function(a){console.log(a)}})"})
 (function(b){var c=b("depA");c("ololo")})
 ```
 

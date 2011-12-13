@@ -94,7 +94,7 @@ LmdBuilder.prototype.build = function () {
                 lmdMain = moduleContent;
             } else {
                 if (!isJson && lazy) {
-                    moduleContent = this.escape(moduleContent);
+                    moduleContent = this.escape('(' + moduleContent.replace(/^function[^\(]*/, 'function') + ')' );
                 }
                 lmdModules.push(this.escape(moduleName) + ': ' + moduleContent);
             }
