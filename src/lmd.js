@@ -9,6 +9,9 @@
         initialized_modules = {},
         // debug = true,
         require = function (moduleName) {
+            if (initialized_modules[moduleName] === null) {
+                throw 'Module "' + moduleName + '" is recursively required';
+            }
             if (initialized_modules[moduleName]) {
                 return modules[moduleName];
             }
@@ -16,6 +19,7 @@
             if (!module) {
                 return;
             }
+            initialized_modules[moduleName] = null;
             if (typeof module === "string") {
                 // if (debug)  time = +new Date();
                 modules[moduleName] = (0, window.eval)(module)(require);
