@@ -1,5 +1,6 @@
 function main(require) {
-    var depA = require('depA'),
+    var print = require('depA'),
         i18n = require('i18n');
-    depA(i18n.hello + ' ololo');
+
+    print(i18n.hello +  ', lmd');
 }

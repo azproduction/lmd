@@ -3,6 +3,7 @@
     "modules": {
         "main": "main.js",
         "depA": "depA.js",
+        "depB": "depB.js",
         "i18n": "i18n.ru.json"
     },
     "main": "main",
