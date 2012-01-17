@@ -2,10 +2,33 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <title>Lmd example - production version</title>
-        <script type="text/javascript" src="out/index.production.lmd.js"></script>
+        <title>Lmd example - development version</title>
+
+        <!-- lmd package file-->
+        <script type="text/javascript" src="out/index.development.lmd.js" id="source"></script>
+
     </head>
     <body>
+        <h1>Module code</h1>
+        <strong>Open console for details</strong>
+        <pre class="sh_javascript" id="source_hl"></pre>
 
+        <!-- source hl: ignore that -->
+        <link rel="stylesheet" href="http://shjs.sourceforge.net/sh_style.css" />
+        <link rel="stylesheet" href="http://shjs.sourceforge.net/css/sh_ide-eclipse.min.css" />
+        <script type="text/javascript" src="http://shjs.sourceforge.net/sh_main.min.js"></script>
+        <script type="text/javascript" src="http://shjs.sourceforge.net/lang/sh_javascript.min.js"></script>
+        <script>
+            // tiny xhr
+            (function(m,u,c,x){with(new XMLHttpRequest)onreadystatechange=function(x){readyState^4||c(x.target)},open(m,u),send(x)})
+            ('get', document.getElementById("source").getAttribute("src"), function(xhr){
+                document.getElementById("source_hl").innerHTML = xhr.responseText
+                                                                    .replace(/&/g, '&amp;')
+                                                                    .replace(/</g, '&lt;')
+                                                                    .replace(/>/g, '&gt;');
+
+                sh_highlightDocument();
+            });
+        </script>
     </body>
 </html>
