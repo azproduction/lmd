@@ -53,6 +53,14 @@ LmdBuilder.prototype.configure = function () {
     return true;
 };
 
+LmdBuilder.prototype.extract = function (file) {
+    file = file.split('/');
+    return {
+        file: file.pop(),
+        path: (file.length ? file.join('/') + '/' : '')
+    };
+};
+
 LmdBuilder.prototype.build = function () {
     var config = JSON.parse(fs.readFileSync(this.configFile, 'utf8')),
         lazy = typeof config.lazy === "undefined" ? true : config.lazy,
@@ -65,7 +73,12 @@ LmdBuilder.prototype.build = function () {
         lmdModules = [],
         lmdMain,
         lmdFile,
-        isJson;
+        isJson,
+        modules = {},
+        moduleName,
+        IS_HAS_WILD_CARD = /\*/,
+        wildcard_regex,
+        descriptor;
 
     configDir = configDir.split('/');
     configDir.pop();
@@ -75,9 +88,36 @@ LmdBuilder.prototype.build = function () {
         if (path[0] !== '/') { // non-absolute
             path = configDir + '/' + path;
         }
-        for (var moduleName in config.modules) {
-            modulePath = fs.realpathSync(path + config.modules[moduleName]);
-            moduleContent = fs.readFileSync(modulePath, 'utf8');
+
+        // grep paths
+        for (moduleName in config.modules) {
+            modulePath = config.modules[moduleName];
+            // its a wildcard
+            // "*": "*.js" or "*_pewpew": "*.ru.json" or "ololo": "*.js"
+            if (IS_HAS_WILD_CARD.test(modulePath)) {
+                descriptor = this.extract(modulePath);
+                wildcard_regex = new RegExp("^" + descriptor.file.replace(/\*/g, "(\\w+)") + "$");
+                fs.readdirSync(path + descriptor.path).forEach(function (fileName) {
+                    var match = fileName.match(wildcard_regex);
+                    if (match) {
+                        match.shift();
+
+                        // Modify a module name
+                        match.forEach(function (replacement) {
+                            moduleName = moduleName.replace('*', replacement);
+                        });
+                        modules[moduleName] = fs.realpathSync(path + descriptor.path + fileName);
+                    }
+                });
+            } else {
+                // normal name
+                // "name": "name.js"
+                modules[moduleName] = fs.realpathSync(path + modulePath);
+            }
+        }
+
+        for (moduleName in modules) {
+            moduleContent = fs.readFileSync(modules[moduleName], 'utf8');
 
             try {
                 JSON.parse(moduleContent);

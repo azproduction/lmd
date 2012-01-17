@@ -68,7 +68,7 @@ function depB(require, exports, module){
 
 2\. Write config file
 
-**index.development.lmd.json**
+**index.production.lmd.json**
 
 ```javascript
 {
@@ -76,11 +76,27 @@ function depB(require, exports, module){
     "modules": {
         "main": "main.js",     // "module_pseudonym": "module_file"
         "depA": "depA.js",     // require("module_pseudonym").doModuleStuff()
+        "depB": "depB.js",
         "i18n": "i18n.ru.json"
     },
     "main": "main", // a main module - content of that module will be called on start (no reason to eval)
     "lazy": false,  // if true - all modules will be evaled on demand [default=true]
     "pack": false   // if true - module will be packed using uglifyjs [default=true]
+}
+```
+
+**index.development.lmd.json**
+
+```javascript
+{
+    "path": "../modules/",
+    "modules": {
+        "*": "*.js",     // use wildcards or specify regex string to grep similar files (no dir wildcards supported by now)
+        "i18n": "i18n.ru.json"
+    },
+    "main": "main",
+    "lazy": false,
+    "pack": false
 }
 ```
 
