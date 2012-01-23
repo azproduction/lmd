@@ -6,10 +6,16 @@
 
         <!-- lmd package file-->
         <script type="text/javascript" src="out/index.development.lmd.js" id="source"></script>
-
+<style>
+pre,
+.sh_string,
+.sh_regexp {
+    font-family: Consolas, "Courier New" !important;
+}
+</style>
     </head>
     <body>
-        <h1>Module code</h1>
+        <h1>Lmd example - development version</h1>
         <strong>Open console for details</strong>
         <pre class="sh_javascript" id="source_hl"></pre>
 
@@ -18,17 +24,15 @@
         <link rel="stylesheet" href="http://shjs.sourceforge.net/css/sh_ide-eclipse.min.css" />
         <script type="text/javascript" src="http://shjs.sourceforge.net/sh_main.min.js"></script>
         <script type="text/javascript" src="http://shjs.sourceforge.net/lang/sh_javascript.min.js"></script>
-        <script>
-            // tiny xhr
-            (function(m,u,c,x){with(new XMLHttpRequest)onreadystatechange=function(x){readyState^4||c(x.target)},open(m,u),send(x)})
-            ('get', document.getElementById("source").getAttribute("src"), function(xhr){
-                document.getElementById("source_hl").innerHTML = xhr.responseText
-                                                                    .replace(/&/g, '&amp;')
-                                                                    .replace(/</g, '&lt;')
-                                                                    .replace(/>/g, '&gt;');
+<script>
+// Tiny ajax - https://gist.github.com/1625623
+(function(m,u,c,d,x){with(x=new XMLHttpRequest)return onreadystatechange=function(){readyState^4||c(this)},open(m,u,c),send(d),x})
+('get', document.getElementById("source").getAttribute("src"), function(xhr){
+    document.getElementById("source_hl").innerHTML =
+    xhr.responseText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-                sh_highlightDocument();
-            });
-        </script>
+    sh_highlightDocument();
+});
+</script>
     </body>
 </html>
