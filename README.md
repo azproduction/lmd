@@ -27,7 +27,7 @@ Usage
 **main.js**
 
 ```javascript
-function main(require) { // passes only require
+function main(require/*, exports, module*/) { // passes only require
     var depA = require('depA');
     depA('ololo');
 }
@@ -36,7 +36,7 @@ function main(require) { // passes only require
 **depA.js**
 
 ```javascript
-function depA(require){
+function depA(require/*, exports, module*/){
     var escape = require('depB');
     return function(message) {
         console.log(escape(message));
@@ -66,13 +66,13 @@ function depB(require, exports, module){
 }
 ```
 
-2\. Write config file
+2\. Write a config file
 
 **index.production.lmd.json**
 
 ```javascript
 {
-    "path": "../modules/", // if starts with "/" it is absolute path else path is relative to config file
+    "path": "../modules/", // if starts with "/" it is absolute path else path will be relative to the config file
     "modules": {
         "main": "main.js",     // "module_pseudonym": "module_file"
         "depA": "depA.js",     // require("module_pseudonym").doModuleStuff()
@@ -91,8 +91,8 @@ function depB(require, exports, module){
 {
     "path": "../modules/",
     "modules": {
-        "*": "*.js",     // use wildcards or specify regex string to grep similar files (no dir wildcards supported by now)
-        "i18n": "i18n.ru.json"
+        "*": "*.js",           // use wildcards or specify regex string to grep 
+        "i18n": "i18n.ru.json" // similar files (no dir wildcards supported by now)
     },
     "main": "main",
     "lazy": false,
