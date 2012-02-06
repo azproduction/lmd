@@ -144,17 +144,18 @@ Or print to `STDOUT`
 (function(b){var c=b("depA");c("ololo")})
 ```
 
-Changelog
+Major versions changelog
 ---------
 
-**v1.1.0**
+**v1.1.x**
 
  - Recursive module inclusion and wildcards in descriptors
 
-**v1.2.0**
+**v1.2.x**
 
  - LMD can grab modules from globals (jQuery, Ext, Backbone, Underscore) if module is not found in package
  - Wildcard build bugfixes
+ - Makefile for example
 
 Licence
 -------
