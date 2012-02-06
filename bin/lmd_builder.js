@@ -98,15 +98,17 @@ LmdBuilder.prototype.build = function () {
                 descriptor = this.extract(modulePath);
                 wildcard_regex = new RegExp("^" + descriptor.file.replace(/\*/g, "(\\w+)") + "$");
                 fs.readdirSync(path + descriptor.path).forEach(function (fileName) {
-                    var match = fileName.match(wildcard_regex);
+                    var match = fileName.match(wildcard_regex),
+                        newModuleName;
+
                     if (match) {
                         match.shift();
 
                         // Modify a module name
                         match.forEach(function (replacement) {
-                            moduleName = moduleName.replace('*', replacement);
+                            newModuleName = moduleName.replace('*', replacement);
                         });
-                        modules[moduleName] = fs.realpathSync(path + descriptor.path + fileName);
+                        modules[newModuleName] = fs.realpathSync(path + descriptor.path + fileName);
                     }
                 });
             } else {
