@@ -1,4 +1,4 @@
-(function (window) {
+(function (window, sandboxed_modules) {
     var modules = {},
         initialized_modules = {},
         require = function (moduleName) {
@@ -25,7 +25,7 @@
                 module = window[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                module = module(require, output.exports, output) || output.exports;
+                module = module(sandboxed_modules[moduleName] ? null : require, output.exports, output) || output.exports;
             }
 
             return modules[moduleName] = module;
@@ -47,14 +47,14 @@
             return lmd;
         };
     return lmd;
-}(window))({
+})(window,{"depB":true})({
 "depA": function depA(require){
     var escape = require('depB');
     return function(message) {
         console.log(escape(message));
     }
 },
-"depB": function depB(require, exports, module){
+"depB": function depB(sandboxed/*module is sandboxed(see cfgs) - it cannot require*/, exports, module){
     // CommonJS Module exports
     // or exports.feature = function () {}
     module.exports = function(message) {

@@ -4,6 +4,9 @@
         "*": "*.js",
         "i18n": "i18n.ru.json"
     },
+    "sandbox": {
+        "depB": true
+    },
     "main": "main",
     "lazy": false,
     "pack": false

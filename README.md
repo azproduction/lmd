@@ -88,9 +88,13 @@ function depB(require, exports, module){
         "depB": "depB.js",
         "i18n": "i18n.ru.json"
     },
-    "main": "main", // a main module - content of that module will be called on start (no reason to eval)
-    "lazy": false,  // if true - all modules will be evaled on demand [default=true]
-    "pack": false   // if true - module will be packed using uglifyjs [default=true]
+    "main": "main",     // a main module - content of that module will be called on start (no reason to eval)
+    "lazy": false,      // if true - all modules will be evaled on demand [default=true]
+    "pack": false,      // if true - module will be packed using uglifyjs [default=true]
+    "sandbox": {        // optional, list of modules that can't require (null passed)
+        "depB": true
+    },
+    "global": "window"  // optional, default="window" name of global object, passed to the lmd
 }
 ```
 
@@ -105,7 +109,10 @@ function depB(require, exports, module){
     },
     "main": "main",
     "lazy": false,
-    "pack": false
+    "pack": false,
+    "sandbox": {
+        "depB": true
+    }
 }
 ```
 
@@ -156,6 +163,11 @@ Major versions changelog
  - LMD can grab modules from globals (jQuery, Ext, Backbone, Underscore) if module is not found in package
  - Wildcard build bugfixes
  - Makefile for example
+
+**v1.3.x**
+
+ - Modules sandboxing
+ - Named global object
 
 Licence
 -------

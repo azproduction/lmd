@@ -6,7 +6,11 @@
         "depB": "depB.js",
         "i18n": "i18n.ru.json"
     },
+    "sandbox": {
+        "depB": true
+    },
     "main": "main",
+    "global": "window",
     "lazy": true,
     "pack": true
 }

@@ -31,12 +31,14 @@ LmdBuilder.prototype.escape = function (file) {
     return JSON.stringify(file);
 };
 
-LmdBuilder.prototype.render = function (lmd_modules, lmd_main, pack) {
-    var lmd_js = fs.readFileSync(LMD_JS, 'utf8').replace(/\/\*\{\*\/.*\/\*\}\*\//g, ''),
+LmdBuilder.prototype.render = function (lmd_modules, lmd_main, pack, globalObject, sandboxedModules) {
+    globalObject = globalObject || 'window';
+    sandboxedModules = JSON.stringify(sandboxedModules || {});
+    var lmd_js = fs.readFileSync(LMD_JS, 'utf8'),
         result;
 
     lmd_modules = '{\n' + lmd_modules.join(',\n') + '\n}';
-    result = lmd_js + '(' + lmd_modules + ')(' + lmd_main + ')';
+    result = lmd_js + '(' + globalObject + ',' + sandboxedModules + ')(' + lmd_modules + ')(' + lmd_main + ')';
 
     if (pack) {
         result = this.compress(result);
@@ -142,7 +144,7 @@ LmdBuilder.prototype.build = function () {
             }
         }
 
-        lmdFile = this.render(lmdModules, lmdMain, pack);
+        lmdFile = this.render(lmdModules, lmdMain, pack, config.global, config.sandbox);
 
         if (this.outputFile) {
             fs.writeFileSync(this.outputFile, lmdFile,'utf8')
