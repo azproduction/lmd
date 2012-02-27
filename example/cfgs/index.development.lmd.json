@@ -2,7 +2,8 @@
     "path": "../modules/",
     "modules": {
         "*": "*.js",
-        "i18n": "i18n.ru.json"
+        "i18n": "i18n.ru.json",
+        "config": "cfgs/development.json"
     },
     "sandbox": {
         "depB": true

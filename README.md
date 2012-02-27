@@ -94,7 +94,7 @@ function depB(require, exports, module){
     "sandbox": {        // optional, list of modules that can't require (null passed)
         "depB": true
     },
-    "global": "window"  // optional, default="window" name of global object, passed to the lmd
+    "global": "this"  // optional, default="this" name of global object, passed to the lmd
 }
 ```
 
@@ -167,7 +167,8 @@ Major versions changelog
 **v1.3.x**
 
  - Modules sandboxing
- - Named global object
+ - Named global object (default this)
+ - Updated example - added worker part and config file with environment-specific data
 
 Licence
 -------

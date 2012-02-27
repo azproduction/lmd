@@ -4,13 +4,14 @@
         "main": "main.js",
         "depA": "depA.js",
         "depB": "depB.js",
-        "i18n": "i18n.ru.json"
+        "i18n": "i18n.ru.json",
+        "config": "cfgs/production.json"
     },
     "sandbox": {
         "depB": true
     },
     "main": "main",
-    "global": "window",
+    "global": "this",
     "lazy": true,
     "pack": true
 }

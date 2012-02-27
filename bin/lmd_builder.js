@@ -32,7 +32,7 @@ LmdBuilder.prototype.escape = function (file) {
 };
 
 LmdBuilder.prototype.render = function (lmd_modules, lmd_main, pack, globalObject, sandboxedModules) {
-    globalObject = globalObject || 'window';
+    globalObject = globalObject || 'this';
     sandboxedModules = JSON.stringify(sandboxedModules || {});
     var lmd_js = fs.readFileSync(LMD_JS, 'utf8'),
         result;

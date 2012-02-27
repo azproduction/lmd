@@ -1,0 +1,3 @@
+{
+    "worker": "./out/index.production.lmd.js"
+}
