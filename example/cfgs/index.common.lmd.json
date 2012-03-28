@@ -1,0 +1,16 @@
+{
+    "path": "../modules/",
+    "modules": {
+        "main": "main.js",
+        "depA": "depA.js",
+        "depB": "depB.js",
+        "workerDepA": "workerDepA.js"
+    },
+    "sandbox": {
+        "depB": true
+    },
+    "main": "main",
+    "global": "this",
+    "lazy": false,
+    "pack": false
+}

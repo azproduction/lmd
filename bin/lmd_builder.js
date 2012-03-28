@@ -6,25 +6,58 @@
  */
 
 var LMD_JS = __dirname + '/../src/lmd_min.js',
-    fs = require('fs');
+    fs = require('fs'),
+    parser = require("uglify-js").parser,
+    uglify = require("uglify-js").uglify;
 
 var LmdBuilder = function (argv) {
     this.configFile = argv[2];
     this.outputFile = argv[3];
+    this.configDir = fs.realpathSync(this.configFile);
+    this.configDir = this.configDir.split('/');
+    this.configDir.pop();
+    this.configDir = this.configDir.join('/');
     if (this.configure()) {
         this.build();
     }
 };
 
 LmdBuilder.prototype.compress = function (code) {
-    var parser = require("uglify-js").parser,
-        uglify = require("uglify-js").uglify;
-
     var ast = parser.parse(code);
     ast = uglify.ast_mangle(ast);
     ast = uglify.ast_squeeze(ast);
 
     return uglify.gen_code(ast);
+};
+
+LmdBuilder.prototype.tryWrap = function (code) {
+    try {
+        var ast = parser.parse(code);
+    } catch (e) {
+        console.log('parse error on ' + code);
+        process.exit(1);
+        return;
+    }
+
+    // ["toplevel",[["defun","depA",["require"],[]]]]
+    if (ast && ast.length === 2 &&
+        ast[1] && ast[1].length === 1 &&
+        ast[1][0][0] === "defun"
+        ) {
+        return code;
+    }
+
+    // ["toplevel",[["stat",["function",null,["require"],[]]]]]
+    if (ast && ast.length === 2 &&
+        ast[1] && ast[1].length === 1 &&
+        ast[1][0][0] === "stat" &&
+        ast[1][0][1] &&
+        ast[1][0][1][0] === "function"
+        ) {
+        return code;
+    }
+
+    return '(function (require, exports, module) { /* wrapped by builder */\n' + code + '\n})';
 };
 
 LmdBuilder.prototype.escape = function (file) {
@@ -63,13 +96,35 @@ LmdBuilder.prototype.extract = function (file) {
     };
 };
 
+LmdBuilder.prototype.deepDestructableMerge = function (left, right) {
+    for (var prop in right) {
+        if (right.hasOwnProperty(prop))  {
+            if (typeof left[prop] === "object") {
+                this.deepDestructableMerge(left[prop], right[prop]);
+            } else {
+                left[prop] = right[prop];
+            }
+        }
+    }
+    return left;
+};
+
+LmdBuilder.prototype.tryExtend = function (config) {
+    config = config || {};
+    if (typeof config.extends !== "string") {
+        return config;
+    }
+    var parentConfig = this.tryExtend(JSON.parse(fs.readFileSync(this.configDir + '/' + config.extends, 'utf8')));
+
+    return this.deepDestructableMerge(parentConfig, config);
+};
+
 LmdBuilder.prototype.build = function () {
-    var config = JSON.parse(fs.readFileSync(this.configFile, 'utf8')),
+    var config = this.tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8'))),
         lazy = typeof config.lazy === "undefined" ? true : config.lazy,
         mainModuleName = config.main,
         pack = lazy ? true : typeof config.pack === "undefined" ? true : config.pack,
         path =  config.path || '',
-        configDir = fs.realpathSync(this.configFile),
         moduleContent,
         modulePath,
         lmdModules = [],
@@ -82,13 +137,9 @@ LmdBuilder.prototype.build = function () {
         wildcard_regex,
         descriptor;
 
-    configDir = configDir.split('/');
-    configDir.pop();
-    configDir = configDir.join('/');
-
     if (config.modules) {
         if (path[0] !== '/') { // non-absolute
-            path = configDir + '/' + path;
+            path = this.configDir + '/' + path;
         }
 
         // grep paths
@@ -128,6 +179,10 @@ LmdBuilder.prototype.build = function () {
                 isJson = true;
             } catch (e) {
                 isJson = false;
+            }
+
+            if (!isJson) {
+                moduleContent = this.tryWrap(moduleContent);
             }
 
             if (!isJson && pack) {

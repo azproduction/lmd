@@ -10,7 +10,8 @@ Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initi
 5. Each function-module is initialized (evaled) on demand
 6. LMD module is as easy to debug as normal JavaScript file
 7. Build system compresses JavaScript files using uglifyjs (or any other)
-8. lmd module can define object via return or module.exports/exports as CommonJS Module
+8. LMD module can define object via return or module.exports/exports as CommonJS Module
+9. Module can be wrapped automatically in builder so you can write your modules as node.js modules (see Usage)
 
 Installing
 ----------
@@ -24,7 +25,7 @@ Usage
 
 1\.1\. Module - functions
 
-**main.js**
+**main.js - module as function declaration**
 
 ```javascript
 function main(require) {
@@ -42,28 +43,29 @@ function main(require) {
 }
 ```
 
-**depA.js**
+**depA.js - module as function expression**
 
 ```javascript
-function depA(require/*, exports, module*/){
+(function (require/*, exports, module*/) {
     var escape = require('depB');
     return function(message) {
         console.log(escape(message));
     }
-}
+})
 ```
 
-**depB.js**
+**depB.js - module as plain code like Node.js**
 
 ```javascript
-function depB(require, exports, module){
-    // CommonJS Module exports
-    // or exports.feature = function () {}
-    module.exports = function(message) {
-        return message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    };
-}
+// @globals require module exports
+// CommonJS Module exports
+// or exports.feature = function () {}
+module.exports = function(message) {
+    return message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+};
 ```
+
+**Note**: code will be wrapped by builder `(function (require, exports, module) {\n%code%\n})`
 
 1\.2\. Module - objects (for config, i18n and other resources)
 
@@ -169,6 +171,11 @@ Major versions changelog
  - Modules sandboxing
  - Named global object (default this)
  - Updated example - added worker part and config file with environment-specific data
+
+**v1.4.x**
+
+  - Config extends (now config can extend common config file) see example/cfgs/*
+  - Headless module without function wrapper like Node.js module
 
 Licence
 -------

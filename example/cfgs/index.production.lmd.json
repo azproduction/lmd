@@ -1,17 +1,9 @@
 {
-    "path": "../modules/",
+    "extends": "./index.common.lmd.json",
     "modules": {
-        "main": "main.js",
-        "depA": "depA.js",
-        "depB": "depB.js",
         "i18n": "i18n.ru.json",
         "config": "cfgs/production.json"
     },
-    "sandbox": {
-        "depB": true
-    },
-    "main": "main",
-    "global": "this",
     "lazy": true,
     "pack": true
 }
