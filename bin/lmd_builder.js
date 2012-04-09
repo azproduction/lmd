@@ -5,7 +5,7 @@
  * @licence MIT
  */
 
-var LMD_JS = __dirname + '/../src/lmd_min.js',
+var LMD_JS_SRC_PATH = __dirname + '/../src/',
     fs = require('fs'),
     parser = require("uglify-js").parser,
     uglify = require("uglify-js").uglify;
@@ -13,12 +13,28 @@ var LMD_JS = __dirname + '/../src/lmd_min.js',
 var LmdBuilder = function (argv) {
     this.configFile = argv[2];
     this.outputFile = argv[3];
+    this.lmdVersionName = argv[4] || 'lmd_tiny';
+
+    if (!LmdBuilder.versionBuilder[this.lmdVersionName]) {
+        throw new Error('No such LMD version - ' + this.lmdVersionName);
+    }
+
     this.configDir = fs.realpathSync(this.configFile);
     this.configDir = this.configDir.split('/');
     this.configDir.pop();
     this.configDir = this.configDir.join('/');
     if (this.configure()) {
         this.build();
+    }
+};
+
+LmdBuilder.versionBuilder = {
+    'lmd_min': function (data) {
+        return data.lmd_js + '(' + data.global + ',' + data.sandboxed_modules + ')(' + data.lmd_modules + ')(' + data.lmd_main + ')';
+    },
+
+    'lmd_tiny': function (data) {
+        return data.lmd_js + '(' + data.global + ',' + data.lmd_main + ',' + data.lmd_modules + ',' + data.sandboxed_modules + ')';
     }
 };
 
@@ -64,14 +80,21 @@ LmdBuilder.prototype.escape = function (file) {
     return JSON.stringify(file);
 };
 
-LmdBuilder.prototype.render = function (lmd_modules, lmd_main, pack, globalObject, sandboxedModules) {
+LmdBuilder.prototype.render = function (lmd_modules, lmd_main, pack, globalObject, sandboxed_modules) {
     globalObject = globalObject || 'this';
-    sandboxedModules = JSON.stringify(sandboxedModules || {});
-    var lmd_js = fs.readFileSync(LMD_JS, 'utf8'),
+    sandboxed_modules = JSON.stringify(sandboxed_modules || {});
+    var lmd_js = fs.readFileSync(LMD_JS_SRC_PATH + this.lmdVersionName + '.js', 'utf8'),
         result;
 
     lmd_modules = '{\n' + lmd_modules.join(',\n') + '\n}';
-    result = lmd_js + '(' + globalObject + ',' + sandboxedModules + ')(' + lmd_modules + ')(' + lmd_main + ')';
+
+    result = LmdBuilder.versionBuilder[this.lmdVersionName]({
+        lmd_js: lmd_js,
+        global: globalObject,
+        lmd_main: lmd_main,
+        lmd_modules: lmd_modules,
+        sandboxed_modules: sandboxed_modules
+    });
 
     if (pack) {
         result = this.compress(result);
@@ -82,7 +105,7 @@ LmdBuilder.prototype.render = function (lmd_modules, lmd_main, pack, globalObjec
 
 LmdBuilder.prototype.configure = function () {
     if (!this.configFile) {
-        console.log('lmd usage:\n\t    lmd config.lmd.json [output.lmd.js]');
+        console.log('lmd usage:\n\t    lmd config.lmd.json [output.lmd.js] [lmd_min|lmd_tiny]');
         return false;
     }
     return true;

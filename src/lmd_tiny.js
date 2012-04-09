@@ -1,6 +1,5 @@
-(function (global, sandboxed_modules) {
-    var modules = {},
-        initialized_modules = {},
+(function (global, main, modules, sandboxed_modules) {
+    var initialized_modules = {},
         require = function (moduleName) {
             var module = modules[moduleName],
                 output;
@@ -30,21 +29,12 @@
 
             return modules[moduleName] = module;
         },
-        lmd = function (misc) {
-            var output = {exports: {}};
-            switch (typeof misc) {
-                case "function":
-                    misc(require, output.exports, output);
-                    break;
-                case "object":
-                    for (var moduleName in misc) {
-                        // reset module init flag in case of overwriting
-                        initialized_modules[moduleName] = 0;
-                        modules[moduleName] = misc[moduleName];
-                    }
-                    break;
-            }
-            return lmd;
-        };
-    return lmd;
+        output = {exports: {}};
+
+    for (var moduleName in modules) {
+        // reset module init flag in case of overwriting
+        initialized_modules[moduleName] = 0;
+    }
+
+    main(require, output.exports, output);
 })

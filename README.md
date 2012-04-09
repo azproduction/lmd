@@ -126,6 +126,12 @@ Or print to `STDOUT`
 
 `lmd example/cfgs/index.development.lmd.json`
 
+3\.1 Build using special LMD version
+
+`lmd example/cfgs/index.development.lmd.json example/out/index.development.lmd.js lmd_min` or `... lmd_tiny` see `src/`
+for details
+
+
 4\. Use
 
 **index.development.lmd.js**
@@ -176,6 +182,7 @@ Major versions changelog
 
   - Config extends (now config can extend common config file) see example/cfgs/*
   - Headless module without function wrapper like Node.js module
+  - Possible to specify LMD.js version for build - `lmd_min` (old one) or `lmd_tiny`
 
 Licence
 -------
