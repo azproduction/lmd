@@ -1,5 +1,5 @@
 /**
- * LMD
+ * LMD Builder
  *
  * @author  Mikhail Davydov
  * @licence MIT
@@ -10,10 +10,24 @@ var LMD_JS_SRC_PATH = __dirname + '/../src/',
     parser = require("uglify-js").parser,
     uglify = require("uglify-js").uglify;
 
-var LmdBuilder = function (argv) {
-    this.configFile = argv[2];
-    this.outputFile = argv[3];
-    this.lmdVersionName = argv[4] || 'lmd_tiny';
+/**
+ * LmdBuilder
+ * 
+ * @constructor
+ *
+ * @param {Object} data
+ * @param {Object} data.config               path to config file
+ * @param {Object} [data.output]             result file or STDOUT
+ * @param {Object} [data.version='lmd_tiny'] lmd version
+ *
+ * @example
+ *      process.argv = "path/to/node path/to/file.js config.json [result.js] [lmd_version_name]";
+ *      new LmdBuilder(process.argv);
+ */
+var LmdBuilder = function (data) {
+    this.configFile = data.config;
+    this.outputFile = data.output;
+    this.lmdVersionName = data.version || 'lmd_tiny';
 
     if (!LmdBuilder.versionBuilder[this.lmdVersionName]) {
         throw new Error('No such LMD version - ' + this.lmdVersionName);
@@ -28,6 +42,11 @@ var LmdBuilder = function (argv) {
     }
 };
 
+/**
+ * LMD builders templates
+ * 
+ * @namespace
+ */
 LmdBuilder.versionBuilder = {
     'lmd_min': function (data) {
         return data.lmd_js + '(' + data.global + ',' + data.sandboxed_modules + ')(' + data.lmd_modules + ')(' + data.lmd_main + ')';
@@ -38,6 +57,13 @@ LmdBuilder.versionBuilder = {
     }
 };
 
+/**
+ * Compress code using UglifyJS
+ * 
+ * @param {String} code
+ *
+ * @returns {String} compressed code
+ */
 LmdBuilder.prototype.compress = function (code) {
     var ast = parser.parse(code);
     ast = uglify.ast_mangle(ast);
@@ -46,13 +72,18 @@ LmdBuilder.prototype.compress = function (code) {
     return uglify.gen_code(ast);
 };
 
+/**
+ * Wrapper for plain files
+ *
+ * @param {String} code
+ *
+ * @returns {String} wrapped code
+ */
 LmdBuilder.prototype.tryWrap = function (code) {
     try {
         var ast = parser.parse(code);
     } catch (e) {
-        console.log('parse error on ' + code);
-        process.exit(1);
-        return;
+        throw new Error('parse error on ' + code);
     }
 
     // ["toplevel",[["defun","depA",["require"],[]]]]
@@ -76,10 +107,26 @@ LmdBuilder.prototype.tryWrap = function (code) {
     return '(function (require, exports, module) { /* wrapped by builder */\n' + code + '\n})';
 };
 
+/**
+ * JSON escaper
+ *
+ * @param file
+ */
 LmdBuilder.prototype.escape = function (file) {
     return JSON.stringify(file);
 };
 
+/**
+ * Module code renderer
+ * 
+ * @param {String[]} lmd_modules
+ * @param {String}   lmd_main
+ * @param {Boolean}  pack
+ * @param {String}   globalObject
+ * @param {String[]} sandboxed_modules
+ *
+ * @returns {String}
+ */
 LmdBuilder.prototype.render = function (lmd_modules, lmd_main, pack, globalObject, sandboxed_modules) {
     globalObject = globalObject || 'this';
     sandboxed_modules = JSON.stringify(sandboxed_modules || {});
@@ -103,6 +150,9 @@ LmdBuilder.prototype.render = function (lmd_modules, lmd_main, pack, globalObjec
     return result;
 };
 
+/**
+ * Performs configuration
+ */
 LmdBuilder.prototype.configure = function () {
     if (!this.configFile) {
         console.log('lmd usage:\n\t    lmd config.lmd.json [output.lmd.js] [lmd_min|lmd_tiny]');
@@ -111,6 +161,11 @@ LmdBuilder.prototype.configure = function () {
     return true;
 };
 
+/**
+ * Extracts file path parameters
+ * 
+ * @param file
+ */
 LmdBuilder.prototype.extract = function (file) {
     file = file.split('/');
     return {
@@ -119,6 +174,12 @@ LmdBuilder.prototype.extract = function (file) {
     };
 };
 
+/**
+ * Config files deep merge
+ *
+ * @param {Object} left
+ * @param {Object} right
+ */
 LmdBuilder.prototype.deepDestructableMerge = function (left, right) {
     for (var prop in right) {
         if (right.hasOwnProperty(prop))  {
@@ -132,6 +193,11 @@ LmdBuilder.prototype.deepDestructableMerge = function (left, right) {
     return left;
 };
 
+/**
+ * Merges all config files in module's lineage
+ *
+ * @param config
+ */
 LmdBuilder.prototype.tryExtend = function (config) {
     config = config || {};
     if (typeof config.extends !== "string") {
@@ -142,60 +208,143 @@ LmdBuilder.prototype.tryExtend = function (config) {
     return this.deepDestructableMerge(parentConfig, config);
 };
 
+/**
+ * @name LmdModuleStruct
+ * @class
+ *
+ * @field {String}  name       module name
+ * @field {String}  path       full path to module
+ * @field {Boolean} is_lazy    is lazy module?
+ * @field {Boolean} is_sandbox is module sandboxed?
+ * @field {Boolean} is_greedy  module is collected using wildcard
+ */
+
+/**
+ * Collecting module using merged config
+ *
+ * @param config
+ *
+ * @returns {Object}
+ */
+LmdBuilder.prototype.collectModules = function (config) {
+    var IS_HAS_WILD_CARD = /\*/;
+
+    var modules = {},
+        globalLazy = typeof config.lazy === "undefined" ? true : config.lazy,
+        moduleLazy = false,
+        moduleName,
+        modulePath,
+        descriptor,
+        moduleDesciptor,
+        wildcardRegex,
+        moduleData,
+        path =  config.path || '';
+
+    if (path[0] !== '/') { // non-absolute
+        path = this.configDir + '/' + path;
+    }
+
+    // grep paths
+    for (moduleName in config.modules) {
+        moduleDesciptor = config.modules[moduleName];
+        // case "moduleName": "path/to/module.js"
+        if (typeof moduleDesciptor === "string") {
+            modulePath = moduleDesciptor;
+            moduleLazy = globalLazy;
+        } else { // case "moduleName": {"path": "path/to/module.js", "lazy": false}
+            modulePath = moduleDesciptor.path;
+            moduleLazy = typeof moduleDesciptor.lazy === "undefined" ? globalLazy : moduleDesciptor.lazy;
+        }
+        // its a wildcard
+        // "*": "*.js" or "*_pewpew": "*.ru.json" or "ololo": "*.js"
+        if (IS_HAS_WILD_CARD.test(modulePath)) {
+            descriptor = this.extract(modulePath);
+            wildcardRegex = new RegExp("^" + descriptor.file.replace(/\*/g, "(\\w+)") + "$");
+            fs.readdirSync(path + descriptor.path).forEach(function (fileName) {
+                var match = fileName.match(wildcardRegex),
+                    newModuleName;
+
+                if (match) {
+                    match.shift();
+
+                    // Modify a module name
+                    match.forEach(function (replacement) {
+                        newModuleName = moduleName.replace('*', replacement);
+                    });
+
+                    moduleData = {
+                        name: newModuleName,
+                        path: fs.realpathSync(path + descriptor.path + fileName),
+                        is_lazy: moduleLazy,
+                        is_greedy: true,
+                        is_sandbox: moduleDesciptor.sandbox || false
+                    };
+
+                    // wildcard have a low priority
+                    // if module was directly named it pass
+                    if (!(modules[newModuleName] && !modules[newModuleName].is_greedy)) {
+                        modules[newModuleName] = moduleData;
+                    }
+                }
+            });
+        } else {
+            // normal name
+            // "name": "name.js"
+            modules[moduleName] = {
+                name: moduleName,
+                path: fs.realpathSync(path + modulePath),
+                is_lazy: moduleLazy,
+                is_greedy: false,
+                is_sandbox: moduleDesciptor.sandbox || false
+            };
+        }
+    }
+
+    return modules;
+};
+
+/**
+ * Collecting sandboxed modules using merged config
+ *
+ * @param modulesStruct
+ *
+ * @returns {Object}
+ */
+LmdBuilder.prototype.getSandboxedModules = function (modulesStruct, config) {
+    // TODO(azproduction) Backward capability
+    var result = config.sandbox || {};
+    for (var moduleName in modulesStruct) {
+        if (modulesStruct[moduleName].is_sandbox) {
+            result[moduleName] = true;
+        }
+    }
+
+    return result;
+};
+
+/**
+ * Main builder
+ */
 LmdBuilder.prototype.build = function () {
     var config = this.tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8'))),
         lazy = typeof config.lazy === "undefined" ? true : config.lazy,
         mainModuleName = config.main,
         pack = lazy ? true : typeof config.pack === "undefined" ? true : config.pack,
-        path =  config.path || '',
         moduleContent,
-        modulePath,
         lmdModules = [],
+        sandbox,
         lmdMain,
         lmdFile,
         isJson,
-        modules = {},
-        moduleName,
-        IS_HAS_WILD_CARD = /\*/,
-        wildcard_regex,
-        descriptor;
+        module,
+        modules;
 
     if (config.modules) {
-        if (path[0] !== '/') { // non-absolute
-            path = this.configDir + '/' + path;
-        }
-
-        // grep paths
-        for (moduleName in config.modules) {
-            modulePath = config.modules[moduleName];
-            // its a wildcard
-            // "*": "*.js" or "*_pewpew": "*.ru.json" or "ololo": "*.js"
-            if (IS_HAS_WILD_CARD.test(modulePath)) {
-                descriptor = this.extract(modulePath);
-                wildcard_regex = new RegExp("^" + descriptor.file.replace(/\*/g, "(\\w+)") + "$");
-                fs.readdirSync(path + descriptor.path).forEach(function (fileName) {
-                    var match = fileName.match(wildcard_regex),
-                        newModuleName;
-
-                    if (match) {
-                        match.shift();
-
-                        // Modify a module name
-                        match.forEach(function (replacement) {
-                            newModuleName = moduleName.replace('*', replacement);
-                        });
-                        modules[newModuleName] = fs.realpathSync(path + descriptor.path + fileName);
-                    }
-                });
-            } else {
-                // normal name
-                // "name": "name.js"
-                modules[moduleName] = fs.realpathSync(path + modulePath);
-            }
-        }
-
-        for (moduleName in modules) {
-            moduleContent = fs.readFileSync(modules[moduleName], 'utf8');
+        modules = this.collectModules(config);
+        // build modules string
+        for (var index in modules) {
+            module = modules[index];
+            moduleContent = fs.readFileSync(module.path, 'utf8');
 
             try {
                 JSON.parse(moduleContent);
@@ -212,17 +361,18 @@ LmdBuilder.prototype.build = function () {
                 moduleContent = this.compress(moduleContent);
             }
 
-            if (moduleName === mainModuleName) {
+            if (module.name === mainModuleName) {
                 lmdMain = moduleContent;
             } else {
-                if (!isJson && lazy) {
+                if (!isJson && module.is_lazy) {
                     moduleContent = this.escape('(' + moduleContent.replace(/^function[^\(]*/, 'function') + ')' );
                 }
-                lmdModules.push(this.escape(moduleName) + ': ' + moduleContent);
+                lmdModules.push(this.escape(module.name) + ': ' + moduleContent);
             }
         }
 
-        lmdFile = this.render(lmdModules, lmdMain, pack, config.global, config.sandbox);
+        sandbox = this.getSandboxedModules(modules, config);
+        lmdFile = this.render(lmdModules, lmdMain, pack, config.global, sandbox);
 
         if (this.outputFile) {
             fs.writeFileSync(this.outputFile, lmdFile,'utf8')

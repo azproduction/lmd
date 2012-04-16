@@ -85,17 +85,21 @@ module.exports = function(message) {
 {
     "path": "../modules/", // if starts with "/" it is absolute path else path will be relative to the config file
     "modules": {
+        // basic module descriptor -- only path
         "main": "main.js",     // "module_pseudonym": "module_file"
         "depA": "depA.js",     // require("module_pseudonym").doModuleStuff()
-        "depB": "depB.js",
+
+        // extended module descriptor
+        "depB": {
+            "path": "depB.js",
+            "sandbox": true,    // module is sandboxed - can't require
+            "lazy": false       // overloading of global lazy flag, for the purpose of load optimizing
+        },
         "i18n": "i18n.ru.json"
     },
     "main": "main",     // a main module - content of that module will be called on start (no reason to eval)
     "lazy": false,      // if true - all modules will be evaled on demand [default=true]
     "pack": false,      // if true - module will be packed using uglifyjs [default=true]
-    "sandbox": {        // optional, list of modules that can't require (null passed)
-        "depB": true
-    },
     "global": "this"  // optional, default="this" name of global object, passed to the lmd
 }
 ```
@@ -106,15 +110,16 @@ module.exports = function(message) {
 {
     "path": "../modules/",
     "modules": {
+        "depB": {              // extended module descriptor
+            "path": "depB.js",
+            "sandbox": true    // module is sandboxed
+        },
         "*": "*.js",           // use wildcards or specify regex string to grep 
         "i18n": "i18n.ru.json" // similar files (no dir wildcards supported by now)
     },
     "main": "main",
     "lazy": false,
-    "pack": false,
-    "sandbox": {
-        "depB": true
-    }
+    "pack": false
 }
 ```
 
@@ -183,6 +188,10 @@ Major versions changelog
   - Config extends (now config can extend common config file) see example/cfgs/*
   - Headless module without function wrapper like Node.js module
   - Possible to specify LMD.js version for build - `lmd_min` (old one) or `lmd_tiny`
+  - Per module lazy flag `"Module": {"path": "Module.js", "lazy": false}`
+  - Sandbox flag is moved to module descriptor. `{"sandbox": {...}}` is deprecated
+  - Modified LmdBuilder constructor
+  - Lots of comments in LmdBuilder
 
 Licence
 -------

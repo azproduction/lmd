@@ -2,7 +2,11 @@
     "extends": "./index.common.lmd.json",
     "modules": {
         "i18n": "i18n.ru.json",
-        "config": "cfgs/production.json"
+        "config": "cfgs/production.json",
+        "workerDepA": {
+            "path": "workerDepA.js",
+            "lazy": false
+        }
     },
     "lazy": true,
     "pack": true

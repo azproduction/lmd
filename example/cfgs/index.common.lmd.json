@@ -3,11 +3,11 @@
     "modules": {
         "main": "main.js",
         "depA": "depA.js",
-        "depB": "depB.js",
+        "depB": {
+            "path": "depB.js",
+            "sandbox": true
+        },
         "workerDepA": "workerDepA.js"
-    },
-    "sandbox": {
-        "depB": true
     },
     "main": "main",
     "global": "this",
