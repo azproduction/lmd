@@ -21,8 +21,11 @@ var LMD_JS_SRC_PATH = __dirname + '/../src/',
  * @param {Object} [data.version='lmd_tiny'] lmd version
  *
  * @example
- *      process.argv = "path/to/node path/to/file.js config.json [result.js] [lmd_version_name]";
- *      new LmdBuilder(process.argv);
+ *      new LmdBuilder({
+ *          config: "config.json",
+ *          output: "result.js", // optional
+ *          version: "lmd_tiny" // optional - default=lmd_tiny
+ *      });
  */
 var LmdBuilder = function (data) {
     this.configFile = data.config;
