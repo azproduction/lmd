@@ -16,6 +16,7 @@ var LMD_JS_SRC_PATH = __dirname + '/../src/',
  * @constructor
  *
  * @param {Object} data
+ * @param {Object} [data.mode]               watch or main
  * @param {Object} data.config               path to config file
  * @param {Object} [data.output]             result file or STDOUT
  * @param {Object} [data.version='lmd_tiny'] lmd version
@@ -28,7 +29,7 @@ var LMD_JS_SRC_PATH = __dirname + '/../src/',
  *      });
  */
 var LmdBuilder = function (data) {
-    this.mode = data.mode;
+    this.mode = data.mode || 'main';
     this.configFile = data.config;
     this.outputFile = data.output;
     this.lmdVersionName = data.version || 'lmd_tiny';
@@ -390,6 +391,8 @@ LmdBuilder.prototype.fsWatch = function () {
 
 /**
  * Main builder
+ *
+ * @param callback {Function}
  */
 LmdBuilder.prototype.build = function (callback) {
     var config = this.tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8'))),
