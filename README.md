@@ -173,22 +173,25 @@ and LMD builder can rebuild your package automatically.
 **Run LMD package in watch mode**
 
 old style `lmd watch config.lmd.json output.js`
+
 new style `lmd -m watch -c config.lmd.json -o output.js -l` the `-l` flag for verbose stdout log
+
 or new style with long names `lmd -mode watch -config config.lmd.json -output output.js -log`
 
 LMD CLI
 --------------
 
 old style `lmd [mode] config [output] [version]`
+
 new style `lmd [-m mode] -c config [-o output] [-v version] [-l]`
 
 **Arguments**
 
-`-m` `-mode` lmd run mode `main` (default) or `watch`
-`-c` `-config` lmd package config file
-`-o` `-output` lmd output file - default STDOUT
-`-v` `-version` lmd version `lmd_tiny` (default) or `lmd_min`
-`-l` `-log` print work log - default false
+ - `-m` `-mode` lmd run mode `main` (default) or `watch`
+ - `-c` `-config` lmd package config file
+ - `-o` `-output` lmd output file - default STDOUT
+ - `-v` `-version` lmd version `lmd_tiny` (default) or `lmd_min`
+ - `-l` `-log` print work log - default false
 
 Major versions changelog
 ---------
