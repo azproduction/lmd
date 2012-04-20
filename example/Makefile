@@ -6,7 +6,7 @@ development:
 	node $(LMD_BUILD) ./cfgs/index.development.lmd.json ./out/index.development.lmd.js
 
 production:
-	node $(LMD_BUILD) ./cfgs/index.production.lmd.json ./out/index.production.lmd.js
+	node $(LMD_BUILD) -m main -c ./cfgs/index.production.lmd.json -o ./out/index.production.lmd.js -v lmd_tiny -l
 
 help:
 	@echo "USAGE:\n\tmake\n\tmake development\n\tmake production"
