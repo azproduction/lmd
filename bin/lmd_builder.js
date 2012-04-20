@@ -16,6 +16,7 @@ var LMD_JS_SRC_PATH = __dirname + '/../src/',
  * @constructor
  *
  * @param {Object} data
+ * @param {Object} [data.mode]               watch or main
  * @param {Object} data.config               path to config file
  * @param {Object} [data.output]             result file or STDOUT
  * @param {Object} [data.version='lmd_tiny'] lmd version
@@ -28,6 +29,7 @@ var LMD_JS_SRC_PATH = __dirname + '/../src/',
  *      });
  */
 var LmdBuilder = function (data) {
+    this.mode = data.mode || 'main';
     this.configFile = data.config;
     this.outputFile = data.output;
     this.lmdVersionName = data.version || 'lmd_tiny';
@@ -41,7 +43,15 @@ var LmdBuilder = function (data) {
     this.configDir.pop();
     this.configDir = this.configDir.join('/');
     if (this.configure()) {
-        this.build();
+        switch (this.mode) {
+            case 'watch':
+                this.fsWatch();
+                break;
+            case 'main':
+            default:
+                this.build();
+                break;
+        }
     }
 };
 
@@ -326,9 +336,65 @@ LmdBuilder.prototype.getSandboxedModules = function (modulesStruct, config) {
 };
 
 /**
- * Main builder
+ * Watch the module files, rebuilding when a change is detected
  */
-LmdBuilder.prototype.build = function () {
+LmdBuilder.prototype.fsWatch = function () {
+    var i = 0,
+        config = this.tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8'))),
+        module,
+        modules,
+        LmdBuilder = this,
+        watchBuilder = function (stat, filename) {
+            if (stat && filename) {
+                console.log('Change detected at \033[34m%s\033[0m to \033[33%s\033[0m', stat.mtime, filename);
+            } else if (stat) {
+                console.log('Change detected at \033[34m%s\033[0m', stat.mtime);
+            } else {
+                console.log('Change detected');
+            }
+            process.stdout.write('\033[32mRebuilding...\033[0m');
+            LmdBuilder.build(function () {
+                process.stdout.write('\033[32m\033[1mDone!\033[0m\033[0m\n');
+            });
+        };
+
+    if (config.modules) {
+        modules = this.collectModules(config),
+        builder = this,
+        watch = function (event, filename) {
+            if (event === 'change') {
+                if (filename) {
+                    watchBuilder(fs.stat(filename), filename);
+                } else {
+                    watchBuilder();
+                }
+            }
+        },
+        watchFile = function (curr, prev) {
+            if (curr.mtime > prev.mtime) {
+                watchBuilder(curr);
+            }
+        };
+
+        for (var index in modules) {
+            module = modules[index];
+            try {
+                fs.watchFile(module.path, { interval: 1000 }, watchFile);
+            } catch (e) {
+                fs.watch(module.path, watch);
+            }
+            i++;
+        }
+        console.log('now watching \033[37m%d\033[0m module files. ctrl+c to stop', i);
+    }
+};
+
+/**
+ * Main builder
+ *
+ * @param callback {Function}
+ */
+LmdBuilder.prototype.build = function (callback) {
     var config = this.tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8'))),
         lazy = typeof config.lazy === "undefined" ? true : config.lazy,
         mainModuleName = config.main,
@@ -381,6 +447,10 @@ LmdBuilder.prototype.build = function () {
             fs.writeFileSync(this.outputFile, lmdFile,'utf8')
         } else {
             process.stdout.write(lmdFile);
+        }
+
+        if (typeof callback === 'function') {
+            callback();
         }
     }
 };
