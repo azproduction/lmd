@@ -11,7 +11,7 @@
             }
 
             // Lazy LMD module
-            if (typeof module === "string") {
+            if (typeof module === "string" && module.substring(0, 11) !== 'LMD_noexec!') {
                 module = window.eval(module);
             }
 
