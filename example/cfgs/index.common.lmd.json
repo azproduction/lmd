@@ -3,6 +3,7 @@
     "modules": {
         "main": "main.js",
         "depA": "depA.js",
+        "template": "templates/template.html",
         "depB": {
             "path": "depB.js",
             "sandbox": true

@@ -9,8 +9,8 @@
                 return module;
             }
 
-            // Lazy LMD module
-            if (typeof module === "string") {
+            // Lazy LMD module not a string
+            if (/^\(function\(/.test(module)) {
                 module = window.eval(module);
             }
 
@@ -41,19 +41,24 @@
     // Common Worker or Browser
     var i18n = require('i18n'),
         text = i18n.hello +  ', lmd',
-        $, print, Worker, worker, cfg;
+        $, print, Worker, worker, cfg, tpl, escape;
 
 
     if (typeof window !== "undefined") {
         // Browser
         print = require('depA');
+        escape = require('depB');
         Worker = require('Worker'); // grab from globals
         cfg = require('config');
+        tpl = require('template'); // template string
 
         $ = require('$'); // grab module from globals: LMD version 1.2.0
 
         $(function () {
-            $('#log').text(text);
+            $('#log').html(
+                // use template to render text
+                tpl.replace('${content}', escape(text))
+            );
         });
 
         if (Worker) { // test if browser support workers
@@ -77,6 +82,7 @@
         console.log(escape(message));
     }
 }),
+"template": "<i class=\"b-template\">${content}</i>",
 "depB": (function (require, exports, module) { /* wrapped by builder */
 // module is sandboxed(see cfgs) - it cannot require
 // CommonJS Module exports

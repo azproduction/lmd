@@ -539,6 +539,7 @@ LmdBuilder.prototype.build = function (callback) {
         lmdMain,
         lmdFile,
         isJson,
+        isModule,
         module,
         modules;
 
@@ -557,19 +558,31 @@ LmdBuilder.prototype.build = function (callback) {
             }
 
             if (!isJson) {
-                moduleContent = this.tryWrap(moduleContent);
-            }
+                try {
+                    moduleContent = this.tryWrap(moduleContent);
+                    isModule = true;
+                } catch(e) {
+                    isModule = false;
+                }
 
-            if (!isJson && pack) {
-                moduleContent = this.compress(moduleContent);
+                if (isModule && pack) {
+                    moduleContent = this.compress(moduleContent);
+                }
             }
 
             if (module.name === mainModuleName) {
                 lmdMain = moduleContent;
             } else {
-                if (!isJson && module.is_lazy) {
-                    moduleContent = this.escape('(' + moduleContent.replace(/^function[^\(]*/, 'function') + ')' );
+                if (isModule && !isJson && module.is_lazy) {
+                    moduleContent = moduleContent.replace(/^function[^\(]*/, 'function');
+                    if (moduleContent.indexOf('(function(') !== 0) {
+                        moduleContent = '(' + moduleContent + ')';
+                    }
+                    moduleContent = this.escape(moduleContent);
+                } else if (!isModule) {
+                    moduleContent = this.escape(moduleContent);
                 }
+
                 lmdModules.push(this.escape(module.name) + ': ' + moduleContent);
             }
         }

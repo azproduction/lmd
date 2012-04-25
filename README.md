@@ -77,6 +77,12 @@ module.exports = function(message) {
 }
 ```
 
+1\.3\. Module - string (for templates)
+
+```html
+<i class="b-template">${content}</i>
+```
+
 2\. Write a config file
 
 **index.production.lmd.json**
@@ -93,7 +99,8 @@ module.exports = function(message) {
         "depB": {
             "path": "depB.js",
             "sandbox": true,    // module is sandboxed - can't require
-            "lazy": false       // overloading of global lazy flag, for the purpose of load optimizing
+            "lazy": false,      // overloading of global lazy flag, for the purpose of load optimizing
+            "template": "templates/template.html" // string template
         },
         "i18n": "i18n.ru.json"
     },
@@ -226,6 +233,7 @@ Major versions changelog
 
   - Watch mode see "Watch mode" in this README
   - New version of argv params see "LMD CLI" in this README
+  - String module
 
 Licence
 -------

@@ -10,8 +10,8 @@
                 return module;
             }
 
-            // Lazy LMD module
-            if (typeof module === "string") {
+            // Lazy LMD module not a string
+            if (/^\(function\(/.test(module)) {
                 module = window.eval(module);
             }
 
