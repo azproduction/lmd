@@ -2,6 +2,7 @@
     var initialized_modules = {},
         require = function (moduleName) {
             var module = modules[moduleName],
+                textRegex = /^LMD_noexec!/,
                 output;
 
             // Already inited - return as is
@@ -11,7 +12,12 @@
 
             // Lazy LMD module
             if (typeof module === "string") {
-                module = window.eval(module);
+                // check if this string is intended to be text, or if it is to be stored for lazy eval
+                if (textRegex.test(module)) {
+                    module = module.replace(textRegex, '');
+                } else {
+                    module = window.eval(module);
+                }
             }
 
             // Predefine in case of recursive require

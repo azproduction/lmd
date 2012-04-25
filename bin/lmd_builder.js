@@ -533,12 +533,14 @@ LmdBuilder.prototype.build = function (callback) {
         lazy = typeof config.lazy === "undefined" ? true : config.lazy,
         mainModuleName = config.main,
         pack = lazy ? true : typeof config.pack === "undefined" ? true : config.pack,
+        textRegex = /\.(txt|htm|html|xhtml|md|markdown|xml|jade|mustache|handlebars|hbs)$/i,
         moduleContent,
         lmdModules = [],
         sandbox,
         lmdMain,
         lmdFile,
         isJson,
+        isText,
         module,
         modules;
 
@@ -552,22 +554,30 @@ LmdBuilder.prototype.build = function (callback) {
             try {
                 JSON.parse(moduleContent);
                 isJson = true;
+                isText = false;
             } catch (e) {
                 isJson = false;
             }
 
             if (!isJson) {
-                moduleContent = this.tryWrap(moduleContent);
-            }
-
-            if (!isJson && pack) {
-                moduleContent = this.compress(moduleContent);
+                if (textRegex.test(module.path)) {
+                    // if this is a text file, save it as a string literal
+                    moduleContent = this.escape('LMD_noexec!' + moduleContent);
+                    isText = true;
+                } else {
+                    // assume js
+                    moduleContent = this.tryWrap(moduleContent);
+                    if (pack) {
+                        moduleContent = this.compress(moduleContent);
+                    }
+                    isText = false;
+                }
             }
 
             if (module.name === mainModuleName) {
                 lmdMain = moduleContent;
             } else {
-                if (!isJson && module.is_lazy) {
+                if (!isJson && !isText && module.is_lazy) {
                     moduleContent = this.escape('(' + moduleContent.replace(/^function[^\(]*/, 'function') + ')' );
                 }
                 lmdModules.push(this.escape(module.name) + ': ' + moduleContent);
