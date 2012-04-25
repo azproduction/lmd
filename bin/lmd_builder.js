@@ -552,7 +552,7 @@ LmdBuilder.prototype.build = function (callback) {
             moduleContent = fs.readFileSync(module.path, 'utf8');
 
             try {
-                JSON.parse(moduleContent);''
+                JSON.parse(moduleContent);
                 isJson = true;
                 isText = false;
             } catch (e) {
