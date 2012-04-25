@@ -12,7 +12,7 @@
             }
 
             // Lazy LMD module
-            if (typeof module === "string" && textRegex.test(module)) {
+            if (typeof module === "string") {
                 // check if this string is intended to be text, or if it is to be stored for lazy eval
                 if (textRegex.test(module)) {
                     module = module.replace(textRegex, '');
