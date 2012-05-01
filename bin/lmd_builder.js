@@ -98,6 +98,8 @@ LmdBuilder.versionBuilder = {
     }
 };
 
+LmdBuilder.versionBuilder.lmd_async = LmdBuilder.versionBuilder.lmd_tiny;
+
 /**
  *
  *

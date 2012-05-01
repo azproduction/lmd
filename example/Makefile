@@ -3,10 +3,10 @@ LMD_BUILD = ../bin/lmd.js
 all: development production
 
 development:
-	node $(LMD_BUILD) ./cfgs/index.development.lmd.json ./out/index.development.lmd.js
+	node $(LMD_BUILD) -m main -c ./cfgs/index.development.lmd.json -o ./out/index.development.lmd.js -v lmd_async -l
 
 production:
-	node $(LMD_BUILD) -m main -c ./cfgs/index.production.lmd.json -o ./out/index.production.lmd.js -v lmd_tiny -l
+	node $(LMD_BUILD) -m main -c ./cfgs/index.production.lmd.json -o ./out/index.production.lmd.js -v lmd_async -l
 
 help:
 	@echo "USAGE:\n\tmake\n\tmake development\n\tmake production"

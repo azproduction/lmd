@@ -12,6 +12,7 @@ Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initi
 7. Build system compresses JavaScript files using uglifyjs (or any other)
 8. LMD module can define object via return or module.exports/exports as CommonJS Module
 9. Module can be wrapped automatically in builder so you can write your modules as node.js modules (see Usage)
+10. Starting from version 1.5.2 LMD can require off-package modules `lmd_async` (see Asynchronous module require)
 
 Installing
 ----------
@@ -171,6 +172,66 @@ for details
 (function(b){var c=b("depA");c("ololo")})
 ```
 
+Asynchronous module require
+---------------------------
+
+You can build async LMD package. Then your packages can require off-package modules from http server.
+Build LMD package using `lmd_async` version. LMD loader now can require javascript FunctionsExpressions,
+JSON or template strings asynchronously. LMD parses file content depend on `Content-type` header.
+You must work online using HTTP server for correct headers, if you work offline (using `file:` protocol)
+then `Content-type` header will be INVALID so all modules will be strings.
+
+**Notice**
+ - If you use `file:` protocol then all modules will be strings
+ - LMD loader uses simple RegExp `/script$|json$/` with `Content-type` to determine the kind of content
+and eval it (if json or javascript) or return as string
+ - Your off-package module MUST be an FunctionsExpression wrapped in parentheses
+ - If all you modules are in-package then use `lmd_tiny` version of LMD (300 bytes less then `lmd_async`)
+ - If async require fails (status code will be >= 400) loader will return `undefined`
+   (LMD doesn't re-request on error)
+
+```javascript
+// Valid
+(function (require, exports, module) {
+    /* Module content */
+})
+
+// Invalid! - parse error in loader's eval
+function (require, exports, module) {
+    /* Module content */
+}
+
+// Bad but valid: module name will leak in global variables
+function module(require, exports, module) {
+    /* Module content */
+}
+```
+
+**Example**
+
+```javascript
+(function main(require) {
+
+    // async require of off-package module
+    require('/css/_engine.css', function (css) {
+        console.log('1', css.length); // result
+
+        // require of module loaded async (already registered)
+        console.log('2', require('/css/_engine.css').length);
+
+        // require of in-package module
+        console.log('3', require('pewpew'));
+    });
+
+    // async require of in-package module
+    require('pewpew', function (pewpew) {
+        console.log('4', pewpew);
+    });
+})
+```
+
+See `example/modules/main.js` near `async_template.html` for real life example
+
 Watch mode
 ----------
 
@@ -197,7 +258,7 @@ new style `lmd [-m mode] -c config [-o output] [-v version] [-l]`
  - `-m` `-mode` lmd run mode `main` (default) or `watch`
  - `-c` `-config` lmd package config file
  - `-o` `-output` lmd output file - default STDOUT
- - `-v` `-version` lmd version `lmd_tiny` (default) or `lmd_min`
+ - `-v` `-version` lmd version `lmd_tiny` (default), `lmd_async` or `lmd_min`
  - `-l` `-log` print work log - default false
 
 Major versions changelog
@@ -234,6 +295,7 @@ Major versions changelog
   - Watch mode see "Watch mode" in this README
   - New version of argv params see "LMD CLI" in this README
   - String module
+  - LMD async - loader of off-package modules see "Asynchronous module require" in this README
 
 Licence
 -------

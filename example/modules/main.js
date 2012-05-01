@@ -16,10 +16,17 @@ function main(require) {
         $ = require('$'); // grab module from globals: LMD version 1.2.0
 
         $(function () {
-            $('#log').html(
-                // use template to render text
-                tpl.replace('${content}', escape(text))
-            );
+            // require off-package module
+            // LMD parses content of module depend on Content-type header!
+            // *** You must work on you HTTP server for correct headers,
+            // *** if you work offline (using file:// protocol) then
+            // *** Content-type header will be INVALID so all modules will be strings
+            require('./modules/templates/async_template.html', function (async_template) {
+                $('#log').html(
+                    // use template to render text
+                    async_template.replace('${content}', tpl.replace('${content}', escape(text)))
+                );
+            });
         });
 
         if (Worker) { // test if browser support workers
