@@ -12,7 +12,7 @@
 
             // Lazy LMD module not a string
             if (/^\(function\(/.test(module)) {
-                module = window.eval(module);
+                module = global.eval(module);
             }
 
             // Predefine in case of recursive require

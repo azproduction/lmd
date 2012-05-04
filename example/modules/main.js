@@ -24,7 +24,9 @@ function main(require) {
             require('./modules/templates/async_template.html', function (async_template) {
                 $('#log').html(
                     // use template to render text
-                    async_template.replace('${content}', tpl.replace('${content}', escape(text)))
+                    async_template ?
+                        async_template.replace('${content}', tpl.replace('${content}', escape(text))) :
+                        tpl.replace('${content}', escape(text))
                 );
             });
         });

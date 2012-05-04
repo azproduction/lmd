@@ -1,4 +1,4 @@
-(function (global, main, modules, sandboxed_modules) {
+(function /*$IF STORAGE_CACHE$*/lmd/*$ENDIF$*/(global, main, modules, sandboxed_modules/*$IF STORAGE_CACHE$*/, version/*$ENDIF$*/) {
     var initialized_modules = {},
         require = function (moduleName) {
             var module = modules[moduleName],
@@ -11,7 +11,7 @@
 
             // Lazy LMD module not a string
             if (/^\(function\(/.test(module)) {
-                module = window.eval(module);
+                module = global.eval(module);
             }
 
             // Predefine in case of recursive require
@@ -35,6 +35,6 @@
         // reset module init flag in case of overwriting
         initialized_modules[moduleName] = 0;
     }
-
+/*$INCLUDE lmd_cache_dump.part.js IF STORAGE_CACHE$*/
     main(require, output.exports, output);
 })

@@ -12,6 +12,7 @@
     },
     "main": "main",
     "global": "this",
+    "async": true,
     "lazy": false,
     "pack": false
 }

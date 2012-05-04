@@ -5,14 +5,15 @@ Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initi
 
 1. Modules are similar to AMD: there is a require, but no define (all defined on startup)
 2. LMD does not create globals
-3. LMD is standalone and tiny - only +300 extra bytes
+3. LMD is standalone and tiny
 4. All modules are loaded at startup
 5. Each function-module is initialized (evaled) on demand
 6. LMD module is as easy to debug as normal JavaScript file
 7. Build system compresses JavaScript files using uglifyjs (or any other)
 8. LMD module can define object via return or module.exports/exports as CommonJS Module
-9. Module can be wrapped automatically in builder so you can write your modules as node.js modules (see Usage)
-10. Starting from version 1.5.2 LMD can require off-package modules `lmd_async` (see Asynchronous module require)
+9. Module can be wrapped automatically in builder so you can write your modules as node.js modules (see Usage and Asynchronous module require)
+10. Starting from version 1.5.2 LMD can require off-package modules `"async": true` (see Asynchronous module require)
+11. From version 1.6.0 LMD can cache all in-package modules in localStorage `"cache": true` (see Local Storage cache)
 
 Installing
 ----------
@@ -108,7 +109,10 @@ module.exports = function(message) {
     "main": "main",     // a main module - content of that module will be called on start (no reason to eval)
     "lazy": false,      // if true - all modules will be evaled on demand [default=true]
     "pack": false,      // if true - module will be packed using uglifyjs [default=true]
-    "global": "this"  // optional, default="this" name of global object, passed to the lmd
+    "global": "this",   // optional, default="this" name of global object, passed to the lmd
+    "async": true,      // if modules uses off-package module set this to true
+    "cache": true       // store all application lmd itself + all modules in localStorage
+                        // this flag will force all modules to be lazy
 }
 ```
 
@@ -127,7 +131,8 @@ module.exports = function(message) {
     },
     "main": "main",
     "lazy": false,
-    "pack": false
+    "pack": false,
+    "async": true
 }
 ```
 
@@ -138,12 +143,6 @@ module.exports = function(message) {
 Or print to `STDOUT`
 
 `lmd example/cfgs/index.development.lmd.json`
-
-3\.1 Build using special LMD version
-
-`lmd example/cfgs/index.development.lmd.json example/out/index.development.lmd.js lmd_min` or `... lmd_tiny` see `src/`
-for details
-
 
 4\. Use
 
@@ -176,7 +175,7 @@ Asynchronous module require
 ---------------------------
 
 You can build async LMD package. Then your packages can require off-package modules from http server.
-Build LMD package using `lmd_async` version. LMD loader now can require javascript FunctionsExpressions,
+Build LMD package using `async: true` flag. LMD loader now can require javascript FunctionsExpressions,
 JSON or template strings asynchronously. LMD parses file content depend on `Content-type` header.
 You must work online using HTTP server for correct headers, if you work offline (using `file:` protocol)
 then `Content-type` header will be INVALID so all modules will be strings.
@@ -186,7 +185,7 @@ then `Content-type` header will be INVALID so all modules will be strings.
  - LMD loader uses simple RegExp `/script$|json$/` with `Content-type` to determine the kind of content
 and eval it (if json or javascript) or return as string
  - Your off-package module MUST be an FunctionsExpression wrapped in parentheses
- - If all you modules are in-package then use `lmd_tiny` version of LMD (300 bytes less then `lmd_async`)
+ - If all you modules are in-package then set `async` flag to false (300 bytes less)
  - If async require fails (status code will be >= 400) loader will return `undefined`
    (LMD doesn't re-request on error)
 
@@ -232,6 +231,35 @@ function module(require, exports, module) {
 
 See `example/modules/main.js` near `async_template.html` for real life example
 
+Local Storage cache
+-------------------
+
+You can store all your in-package modules and lmd itself in localStorage.
+
+1. Set config flag `cache: true` and add `version: your_current_build_version` property to your
+config file then build your LMD package - it will be created in cache mode. If no version - LMD package will run
+in default mode - without dumping modules
+2. Remove script tag `<script src="out/index.production.lmd.js" id="source"></script>` with LMD initializer:
+
+```html
+<script id="lmd-initializer"
+        src="../src/lmd_initializer.min.js"
+        data-src="out/index.production.lmd.js"
+        data-version="1.6.0"
+        data-key="lmd"></script>
+```
+
+ - `id` - always lmd-initializer (do not change it)
+ - `src` - path to `lmd_initializer.js`
+ - `data-key` - localStorage key where all lmd code stored (do not change it)
+ - `data-version` - content in localStorage must match this version
+ - `data-src` - fallback if version do not match or no localStorage or error or no content
+
+See `example/cfgs/index.prodoction.lmd.json` and `example/index.html` for details
+
+**Note**: `version` property from config and from `data-version` attribute must match to use code from localStorage!
+Yep! Each time you have to change config file and your html file!
+
 Watch mode
 ----------
 
@@ -249,16 +277,15 @@ or new style with long names `lmd -mode watch -config config.lmd.json -output ou
 LMD CLI
 --------------
 
-old style `lmd [mode] config [output] [version]`
+old style `lmd [mode] config [output]`
 
-new style `lmd [-m mode] -c config [-o output] [-v version] [-l]`
+new style `lmd [-m mode] -c config [-o output] [-l]`
 
 **Arguments**
 
  - `-m` `-mode` lmd run mode `main` (default) or `watch`
  - `-c` `-config` lmd package config file
  - `-o` `-output` lmd output file - default STDOUT
- - `-v` `-version` lmd version `lmd_tiny` (default), `lmd_async` or `lmd_min`
  - `-l` `-log` print work log - default false
 
 Major versions changelog
@@ -296,6 +323,12 @@ Major versions changelog
   - New version of argv params see "LMD CLI" in this README
   - String module
   - LMD async - loader of off-package modules see "Asynchronous module require" in this README
+
+**v1.6.x**
+
+  - Local Storage cache - config flag `cache: true` see "Local Storage cache" in this README
+  - argv flag `-v`/`-version` is deprecated - use config flag `async: true` for `lmd_async.js` or false for `lmd_tiny.js` (default)
+  - Created development version of example app without cache and production with cache=on
 
 Licence
 -------

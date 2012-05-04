@@ -2,22 +2,17 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <title>Lmd example - production version</title>
+        <title>Lmd example - development version</title>
         <!-- External lib out of LMD -->
         <script type="text/javascript" src="http://yandex.st/jquery/1.7.1/jquery.min.js"></script>
         
         
         <!-- LMD package file - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-        <!-- (!) Use this if your like to get your modules from local storage -->
-        <!-- Or use inline source of ../src/lmd_initializer.min.js (1 request less) -->
-        <script id="lmd-initializer"
-                src="../src/lmd_initializer.min.js"
-                data-src="out/index.production.lmd.js"
-                data-version="1.6.0"
-                data-key="lmd"></script>
+        <!-- (!) Use use this if you like to load module each time from server -->
+        <script src="out/index.development.lmd.js" id="source"></script>
 
-        <!-- (!) Or use this if you like to load module each time from server -->
-        <!--<script src="out/index.production.lmd.js" id="source"></script>-->
+        <!-- (!) Or this file if your like to get your modules from local storage -->
+        <!--<script id="lmd-initializer" src="../src/lmd_initializer.js" data-src="out/index.development.lmd.js" data-version="1.6.0" data-key="lmd"></script>-->
         
 <style>
 pre,
@@ -28,7 +23,7 @@ pre,
 </style>
     </head>
     <body>
-        <h1>Lmd example - production version</h1>
+        <h1>Lmd example - development version</h1>
         <h2 id="log"></h2>
         <strong>Open console for details</strong>
         <pre class="sh_javascript" id="source_hl"></pre>

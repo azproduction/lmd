@@ -1,6 +1,6 @@
-(function (global, main, modules, sandboxed_modules, undefined) {
+(function (global, main, modules, sandboxed_modules) {
     var initialized_modules = {},
-        global_eval = this.eval,
+        global_eval = global.eval,
         /**
          * @param {String}    moduleName module name or path to file
          * @param {Function} [callback]  async callback
@@ -37,7 +37,7 @@
         require_async = function (modulePath, callback) {
             // Optimized tiny ajax get
             // @see https://gist.github.com/1625623
-            var xhr = new(this.XMLHttpRequest||ActiveXObject)("Microsoft.XMLHTTP");
+            var xhr = new(global.XMLHttpRequest||global.ActiveXObject)("Microsoft.XMLHTTP");
             xhr.onreadystatechange = function () {
                 // if readyState === 4
                 xhr.readyState^4 ||
@@ -58,8 +58,8 @@
                             (xhr.responseText)
                     ) :
                     // 1. Not OK - Return undefined
-                    undefined
-                )
+                    void 0
+                );
             };
             xhr.open('get', modulePath);
             xhr.send();
@@ -120,7 +120,9 @@
             require('./modules/templates/async_template.html', function (async_template) {
                 $('#log').html(
                     // use template to render text
-                    async_template.replace('${content}', tpl.replace('${content}', escape(text)))
+                    async_template ?
+                        async_template.replace('${content}', tpl.replace('${content}', escape(text))) :
+                        tpl.replace('${content}', escape(text))
                 );
             });
         });
