@@ -5,7 +5,7 @@ Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initi
 
 1. Modules are similar to AMD: there is a require, but no define (all defined on startup)
 2. LMD does not create globals
-3. LMD is standalone and tiny
+3. LMD is standalone, tiny and flexible (minimal 288bytes +343bytes for `async` option and +629bytes for `cache` feature)
 4. All modules are loaded at startup
 5. Each function-module is initialized (evaled) on demand
 6. LMD module is as easy to debug as normal JavaScript file
