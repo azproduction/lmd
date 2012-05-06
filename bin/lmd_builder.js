@@ -255,12 +255,11 @@ LmdBuilder.prototype.escape = function (file) {
  */
 LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, sandboxed_modules) {
     sandboxed_modules = JSON.stringify(sandboxed_modules || {});
-    var lmd_file = config.async ? 'lmd_async' : 'lmd_tiny',
-        lmd_js = fs.readFileSync(LMD_JS_SRC_PATH + lmd_file + '.js', 'utf8'),
+    var lmd_js = fs.readFileSync(LMD_JS_SRC_PATH + 'lmd.js', 'utf8'),
         result;
 
     // Apply patch if LMD package in cache Mode
-    lmd_js = this.patchLmdSource(lmd_js, config.cache);
+    lmd_js = this.patchLmdSource(lmd_js, config);
     lmd_modules = '{\n' + lmd_modules.join(',\n') + '\n}';
 
     result = this.template({
@@ -280,28 +279,50 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, san
     return result;
 };
 
+LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP = {
+    async: "ASYNC",
+    cache: "CACHE",
+    js: "JS",
+    css: "CSS"
+};
+
 /**
- * Patches lmd source with lmd_cache_dump.patch.js or wipes unused code
+ * Patches lmd source
  *
  * @param {String}  lmd_js
- * @param {Boolean} is_patch patch or wipe
+ * @param {Object} config
  *
  * @returns {String}
  */
-LmdBuilder.prototype.patchLmdSource = function (lmd_js, is_patch) {
-    var version = '',
-        lmd = '',
-        patch = '';
+LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
+    var optionName,
+        leftPattern,
+        rightPattern,
+        leftIndex,
+        rightIndex;
 
-    if (is_patch) {
-        patch = fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_cache_dump.patch.js', 'utf8');
-        lmd = 'lmd';
-        version = ', version';
+    for (var flagName in LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP) {
+        optionName = LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP[flagName];
+
+        if (config[flagName]) {
+            // apply: remove left & right side
+            lmd_js = lmd_js.replace(new RegExp('\\/\\*\\$(END)?IF ' + optionName + '\\$\\*\\/', 'g'), '');
+        } else {
+            // remove: wipe all content
+            leftPattern = '/*$IF ' + optionName + '$*/';
+            rightPattern = '/*$ENDIF ' + optionName + '$*/';
+            
+            // wipe all blocks
+            while (true) {
+                leftIndex = lmd_js.indexOf(leftPattern);
+                if (leftIndex === -1) break;
+                rightIndex = lmd_js.indexOf(rightPattern) + rightPattern.length;
+                lmd_js = lmd_js.substring(0, leftIndex) + lmd_js.substring(rightIndex);
+            }
+        }
     }
 
-    return lmd_js.replace('/*$IF STORAGE_CACHE$*/, version/*$ENDIF$*/', version)
-                 .replace('/*$IF STORAGE_CACHE$*/lmd/*$ENDIF$*/', lmd)
-                 .replace('/*$INCLUDE lmd_cache_dump.part.js IF STORAGE_CACHE$*/', patch);
+    return lmd_js;
 };
 
 /**
@@ -309,7 +330,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, is_patch) {
  */
 LmdBuilder.prototype.configure = function () {
     if (!this.configFile) {
-        console.log('lmd usage:\n\t    lmd config.lmd.json [output.lmd.js] [lmd_min|lmd_tiny]');
+        console.log('lmd usage:\n\t    lmd config.lmd.json [output.lmd.js]');
         return false;
     }
     return true;

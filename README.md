@@ -3,10 +3,13 @@ LMD: Lazy (and synchronous) Module Declaration
 
 Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without touching any part of DOM. LMD is inspired by AMD and provides similar module interface. It evals module only when they are required.
 
+Features
+--------
+
 1. Modules are similar to AMD: there is a require, but no define (all defined on startup)
 2. LMD does not create globals
-3. LMD is standalone, tiny and flexible (minimal 288bytes +343bytes for `async` option and +629bytes for `cache` feature)
-4. All modules are loaded at startup
+3. LMD is standalone, tiny and flexible (minimal only 288bytes! and up to 1.5Kb all-in-one)
+4. All in-package modules are loaded at startup
 5. Each function-module is initialized (evaled) on demand
 6. LMD module is as easy to debug as normal JavaScript file
 7. Build system compresses JavaScript files using uglifyjs (or any other)
@@ -14,20 +17,19 @@ Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initi
 9. Module can be wrapped automatically in builder so you can write your modules as node.js modules (see Usage and Asynchronous module require)
 10. Starting from version 1.5.2 LMD can require off-package modules `"async": true` (see Asynchronous module require)
 11. From version 1.6.0 LMD can cache all in-package modules in localStorage `"cache": true` (see Local Storage cache)
+12. From version 1.6.2 LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
 
 Installing
 ----------
 
 `npm install lmd` or global `npm install lmd -g`
 
-Usage
------
+LMD Modules
+-----------
 
-1\. Create modules
+**1\.1\. Module - functions**
 
-1\.1\. Module - functions
-
-**main.js - module as function declaration**
+*main.js - module as function declaration*
 
 ```javascript
 function main(require) {
@@ -45,7 +47,7 @@ function main(require) {
 }
 ```
 
-**depA.js - module as function expression**
+*depA.js - module as function expression*
 
 ```javascript
 (function (require/*, exports, module*/) {
@@ -56,7 +58,7 @@ function main(require) {
 })
 ```
 
-**depB.js - module as plain code like Node.js**
+*depB.js - module as plain code like Node.js*
 
 ```javascript
 // @globals require module exports
@@ -67,11 +69,11 @@ module.exports = function(message) {
 };
 ```
 
-**Note**: code will be wrapped by builder `(function (require, exports, module) {\n%code%\n})`
+**Note**: plain module will be wrapped by builder `(function (require, exports, module) {\n%code%\n})`
 
-1\.2\. Module - objects (for config, i18n and other resources)
+**1\.2\. Module - objects (for config, i18n and other resources)**
 
-**i18n.ru.json**
+*i18n.ru.json*
 
 ```javascript
 {
@@ -79,13 +81,14 @@ module.exports = function(message) {
 }
 ```
 
-1\.3\. Module - string (for templates)
+**1\.3\. Module - string (for templates)**
 
 ```html
 <i class="b-template">${content}</i>
 ```
 
-2\. Write a config file
+Config file
+-----------
 
 **index.production.lmd.json**
 
@@ -102,17 +105,23 @@ module.exports = function(message) {
             "path": "depB.js",
             "sandbox": true,    // module is sandboxed - can't require
             "lazy": false,      // overloading of global lazy flag, for the purpose of load optimizing
-            "template": "templates/template.html" // string template
+                                // dont work with global cache flag
         },
+
+        // string template
+        "template": "templates/template.html"
+        
         "i18n": "i18n.ru.json"
     },
     "main": "main",     // a main module - content of that module will be called on start (no reason to eval)
     "lazy": false,      // if true - all modules will be evaled on demand [default=true]
     "pack": false,      // if true - module will be packed using uglifyjs [default=true]
-    "global": "this",   // optional, default="this" name of global object, passed to the lmd
-    "async": true,      // if modules uses off-package module set this to true
-    "cache": true       // store all application lmd itself + all modules in localStorage
-                        // this flag will force all modules to be lazy
+    "global": "this",   // name of global object, passed to the lmd [default="this"]
+    "async": true,      // if modules uses off-package module set this to true [default=false]
+    "cache": true,      // store all application lmd itself + all modules in localStorage
+                        // this flag will force all modules to be lazy [default=false]
+    "js": true,         // if you are going to load non LMD modules set this flag to true [default=false]
+    "css": true         // enables css-loader feature `require.css` [default=false]
 }
 ```
 
@@ -132,11 +141,14 @@ module.exports = function(message) {
     "main": "main",
     "lazy": false,
     "pack": false,
-    "async": true
+    "async": true,
+    "js": true,
+    "css": true
 }
 ```
 
-3\. Build
+Build
+-----
 
 `lmd example/cfgs/index.development.lmd.json example/out/index.development.lmd.js` or `node ./lmd/bin/lmd.js ... `
 
@@ -144,7 +156,8 @@ Or print to `STDOUT`
 
 `lmd example/cfgs/index.development.lmd.json`
 
-4\. Use
+Use
+---
 
 **index.development.lmd.js**
 
@@ -171,10 +184,12 @@ Or print to `STDOUT`
 (function(b){var c=b("depA");c("ololo")})
 ```
 
-Asynchronous module require
----------------------------
+Asynchronous module require `async`
+-----------------------------------
 
-You can build async LMD package. Then your packages can require off-package modules from http server.
+You can build async LMD package.  (Disabled by default)
+
+Then your packages can require off-package modules from http server.
 Build LMD package using `async: true` flag. LMD loader now can require javascript FunctionsExpressions,
 JSON or template strings asynchronously. LMD parses file content depend on `Content-type` header.
 You must work online using HTTP server for correct headers, if you work offline (using `file:` protocol)
@@ -212,7 +227,7 @@ function module(require, exports, module) {
 (function main(require) {
 
     // async require of off-package module
-    require('/css/_engine.css', function (css) {
+    require.async('/css/_engine.css', function (css) {
         console.log('1', css.length); // result
 
         // require of module loaded async (already registered)
@@ -223,7 +238,7 @@ function module(require, exports, module) {
     });
 
     // async require of in-package module
-    require('pewpew', function (pewpew) {
+    require.async('pewpew', function (pewpew) {
         console.log('4', pewpew);
     });
 })
@@ -231,10 +246,10 @@ function module(require, exports, module) {
 
 See `example/modules/main.js` near `async_template.html` for real life example
 
-Local Storage cache
--------------------
+Local Storage cache `cache` and `version`
+-----------------------------------------
 
-You can store all your in-package modules and lmd itself in localStorage.
+You can store all your in-package modules and lmd itself in localStorage. (Disabled by default)
 
 1. Set config flag `cache: true` and add `version: your_current_build_version` property to your
 config file then build your LMD package - it will be created in cache mode. If no version - LMD package will run
@@ -259,6 +274,23 @@ See `example/cfgs/index.prodoction.lmd.json` and `example/index.html` for detail
 
 **Note**: `version` property from config and from `data-version` attribute must match to use code from localStorage!
 Yep! Each time you have to change config file and your html file!
+
+Loading CSS and JavaScript files `js` and `css`
+-----------------------------------------------
+
+You can enable flags `css: true` and `js: true` to use css and js loader as all loaders do. (Disabled by default)
+
+```javascript
+// require some off-package javascript file - not a lmd module. Config flag: `js: true`
+require.js('./vendors/jquery.someplugin.js', function (scriptTag) {
+    console.log(typeof scriptTag === "undefined" ? 'error' : 'js loaded');
+});
+
+// require some off-package css file. Config flag: `css: true`
+require.css('./css/b-template.css', function (linkTag) {
+    console.log(typeof linkTag === "undefined" ? 'error' : 'css loaded');
+})
+```
 
 Watch mode
 ----------
@@ -329,6 +361,7 @@ Major versions changelog
   - Local Storage cache - config flag `cache: true` see "Local Storage cache" in this README
   - argv flag `-v`/`-version` is deprecated - use config flag `async: true` for `lmd_async.js` or false for `lmd_tiny.js` (default)
   - Created development version of example app without cache and production with cache=on
+  - LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
 
 Licence
 -------
