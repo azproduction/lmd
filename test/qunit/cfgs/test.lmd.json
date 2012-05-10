@@ -1,0 +1,41 @@
+{
+    "path": "../modules/",
+    "modules": {
+        "main": "main.js",
+
+        "module_as_json": "module_as_json.json",
+        "module_as_string": "module_as_string.html",
+
+        "module_function_fd": "module_function_fd.js",
+        "module_function_fd2": "module_function_fd2.js",
+        "module_function_fd_sandboxed": {
+            "path": "module_function_fd_sandboxed.js",
+            "sandbox": true
+        },
+
+        "module_function_fe": "module_function_fe.js",
+        "module_function_fe_sandboxed": {
+            "path": "module_function_fe_sandboxed.js",
+            "sandbox": true
+        },
+
+        "module_function_lazy": {
+            "path": "module_function_lazy.js",
+            "lazy": true
+        },
+
+        "module_function_plain": "module_function_plain.js",
+        "module_function_plain_sandboxed": {
+            "path": "module_function_plain_sandboxed.js",
+            "sandbox": true
+        }
+    },
+    "main": "main",
+    "global": "this",
+
+    "async": true,
+    "js": true,
+    "css": true,
+    "lazy": false,
+    "pack": false
+}

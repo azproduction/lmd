@@ -49,8 +49,9 @@
         var module = modules[moduleName];
 
         // Already inited - return as is
-        if (initialized_modules[moduleName] && module) {
-            return module;
+        if (module) {
+            callback(initialized_modules[moduleName] ? module : require(moduleName));
+            return;
         }
 
         // Optimized tiny ajax get
@@ -71,9 +72,9 @@
                     // application/x-javascript - parse
                     // text/javascript          - parse
                     // application/json         - parse
-                    // */*                      - as is
+                    // any/any                  - as is
                     (/script$|json$/.test(xhr.getResponseHeader('content-type')) ? global_eval : String)
-                        (xhr.responseText)
+                        ('(' + xhr.responseText + ')')
                 ) :
                 // 1. Not OK - Return undefined
                 void 0
@@ -93,8 +94,9 @@
             head;
 
         // Already inited - return as is
-        if (initialized_modules[moduleName] && module) {
-            return module;
+        if (module) {
+            callback(initialized_modules[moduleName] ? module : require(moduleName));
+            return;
         }
 
         var script = doc.createElement("script");
@@ -106,7 +108,8 @@
                 script[readyState] == "complete")) {
                 
                 isNotLoaded = 0;
-                callback(e ? register_module(moduleName, script) : e); // e === undefined
+                // register or cleanup
+                callback(e ? register_module(moduleName, script) : head.removeChild(script) && e); // e === undefined if error
             }
         }, 3000, head); // in that moment head === undefined
 
@@ -123,8 +126,9 @@
         var module = modules[moduleName];
 
         // Already inited - return as is
-        if (initialized_modules[moduleName] && module) {
-            return module;
+        if (module) {
+            callback(initialized_modules[moduleName] ? module : require(moduleName));
+            return;
         }
 
         // Create stylesheet link
@@ -132,7 +136,7 @@
             doc = global.document,
             head,
             link = doc.createElement("link"),
-            id = +new Date;
+            id = global.Math.random();
 
         // Add attributes
         link.href = moduleName;
@@ -142,7 +146,9 @@
         global.setTimeout(link.onload = function (e) {
             if (isNotLoaded) {
                 isNotLoaded = 0;
-                callback(e ? register_module(moduleName, link) : e);
+                // register or cleanup
+                link.removeAttribute('id');
+                callback(e ? register_module(moduleName, link) : head.removeChild(link) && e); // e === undefined if error
             }
         }, 3000, head); // in that moment head === undefined
 

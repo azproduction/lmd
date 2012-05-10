@@ -5,7 +5,7 @@
         storageKey = scriptElement[getAttribute](prefix + 'key'),
         fallbackUrl = scriptElement[getAttribute](prefix + 'src'),
 
-        script, json, head, item;
+        script, json, head, item, main, lmd;
 
     if (global.localStorage) { // if localStorage then JSON too
         item = global.localStorage[storageKey];
@@ -15,10 +15,15 @@
                 if (json && json.version === actualVersion) {
                     // exec cached app
                     // Note: do not pass version!
-                    globalEval(json.lmd)(global, globalEval(json.main), json.modules, json.sandboxed);
-                    return;
+                    main = globalEval(json.main);
+                    lmd = globalEval(json.lmd);
                 }
             } catch (e) {}
+            if (lmd && main) {
+                // do not catch module's errors
+                lmd(global, main, json.modules, json.sandboxed);
+                return;
+            }
             // if error or version do not match - wipe cache
             global.localStorage.removeItem(storageKey);
         }
