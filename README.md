@@ -10,7 +10,7 @@ Features
 2. LMD does not create globals
 3. LMD is standalone, tiny and flexible (minimal only 288bytes! and up to 1.5Kb all-in-one)
 4. All in-package modules are loaded at startup
-5. Each function-module is initialized (evaled) on demand
+5. Each function-module can be initialized/evaled on demand (`lazy: true`)
 6. LMD module is as easy to debug as normal JavaScript file
 7. Build system compresses JavaScript files using uglifyjs (or any other)
 8. LMD module can define object via return or module.exports/exports as CommonJS Module
@@ -18,6 +18,7 @@ Features
 10. Starting from version 1.5.2 LMD can require off-package modules `"async": true` (see Asynchronous module require)
 11. From version 1.6.0 LMD can cache all in-package modules in localStorage `"cache": true` (see Local Storage cache)
 12. From version 1.6.2 LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
+13. Ready for production - `lmd.js` is 100% covered by unit tests see `test/README.md` for details
 
 Installing
 ----------
@@ -320,6 +321,11 @@ new style `lmd [-m mode] -c config [-o output] [-l]`
  - `-o` `-output` lmd output file - default STDOUT
  - `-l` `-log` print work log - default false
 
+Running tests
+-------------
+
+see test/README.md for details
+
 Major versions changelog
 ---------
 
@@ -362,6 +368,7 @@ Major versions changelog
   - argv flag `-v`/`-version` is deprecated - use config flag `async: true` for `lmd_async.js` or false for `lmd_tiny.js` (default)
   - Created development version of example app without cache and production with cache=on
   - LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
+  - Unit tests and code coverage
 
 Licence
 -------
