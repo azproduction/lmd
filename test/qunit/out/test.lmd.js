@@ -58,27 +58,19 @@
         // @see https://gist.github.com/1625623
         var xhr = new(global.XMLHttpRequest||global.ActiveXObject)("Microsoft.XMLHTTP");
         xhr.onreadystatechange = function () {
-            // if readyState === 4
-            xhr.readyState^4 ||
-            // 4. Then callback it
-            callback(
+            if (xhr.readyState == 4) {
                 // 3. Check for correct status 200 or 0 - OK?
-                xhr.status < 201 ?
-                // 2. Register and init module module
-                register_module(
-                    moduleName,
-                    // 1. Parse or return as is
-                    // application/javascript   - parse
-                    // application/x-javascript - parse
-                    // text/javascript          - parse
-                    // application/json         - parse
-                    // any/any                  - as is
-                    (/script$|json$/.test(xhr.getResponseHeader('content-type')) ? global_eval : String)
-                        ('(' + xhr.responseText + ')')
-                ) :
-                // 1. Not OK - Return undefined
-                void 0
-            );
+                if (xhr.status < 201) {
+                    module = xhr.responseText;
+                    if ((/script$|json$/).test(xhr.getResponseHeader('content-type'))) {
+                        module = global_eval('(' + module + ')');
+                    }
+                    // 4. Then callback it
+                    callback(register_module(moduleName, module));
+                } else {
+                    callback();
+                }
+            }
         };
         xhr.open('get', moduleName);
         xhr.send();
@@ -161,7 +153,9 @@
                     var sheets = document.styleSheets;
                     for (var j = 0, k = sheets.length; j < k; j++) {
                         if(sheets[j].ownerNode.id == id && sheets[j].cssRules.length) {
+//#JSCOVERAGE_IF 0
                             return link.onload(1);
+//#JSCOVERAGE_ENDIF
                         }
                     }
                     // if we get here, its not in document.styleSheets (we never saw the ID)
@@ -273,10 +267,11 @@
     });
 
     asyncTest("require.async() module-strings", function () {
-        expect(2);
+        expect(3);
 
         require.async('./modules/async/module_as_string_async.html' + rnd, function (module_as_string_async) {
             ok(typeof module_as_string_async === "string", "should require async module-strings");
+            ok(module_as_string_async === '<div class="b-template">${pewpew}</div>', "content ok?");
             ok(require('./modules/async/module_as_string_async.html' + rnd) === module_as_string_async, "can sync require, loaded async module-strings");
             start();
         });
@@ -375,7 +370,9 @@
 },
 "module_function_fd_sandboxed": function fd(require, exports, module) {
     if (require !== null) {
+//#JSCOVERAGE_IF 0
         throw 'require should be null';
+//#JSCOVERAGE_ENDIF
     }
 
     exports.some_function = function () {
@@ -391,7 +388,9 @@
 }),
 "module_function_fe_sandboxed": (function (require, exports, module) {
     if (require !== null) {
+//#JSCOVERAGE_IF 0
         throw 'require should be null';
+//#JSCOVERAGE_ENDIF
     }
 
     exports.some_function = function () {
@@ -408,7 +407,9 @@ module.exports = function () {
 }),
 "module_function_plain_sandboxed": (function (require, exports, module) { /* wrapped by builder */
 if (require !== null) {
+//#JSCOVERAGE_IF 0
     throw 'require should be null';
+//#JSCOVERAGE_ENDIF
 }
 
 exports.some_function = function () {

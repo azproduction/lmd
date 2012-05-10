@@ -94,10 +94,11 @@
     });
 
     asyncTest("require.async() module-strings", function () {
-        expect(2);
+        expect(3);
 
         require.async('./modules/async/module_as_string_async.html' + rnd, function (module_as_string_async) {
             ok(typeof module_as_string_async === "string", "should require async module-strings");
+            ok(module_as_string_async === '<div class="b-template">${pewpew}</div>', "content ok?");
             ok(require('./modules/async/module_as_string_async.html' + rnd) === module_as_string_async, "can sync require, loaded async module-strings");
             start();
         });

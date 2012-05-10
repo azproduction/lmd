@@ -58,27 +58,19 @@
         // @see https://gist.github.com/1625623
         var xhr = new(global.XMLHttpRequest||global.ActiveXObject)("Microsoft.XMLHTTP");
         xhr.onreadystatechange = function () {
-            // if readyState === 4
-            xhr.readyState^4 ||
-            // 4. Then callback it
-            callback(
+            if (xhr.readyState == 4) {
                 // 3. Check for correct status 200 or 0 - OK?
-                xhr.status < 201 ?
-                // 2. Register and init module module
-                register_module(
-                    moduleName,
-                    // 1. Parse or return as is
-                    // application/javascript   - parse
-                    // application/x-javascript - parse
-                    // text/javascript          - parse
-                    // application/json         - parse
-                    // any/any                  - as is
-                    (/script$|json$/.test(xhr.getResponseHeader('content-type')) ? global_eval : String)
-                        ('(' + xhr.responseText + ')')
-                ) :
-                // 1. Not OK - Return undefined
-                void 0
-            );
+                if (xhr.status < 201) {
+                    module = xhr.responseText;
+                    if ((/script$|json$/).test(xhr.getResponseHeader('content-type'))) {
+                        module = global_eval('(' + module + ')');
+                    }
+                    // 4. Then callback it
+                    callback(register_module(moduleName, module));
+                } else {
+                    callback();
+                }
+            }
         };
         xhr.open('get', moduleName);
         xhr.send();
@@ -161,7 +153,9 @@
                     var sheets = document.styleSheets;
                     for (var j = 0, k = sheets.length; j < k; j++) {
                         if(sheets[j].ownerNode.id == id && sheets[j].cssRules.length) {
+//#JSCOVERAGE_IF 0
                             return link.onload(1);
+//#JSCOVERAGE_ENDIF
                         }
                     }
                     // if we get here, its not in document.styleSheets (we never saw the ID)

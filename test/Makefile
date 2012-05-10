@@ -5,8 +5,17 @@ all: test
 test:
 	node $(LMD_BUILD) -m main -c ./qunit/cfgs/test.lmd.json -o ./qunit/out/test.lmd.js -l
 
-run:
+coverage: test
+	rm -rf coverage/*
+	jscoverage --exclude=modules --exclude=vendors qunit coverage
+	cp -R qunit/modules coverage/modules
+	cp -R qunit/vendors coverage/vendors
+
+run_qunit:
 	cd qunit && http-server
 
+run_coverage:
+	cd coverage && http-server
+
 help:
-	@echo "USAGE:\n\tmake\n\tmake test"
+	@echo "USAGE:\n\tmake\n\tmake test\n\t\make coverage\n\tmake run_qunit\n\tmake run_coverage"
