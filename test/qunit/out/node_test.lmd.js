@@ -57,7 +57,25 @@
         }
 
 
+        if (!XMLHttpRequestConstructor) {
+            global.require('fs').readFile(moduleName, 'utf8', function (err, module) {
+                if (err) {
+                    callback();
+                    return;
+                }
+                // check file extension not content-type
+                if ((/js$|json$/).test(moduleName)) {
+                    module = global_eval('(' + module + ')');
+                }
+                // 4. Then callback it
+                callback(register_module(moduleName, module));
+            });
+            return;
+        }
 
+
+
+//#JSCOVERAGE_IF 0
 
         // Optimized tiny ajax get
         // @see https://gist.github.com/1625623
@@ -80,6 +98,8 @@
         xhr.open('get', moduleName);
         xhr.send();
 
+//#JSCOVERAGE_ENDIF
+
     };
 
 
@@ -99,10 +119,22 @@
         // by default return undefined
         if (!global_document) {
 
+            // if no global try to require
+            // node or worker
+            try {
+                // call importScripts or require
+                // any of them can throw error if file not found or transmission error
+                module = register_module(moduleName, (global.importScripts || global.require)(moduleName) || {});
+            } catch (e) {
+                // error -> default behaviour
+            }
+
             callback(module);
             return;
         }
 
+
+//#JSCOVERAGE_IF 0
 
         var script = global_document.createElement("script");
         global.setTimeout(script.onreadystatechange = script.onload = function (e) {
@@ -122,6 +154,8 @@
         head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(script, head.firstChild);
 
+//#JSCOVERAGE_ENDIF
+
     };
 
 
@@ -139,6 +173,8 @@
             return;
         }
 
+
+//#JSCOVERAGE_IF 0
 
 
         // Create stylesheet link
@@ -182,12 +218,14 @@
             }
         }());
 
+//#JSCOVERAGE_ENDIF
+
     };
 
 
 
     main(require, output.exports, output);
-})(this,(function (require) {
+})(node_global_environment,(function (require) {
     // common for BOM Node and Worker Envs
     require('testcase_lmd_basic_features');
 
@@ -356,7 +394,7 @@ exports.some_function = function () {
         $ = require('$'),
         raises = require('raises'),
 
-        rnd = '?' + +new Date(),
+        rnd = '',
 
         ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
 
@@ -419,8 +457,6 @@ exports.some_function = function () {
         $ = require('$'),
         raises = require('raises'),
 
-        rnd = '?' + +new Date(),
-
         ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
 
     module('LMD loader @ ' + ENV_NAME);
@@ -428,18 +464,17 @@ exports.some_function = function () {
     asyncTest("require.js()", function () {
         expect(6);
 
-        require.js('./modules/loader/non_lmd_module.js' + rnd, function (script_tag) {
-            ok(typeof script_tag === "object" &&
-               script_tag.nodeName.toUpperCase() === "SCRIPT", "should return script tag on success");
+        require.js('./modules/loader/non_lmd_module.js', function (exports) {
+            ok(typeof exports === "object", "should act like node.js require");
 
-            ok(require('some_function')() === true, "we can grab content of the loaded script");
+            ok(exports.some_function() === true, "we can use exported script");
 
-            ok(require('./modules/loader/non_lmd_module.js' + rnd) === script_tag, "should cache script tag on success");
+            ok(require('./modules/loader/non_lmd_module.js') === exports, "should cache object on success");
 
             // some external
-            require.js('http://8.8.8.8:8/jquery.js' + rnd, function (script_tag) {
+            require.js('http://8.8.8.8:8/jquery.js', function (script_tag) {
                 ok(typeof script_tag === "undefined", "should return undefined on error in 3 seconds");
-                ok(typeof require('http://8.8.8.8:8/jquery.js' + rnd) === "undefined", "should not cache errorous modules");
+                ok(typeof require('http://8.8.8.8:8/jquery.js') === "undefined", "should not cache errorous modules");
                 require.js('module_as_string', function (module_as_string) {
                     require.async('module_as_string', function (module_as_string_expected) {
                         ok(module_as_string === module_as_string_expected, 'require.js() acts like require.async() if in-package/declared module passed');
@@ -451,24 +486,15 @@ exports.some_function = function () {
     });
 
     asyncTest("require.css()", function () {
-        expect(6);
+        expect(3);
 
-        require.css('./modules/loader/some_css.css' + rnd, function (link_tag) {
-            ok(typeof link_tag === "object" &&
-                link_tag.nodeName.toUpperCase() === "LINK", "should return link tag on success");
-
-            ok($('#qunit-fixture').css('visibility') === "hidden", "css should be applied");
-
-            ok(require('./modules/loader/some_css.css' + rnd) === link_tag, "should cache link tag on success");
-
-            require.css('./modules/loader/some_css_404.css' + rnd, function (link_tag) {
-                ok(typeof link_tag === "undefined", "should return undefined on error in 3 seconds");
-                ok(typeof require('./modules/loader/some_css_404.css' + rnd) === "undefined", "should not cache errorous modules");
-                require.css('module_as_string', function (module_as_string) {
-                    require.async('module_as_string', function (module_as_string_expected) {
-                        ok(module_as_string === module_as_string_expected, 'require.css() acts like require.async() if in-package/declared module passed');
-                        start();
-                    });
+        require.css('./modules/loader/some_css.css', function (link_tag) {
+            ok(typeof link_tag === "undefined", "should act like require and return undefined if no module");
+            ok(typeof require('./modules/loader/some_css_404.css') === "undefined", "should not cache errorous modules");
+            require.css('module_as_string', function (module_as_string) {
+                require.async('module_as_string', function (module_as_string_expected) {
+                    ok(module_as_string === module_as_string_expected, 'require.css() acts like require.async() if in-package/declared module passed');
+                    start();
                 });
             });
         });

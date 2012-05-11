@@ -1,6 +1,7 @@
 (function (global, main, modules, sandboxed_modules) {
     var initialized_modules = {},
         global_eval = global.eval,
+        global_document = global.document,
         /**
          * @param {String} moduleName module name or path to file
          * @param {*}      module module content
@@ -46,41 +47,39 @@
     }
 
     require.async = function (moduleName, callback) {
-        var module = modules[moduleName];
+        var module = modules[moduleName],
+            XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
 
-        // Already inited - return as is
-        if (initialized_modules[moduleName] && module) {
-            return module;
+        // If module exists or its a node.js env
+        if (module) {
+            callback(initialized_modules[moduleName] ? module : require(moduleName));
+            return;
         }
+
+
+
 
         // Optimized tiny ajax get
         // @see https://gist.github.com/1625623
-        var xhr = new(global.XMLHttpRequest||global.ActiveXObject)("Microsoft.XMLHTTP");
+        var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
         xhr.onreadystatechange = function () {
-            // if readyState === 4
-            xhr.readyState^4 ||
-            // 4. Then callback it
-            callback(
+            if (xhr.readyState == 4) {
                 // 3. Check for correct status 200 or 0 - OK?
-                xhr.status < 201 ?
-                // 2. Register and init module module
-                register_module(
-                    moduleName,
-                    // 1. Parse or return as is
-                    // application/javascript   - parse
-                    // application/x-javascript - parse
-                    // text/javascript          - parse
-                    // application/json         - parse
-                    // */*                      - as is
-                    (/script$|json$/.test(xhr.getResponseHeader('content-type')) ? global_eval : String)
-                        (xhr.responseText)
-                ) :
-                // 1. Not OK - Return undefined
-                void 0
-            );
+                if (xhr.status < 201) {
+                    module = xhr.responseText;
+                    if ((/script$|json$/).test(xhr.getResponseHeader('content-type'))) {
+                        module = global_eval('(' + module + ')');
+                    }
+                    // 4. Then callback it
+                    callback(register_module(moduleName, module));
+                } else {
+                    callback();
+                }
+            }
         };
         xhr.open('get', moduleName);
         xhr.send();
+
     };
 
 
@@ -89,15 +88,23 @@
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
-            doc = global.document,
             head;
 
-        // Already inited - return as is
-        if (initialized_modules[moduleName] && module) {
-            return module;
+        // If module exists
+        if (module) {
+            callback(initialized_modules[moduleName] ? module : require(moduleName));
+            return;
         }
 
-        var script = doc.createElement("script");
+        // by default return undefined
+        if (!global_document) {
+
+            callback(module);
+            return;
+        }
+
+
+        var script = global_document.createElement("script");
         global.setTimeout(script.onreadystatechange = script.onload = function (e) {
             if (isNotLoaded &&
                 (!e ||
@@ -106,13 +113,15 @@
                 script[readyState] == "complete")) {
                 
                 isNotLoaded = 0;
-                callback(e ? register_module(moduleName, script) : e); // e === undefined
+                // register or cleanup
+                callback(e ? register_module(moduleName, script) : head.removeChild(script) && e); // e === undefined if error
             }
         }, 3000, head); // in that moment head === undefined
 
         script.src = moduleName;
-        head = doc.getElementsByTagName("head")[0];
+        head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(script, head.firstChild);
+
     };
 
 
@@ -120,19 +129,21 @@
     // Inspired by yepnope.css.js
     // @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
     require.css = function (moduleName, callback) {
-        var module = modules[moduleName];
+        var module = modules[moduleName],
+            isNotLoaded = 1,
+            head;
 
-        // Already inited - return as is
-        if (initialized_modules[moduleName] && module) {
-            return module;
+        // If module exists or its a worker or node.js environment
+        if (module || !global_document) {
+            callback(initialized_modules[moduleName] ? module : require(moduleName));
+            return;
         }
 
+
+
         // Create stylesheet link
-        var isNotLoaded = 1,
-            doc = global.document,
-            head,
-            link = doc.createElement("link"),
-            id = +new Date;
+        var link = global_document.createElement("link"),
+            id = global.Math.random();
 
         // Add attributes
         link.href = moduleName;
@@ -142,20 +153,24 @@
         global.setTimeout(link.onload = function (e) {
             if (isNotLoaded) {
                 isNotLoaded = 0;
-                callback(e ? register_module(moduleName, link) : e);
+                // register or cleanup
+                link.removeAttribute('id');
+                callback(e ? register_module(moduleName, link) : head.removeChild(link) && e); // e === undefined if error
             }
         }, 3000, head); // in that moment head === undefined
 
-        head = doc.getElementsByTagName("head")[0];
+        head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(link, head.firstChild);
 
         (function poll() {
             if (isNotLoaded) {
                 try {
-                    var sheets = document.styleSheets;
+                    var sheets = global_document.styleSheets;
                     for (var j = 0, k = sheets.length; j < k; j++) {
                         if(sheets[j].ownerNode.id == id && sheets[j].cssRules.length) {
+//#JSCOVERAGE_IF 0
                             return link.onload(1);
+//#JSCOVERAGE_ENDIF
                         }
                     }
                     // if we get here, its not in document.styleSheets (we never saw the ID)
@@ -166,6 +181,7 @@
                 }
             }
         }());
+
     };
 
 

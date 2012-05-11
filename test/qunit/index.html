@@ -10,8 +10,18 @@
         <h2 id="qunit-userAgent"></h2>
         <ol id="qunit-tests"></ol>
         <div id="qunit-fixture"></div>
+
+        <!--QUnit-->
         <script src="vendors/jquery-latest.js"></script>
         <script src="vendors/qunit.js"></script>
+
+        <!--Mock-->
+        <script src="mock/node_global_environment.js"></script>
+        <script src="mock/worker_global_environment.js"></script>
+
+        <!--Tests-->
         <script src="out/test.lmd.js"></script>
+        <script src="out/worker_test.lmd.js"></script>
+        <script src="out/node_test.lmd.js"></script>
     </body>
 </html>

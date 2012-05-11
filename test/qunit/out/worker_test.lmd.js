@@ -99,10 +99,22 @@
         // by default return undefined
         if (!global_document) {
 
+            // if no global try to require
+            // node or worker
+            try {
+                // call importScripts or require
+                // any of them can throw error if file not found or transmission error
+                module = register_module(moduleName, (global.importScripts || global.require)(moduleName) || {});
+            } catch (e) {
+                // error -> default behaviour
+            }
+
             callback(module);
             return;
         }
 
+
+//#JSCOVERAGE_IF 0
 
         var script = global_document.createElement("script");
         global.setTimeout(script.onreadystatechange = script.onload = function (e) {
@@ -122,6 +134,8 @@
         head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(script, head.firstChild);
 
+//#JSCOVERAGE_ENDIF
+
     };
 
 
@@ -139,6 +153,8 @@
             return;
         }
 
+
+//#JSCOVERAGE_IF 0
 
 
         // Create stylesheet link
@@ -182,12 +198,14 @@
             }
         }());
 
+//#JSCOVERAGE_ENDIF
+
     };
 
 
 
     main(require, output.exports, output);
-})(this,(function (require) {
+})(worker_global_environment,(function (require) {
     // common for BOM Node and Worker Envs
     require('testcase_lmd_basic_features');
 
@@ -428,13 +446,12 @@ exports.some_function = function () {
     asyncTest("require.js()", function () {
         expect(6);
 
-        require.js('./modules/loader/non_lmd_module.js' + rnd, function (script_tag) {
-            ok(typeof script_tag === "object" &&
-               script_tag.nodeName.toUpperCase() === "SCRIPT", "should return script tag on success");
+        require.js('./modules/loader/non_lmd_module.js' + rnd, function (object) {
+            ok(typeof object === "object", "should return empty object on success");
 
             ok(require('some_function')() === true, "we can grab content of the loaded script");
 
-            ok(require('./modules/loader/non_lmd_module.js' + rnd) === script_tag, "should cache script tag on success");
+            ok(require('./modules/loader/non_lmd_module.js' + rnd) === object, "should cache object on success");
 
             // some external
             require.js('http://8.8.8.8:8/jquery.js' + rnd, function (script_tag) {
@@ -451,24 +468,15 @@ exports.some_function = function () {
     });
 
     asyncTest("require.css()", function () {
-        expect(6);
+        expect(3);
 
         require.css('./modules/loader/some_css.css' + rnd, function (link_tag) {
-            ok(typeof link_tag === "object" &&
-                link_tag.nodeName.toUpperCase() === "LINK", "should return link tag on success");
-
-            ok($('#qunit-fixture').css('visibility') === "hidden", "css should be applied");
-
-            ok(require('./modules/loader/some_css.css' + rnd) === link_tag, "should cache link tag on success");
-
-            require.css('./modules/loader/some_css_404.css' + rnd, function (link_tag) {
-                ok(typeof link_tag === "undefined", "should return undefined on error in 3 seconds");
-                ok(typeof require('./modules/loader/some_css_404.css' + rnd) === "undefined", "should not cache errorous modules");
-                require.css('module_as_string', function (module_as_string) {
-                    require.async('module_as_string', function (module_as_string_expected) {
-                        ok(module_as_string === module_as_string_expected, 'require.css() acts like require.async() if in-package/declared module passed');
-                        start();
-                    });
+            ok(typeof link_tag === "undefined", "should act like require and return undefined if no module");
+            ok(typeof require('./modules/loader/some_css_404.css' + rnd) === "undefined", "should not cache errorous modules");
+            require.css('module_as_string', function (module_as_string) {
+                require.async('module_as_string', function (module_as_string_expected) {
+                    ok(module_as_string === module_as_string_expected, 'require.css() acts like require.async() if in-package/declared module passed');
+                    start();
                 });
             });
         });

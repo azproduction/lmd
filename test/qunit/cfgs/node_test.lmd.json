@@ -1,0 +1,9 @@
+{
+    "extends": "./test.lmd.json",
+    "modules": {
+        "testcase_lmd_async_require": "test_case/testcase_lmd_async_require.node.js",
+        "testcase_lmd_loader": "test_case/testcase_lmd_loader.node.js"
+    },
+    "global": "node_global_environment",
+    "node": true
+}

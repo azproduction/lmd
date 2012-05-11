@@ -280,10 +280,12 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, san
 };
 
 LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP = {
-    async: "ASYNC",
-    cache: "CACHE",
-    js: "JS",
-    css: "CSS"
+    async: ["ASYNC"],
+    cache: ["CACHE"],
+    js: ["JS"],
+    css: ["CSS"],
+    node: ["WORKER_OR_NODE", "NODE"],
+    worker: ["WORKER_OR_NODE"]
 };
 
 /**
@@ -295,30 +297,43 @@ LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP = {
  * @returns {String}
  */
 LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
-    var optionName,
+    var optionNames,
         leftPattern,
         rightPattern,
         leftIndex,
-        rightIndex;
+        rightIndex,
+        flagName;
 
-    for (var flagName in LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP) {
-        optionName = LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP[flagName];
+    // Apply
+    for (flagName in LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP) {
+        optionNames = LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP[flagName];
 
         if (config[flagName]) {
             // apply: remove left & right side
-            lmd_js = lmd_js.replace(new RegExp('\\/\\*\\$(END)?IF ' + optionName + '\\$\\*\\/', 'g'), '');
-        } else {
+            optionNames.forEach(function (optionName) {
+                lmd_js = lmd_js.replace(new RegExp('\\/\\*\\$(END)?IF ' + optionName + '\\$\\*\\/', 'g'), '');
+            });
+        }
+    }
+
+    // Wipe
+    for (flagName in LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP) {
+        optionNames = LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP[flagName];
+
+        if (!config[flagName]) {
             // remove: wipe all content
-            leftPattern = '/*$IF ' + optionName + '$*/';
-            rightPattern = '/*$ENDIF ' + optionName + '$*/';
-            
-            // wipe all blocks
-            while (true) {
-                leftIndex = lmd_js.indexOf(leftPattern);
-                if (leftIndex === -1) break;
-                rightIndex = lmd_js.indexOf(rightPattern) + rightPattern.length;
-                lmd_js = lmd_js.substring(0, leftIndex) + lmd_js.substring(rightIndex);
-            }
+            optionNames.forEach(function (optionName) {
+                leftPattern = '/*$IF ' + optionName + '$*/';
+                rightPattern = '/*$ENDIF ' + optionName + '$*/';
+
+                // wipe all blocks
+                while (true) {
+                    leftIndex = lmd_js.indexOf(leftPattern);
+                    if (leftIndex === -1) break;
+                    rightIndex = lmd_js.indexOf(rightPattern) + rightPattern.length;
+                    lmd_js = lmd_js.substring(0, leftIndex) + lmd_js.substring(rightIndex);
+                }
+            });
         }
     }
 

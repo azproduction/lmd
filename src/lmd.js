@@ -1,6 +1,7 @@
 (function /*$IF CACHE$*/lmd/*$ENDIF CACHE$*/(global, main, modules, sandboxed_modules/*$IF CACHE$*/, version/*$ENDIF CACHE$*/) {
     var initialized_modules = {},
         global_eval = global.eval,
+        global_document = global.document,
         /**
          * @param {String} moduleName module name or path to file
          * @param {*}      module module content
@@ -46,17 +47,39 @@
     }
 /*$IF ASYNC$*/
     require.async = function (moduleName, callback) {
-        var module = modules[moduleName];
+        var module = modules[moduleName],
+            XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
 
-        // Already inited - return as is
+        // If module exists or its a node.js env
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return;
         }
 
+/*$IF NODE$*/
+        if (!XMLHttpRequestConstructor) {
+            global.require('fs').readFile(moduleName, 'utf8', function (err, module) {
+                if (err) {
+                    callback();
+                    return;
+                }
+                // check file extension not content-type
+                if ((/js$|json$/).test(moduleName)) {
+                    module = global_eval('(' + module + ')');
+                }
+                // 4. Then callback it
+                callback(register_module(moduleName, module));
+            });
+            return;
+        }
+/*$ENDIF NODE$*/
+
+/*$IF NODE$*/
+//#JSCOVERAGE_IF 0
+/*$ENDIF NODE$*/
         // Optimized tiny ajax get
         // @see https://gist.github.com/1625623
-        var xhr = new(global.XMLHttpRequest||global.ActiveXObject)("Microsoft.XMLHTTP");
+        var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
         xhr.onreadystatechange = function () {
             if (xhr.readyState == 4) {
                 // 3. Check for correct status 200 or 0 - OK?
@@ -74,6 +97,9 @@
         };
         xhr.open('get', moduleName);
         xhr.send();
+/*$IF NODE$*/
+//#JSCOVERAGE_ENDIF
+/*$ENDIF NODE$*/
     };
 /*$ENDIF ASYNC$*/
 
@@ -82,16 +108,35 @@
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
-            doc = global.document,
             head;
 
-        // Already inited - return as is
+        // If module exists
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return;
         }
 
-        var script = doc.createElement("script");
+        // by default return undefined
+        if (!global_document) {
+/*$IF WORKER_OR_NODE$*/
+            // if no global try to require
+            // node or worker
+            try {
+                // call importScripts or require
+                // any of them can throw error if file not found or transmission error
+                module = register_module(moduleName, (global.importScripts || global.require)(moduleName) || {});
+            } catch (e) {
+                // error -> default behaviour
+            }
+/*$ENDIF WORKER_OR_NODE$*/
+            callback(module);
+            return;
+        }
+
+/*$IF WORKER_OR_NODE$*/
+//#JSCOVERAGE_IF 0
+/*$ENDIF WORKER_OR_NODE$*/
+        var script = global_document.createElement("script");
         global.setTimeout(script.onreadystatechange = script.onload = function (e) {
             if (isNotLoaded &&
                 (!e ||
@@ -106,8 +151,11 @@
         }, 3000, head); // in that moment head === undefined
 
         script.src = moduleName;
-        head = doc.getElementsByTagName("head")[0];
+        head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(script, head.firstChild);
+/*$IF WORKER_OR_NODE$*/
+//#JSCOVERAGE_ENDIF
+/*$ENDIF WORKER_OR_NODE$*/
     };
 /*$ENDIF JS$*/
 
@@ -115,19 +163,22 @@
     // Inspired by yepnope.css.js
     // @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
     require.css = function (moduleName, callback) {
-        var module = modules[moduleName];
+        var module = modules[moduleName],
+            isNotLoaded = 1,
+            head;
 
-        // Already inited - return as is
-        if (module) {
+        // If module exists or its a worker or node.js environment
+        if (module || !global_document) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return;
         }
 
+/*$IF WORKER_OR_NODE$*/
+//#JSCOVERAGE_IF 0
+/*$ENDIF WORKER_OR_NODE$*/
+
         // Create stylesheet link
-        var isNotLoaded = 1,
-            doc = global.document,
-            head,
-            link = doc.createElement("link"),
+        var link = global_document.createElement("link"),
             id = global.Math.random();
 
         // Add attributes
@@ -144,13 +195,13 @@
             }
         }, 3000, head); // in that moment head === undefined
 
-        head = doc.getElementsByTagName("head")[0];
+        head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(link, head.firstChild);
 
         (function poll() {
             if (isNotLoaded) {
                 try {
-                    var sheets = document.styleSheets;
+                    var sheets = global_document.styleSheets;
                     for (var j = 0, k = sheets.length; j < k; j++) {
                         if(sheets[j].ownerNode.id == id && sheets[j].cssRules.length) {
 //#JSCOVERAGE_IF 0
@@ -166,6 +217,9 @@
                 }
             }
         }());
+/*$IF WORKER_OR_NODE$*/
+//#JSCOVERAGE_ENDIF
+/*$ENDIF WORKER_OR_NODE$*/
     };
 /*$ENDIF CSS$*/
 

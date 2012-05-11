@@ -28,7 +28,11 @@
         "module_function_plain_sandboxed": {
             "path": "module_function_plain_sandboxed.js",
             "sandbox": true
-        }
+        },
+
+        "testcase_lmd_basic_features": "test_case/testcase_lmd_basic_features.js",
+        "testcase_lmd_async_require": "test_case/testcase_lmd_async_require.js",
+        "testcase_lmd_loader": "test_case/testcase_lmd_loader.js"
     },
     "main": "main",
     "global": "this",

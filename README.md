@@ -19,6 +19,7 @@ Features
 11. From version 1.6.0 LMD can cache all in-package modules in localStorage `"cache": true` (see Local Storage cache)
 12. From version 1.6.2 LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
 13. Ready for production - `lmd.js` is 100% covered by unit tests see `test/README.md` for details
+14. LMD package is possible to run as Web Worker or execute as Node.js script (see Web Worker and Node.js)
 
 Installing
 ----------
@@ -122,7 +123,9 @@ Config file
     "cache": true,      // store all application lmd itself + all modules in localStorage
                         // this flag will force all modules to be lazy [default=false]
     "js": true,         // if you are going to load non LMD modules set this flag to true [default=false]
-    "css": true         // enables css-loader feature `require.css` [default=false]
+    "css": true,        // enables css-loader feature `require.css` [default=false]
+    "worker": true,     // set true if LMD package will run as worker
+    "node": true        // set true if LMD package will run as node.js script
 }
 ```
 
@@ -197,6 +200,7 @@ You must work online using HTTP server for correct headers, if you work offline 
 then `Content-type` header will be INVALID so all modules will be strings.
 
 **Notice**
+ - See "Web Worker and Node.js" if your package will run as worker or node script
  - If you use `file:` protocol then all modules will be strings
  - LMD loader uses simple RegExp `/script$|json$/` with `Content-type` to determine the kind of content
 and eval it (if json or javascript) or return as string
@@ -279,6 +283,8 @@ Yep! Each time you have to change config file and your html file!
 Loading CSS and JavaScript files `js` and `css`
 -----------------------------------------------
 
+**Note**: See "Web Worker and Node.js" if your package will run as worker or node script
+
 You can enable flags `css: true` and `js: true` to use css and js loader as all loaders do. (Disabled by default)
 
 ```javascript
@@ -292,6 +298,21 @@ require.css('./css/b-template.css', function (linkTag) {
     console.log(typeof linkTag === "undefined" ? 'error' : 'css loaded');
 })
 ```
+
+Web Worker and Node.js
+----------------------
+
+You can use LMD in-package modules (`require()`) in worker and run it as node script without any config changes.
+But if you are going to use `require.async()` or `require.js()` you should add `worker: true` or/and `node: true` config
+flags. `require.css()` in node or worker environment acts like `require()`
+
+ - `require.async()` in Worker environment works exactly the same as in browser environment
+ - `require.async()` in Node uses `fs.readFile()` to read file and evals/returns file content depend on file extension
+ - `require.js()` in Worker acts like `importScripts()` and call back an empty object `{}`
+ - `require.js()` in Node acts like Node.js `GLOBALS.require()` and returns `module.exports` object from node module
+ - `require.css()` in both environments acts like LMD `require()`
+
+Run tests or see `example/modules/main.js` near `workerDepA` and `example/modules/workerDepA.js` for details
 
 Watch mode
 ----------
@@ -369,6 +390,7 @@ Major versions changelog
   - Created development version of example app without cache and production with cache=on
   - LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
   - Unit tests and code coverage
+  - Worker (`worker: true`) and Node.js (`node: true`) environments for require.css, require.js and require.async
 
 Licence
 -------
