@@ -18,8 +18,9 @@ Features
 10. Starting from version 1.5.2 LMD can require off-package modules `"async": true` (see Asynchronous module require)
 11. From version 1.6.0 LMD can cache all in-package modules in localStorage `"cache": true` (see Local Storage cache)
 12. From version 1.6.2 LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
-13. Ready for production - `lmd.js` is 100% covered by unit tests see `test/README.md` for details
-14. LMD package is possible to run as Web Worker or execute as Node.js script (see Web Worker and Node.js)
+13. LMD package is possible to run as Web Worker or execute as Node.js script (see Web Worker and Node.js)
+14. LMD works in all modern browsers and in older IE (see Browsers support)
+15. Ready for production - `lmd.js` is 100% covered by unit tests see `test/README.md` for details
 
 Installing
 ----------
@@ -124,8 +125,9 @@ Config file
                         // this flag will force all modules to be lazy [default=false]
     "js": true,         // if you are going to load non LMD modules set this flag to true [default=false]
     "css": true,        // enables css-loader feature `require.css` [default=false]
-    "worker": true,     // set true if LMD package will run as worker
-    "node": true        // set true if LMD package will run as node.js script
+    "worker": true,     // set true if LMD package will run as worker [default=false]
+    "node": true,       // set true if LMD package will run as node.js script [default=false]
+    "ie": true          // set false if script will run only in modern browsers [default=true]
 }
 ```
 
@@ -188,8 +190,8 @@ Use
 (function(b){var c=b("depA");c("ololo")})
 ```
 
-Asynchronous module require `async`
------------------------------------
+Asynchronous module require. Flag: `async`
+------------------------------------------
 
 You can build async LMD package.  (Disabled by default)
 
@@ -251,8 +253,8 @@ function module(require, exports, module) {
 
 See `example/modules/main.js` near `async_template.html` for real life example
 
-Local Storage cache `cache` and `version`
------------------------------------------
+Local Storage cache. Flag: `cache`, Property: `version`
+-------------------------------------------------------
 
 You can store all your in-package modules and lmd itself in localStorage. (Disabled by default)
 
@@ -280,8 +282,8 @@ See `example/cfgs/index.prodoction.lmd.json` and `example/index.html` for detail
 **Note**: `version` property from config and from `data-version` attribute must match to use code from localStorage!
 Yep! Each time you have to change config file and your html file!
 
-Loading CSS and JavaScript files `js` and `css`
------------------------------------------------
+Loading CSS and JavaScript files. Flags: `js`, `css`
+----------------------------------------------------
 
 **Note**: See "Web Worker and Node.js" if your package will run as worker or node script
 
@@ -299,8 +301,8 @@ require.css('./css/b-template.css', function (linkTag) {
 })
 ```
 
-Web Worker and Node.js
-----------------------
+Web Worker and Node.js. Flags: `node`, `worker`
+-----------------------------------------------
 
 You can use LMD in-package modules (`require()`) in worker and run it as node script without any config changes.
 But if you are going to use `require.async()` or `require.js()` you should add `worker: true` or/and `node: true` config
@@ -313,6 +315,14 @@ flags. `require.css()` in node or worker environment acts like `require()`
  - `require.css()` in both environments acts like LMD `require()`
 
 Run tests or see `example/modules/main.js` near `workerDepA` and `example/modules/workerDepA.js` for details
+
+Browsers support. Flag: `ie`
+----------------------------
+
+LMD works in all modern browsers and in older IE. If LMD package will run only in modern browsers turn off `ie: false`
+config flag to optimise lmd source for modern browsers (removes few IE hacks)
+
+Tested on Opera 11.63, Chrome 17, Safari 5, IE 6+, Firefox 12, iOS Safari 5, to be updated...
 
 Watch mode
 ----------
@@ -391,6 +401,7 @@ Major versions changelog
   - LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
   - Unit tests and code coverage
   - Worker (`worker: true`) and Node.js (`node: true`) environments for require.css, require.js and require.async
+  - Older IE support `ie: true` flag
 
 Licence
 -------

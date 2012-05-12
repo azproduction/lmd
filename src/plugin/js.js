@@ -48,6 +48,7 @@
 /*$ENDIF WORKER_OR_NODE$*/
         var script = global_document.createElement("script");
         global.setTimeout(script.onreadystatechange = script.onload = function (e) {
+            /*$IF IE$*/e = e || global.event;/*$ENDIF IE$*/
             if (isNotLoaded &&
                 (!e ||
                 !script[readyState] ||
@@ -56,9 +57,9 @@
 
                 isNotLoaded = 0;
                 // register or cleanup
-                callback(e ? register_module(moduleName, script) : head.removeChild(script) && e); // e === undefined if error
+                callback(e ? register_module(moduleName, script) : head.removeChild(script) && void 0); // e === undefined if error
             }
-        }, 3000, head); // in that moment head === undefined
+        }, 3000); // in that moment head === undefined
 
         script.src = moduleName;
         head = global_document.getElementsByTagName("head")[0];

@@ -10,7 +10,7 @@ var node_global_environment = {
                         return;
                     }
 
-                    var xhr = new XMLHttpRequest();
+                    var xhr = new (window.XMLHttpRequest || window.ActiveXObject)("Microsoft.XMLHTTP");
                     xhr.onreadystatechange = function () {
                         if (xhr.readyState == 4) {
                             // 3. Check for correct status 200 or 0 - OK?

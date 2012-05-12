@@ -22,14 +22,13 @@
     });
 
     test("require() module-functions", function () {
-        expect(10);
+        expect(9);
 
         var fd = require('module_function_fd'),
             fe = require('module_function_fe'),
             plain = require('module_function_plain');
 
         ok(fd() === true, "can require function definitions");
-        ok(typeof require('fd') === "undefined", "function definition's name should not leak into globals");
         ok(fe() === true, "can require function expressions");
         ok(plain() === true, "can require plain modules");
 

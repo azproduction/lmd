@@ -12,6 +12,10 @@
 
         ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
 
+    if ('\v' == 'v') {
+        return; // this module should not run in older IE
+    }
+
     module('LMD async require @ ' + ENV_NAME);
 
     asyncTest("require.async() module-functions", function () {

@@ -35,21 +35,22 @@
 
         // Create stylesheet link
         var link = global_document.createElement("link"),
-            id = global.Math.random();
+            id = +new global.Date,
+            onload = function (e, x) {
+                if (isNotLoaded) {
+                    isNotLoaded = 0;
+                    // register or cleanup
+                    link.removeAttribute('id');
+                    callback(e ? register_module(moduleName, link) : head.removeChild(link) && x); // e === undefined if error
+                }
+            };
 
         // Add attributes
         link.href = moduleName;
         link.rel = "stylesheet";
         link.id = id;
 
-        global.setTimeout(link.onload = function (e) {
-            if (isNotLoaded) {
-                isNotLoaded = 0;
-                // register or cleanup
-                link.removeAttribute('id');
-                callback(e ? register_module(moduleName, link) : head.removeChild(link) && e); // e === undefined if error
-            }
-        }, 3000, head); // in that moment head === undefined
+        global.setTimeout(onload, 3000);
 
         head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(link, head.firstChild);
@@ -59,9 +60,10 @@
                 try {
                     var sheets = global_document.styleSheets;
                     for (var j = 0, k = sheets.length; j < k; j++) {
-                        if(sheets[j].ownerNode.id == id && sheets[j].cssRules.length) {
+                        if((sheets[j].ownerNode/*$IF IE$*/ || sheets[j].owningElement/*$ENDIF IE$*/).id == id &&
+                           (sheets[j].cssRules/*$IF IE$*/ || sheets[j].rules/*$ENDIF IE$*/).length) {
 //#JSCOVERAGE_IF 0
-                            return link.onload(1);
+                            return onload(1);
 //#JSCOVERAGE_ENDIF
                         }
                     }
@@ -69,7 +71,7 @@
                     throw 1;
                 } catch(e) {
                     // Keep polling
-                    global.setTimeout(poll, 20);
+                    global.setTimeout(poll, 90);
                 }
             }
         }());

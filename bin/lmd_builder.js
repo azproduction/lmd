@@ -285,7 +285,8 @@ LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP = {
     js: ["JS"],
     css: ["CSS"],
     node: ["WORKER_OR_NODE", "NODE"],
-    worker: ["WORKER_OR_NODE"]
+    worker: ["WORKER_OR_NODE"],
+    ie: ["IE"]
 };
 
 /**
@@ -620,6 +621,10 @@ LmdBuilder.prototype.build = function (callback) {
         isModule,
         module,
         modules;
+
+    if (typeof config.ie === "undefined") {
+        config.ie = true;
+    }
 
     if (config.modules) {
         modules = this.collectModules(config);

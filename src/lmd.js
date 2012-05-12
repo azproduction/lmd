@@ -39,6 +39,7 @@
 
             // Lazy LMD module not a string
             if (/^\(function\(/.test(module)) {
+                /*$IF IE$*/module = '(function(){return' + module + '})()';/*$ENDIF IE$*/
                 module = global_eval(module);
             }
 

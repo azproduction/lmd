@@ -39,6 +39,7 @@
 
             // Lazy LMD module not a string
             if (/^\(function\(/.test(module)) {
+                module = '(function(){return' + module + '})()';
                 module = global_eval(module);
             }
 
@@ -87,6 +88,7 @@
                 if (xhr.status < 201) {
                     module = xhr.responseText;
                     if ((/script$|json$/).test(xhr.getResponseHeader('content-type'))) {
+                        module = '(function(){return' + module + '})()';
                         module = global_eval('(' + module + ')');
                     }
                     // 4. Then callback it
@@ -138,6 +140,7 @@
 
         var script = global_document.createElement("script");
         global.setTimeout(script.onreadystatechange = script.onload = function (e) {
+            e = e || global.event;
             if (isNotLoaded &&
                 (!e ||
                 !script[readyState] ||
@@ -146,9 +149,9 @@
 
                 isNotLoaded = 0;
                 // register or cleanup
-                callback(e ? register_module(moduleName, script) : head.removeChild(script) && e); // e === undefined if error
+                callback(e ? register_module(moduleName, script) : head.removeChild(script) && void 0); // e === undefined if error
             }
-        }, 3000, head); // in that moment head === undefined
+        }, 3000); // in that moment head === undefined
 
         script.src = moduleName;
         head = global_document.getElementsByTagName("head")[0];
@@ -190,21 +193,22 @@
 
         // Create stylesheet link
         var link = global_document.createElement("link"),
-            id = global.Math.random();
+            id = +new global.Date,
+            onload = function (e, x) {
+                if (isNotLoaded) {
+                    isNotLoaded = 0;
+                    // register or cleanup
+                    link.removeAttribute('id');
+                    callback(e ? register_module(moduleName, link) : head.removeChild(link) && x); // e === undefined if error
+                }
+            };
 
         // Add attributes
         link.href = moduleName;
         link.rel = "stylesheet";
         link.id = id;
 
-        global.setTimeout(link.onload = function (e) {
-            if (isNotLoaded) {
-                isNotLoaded = 0;
-                // register or cleanup
-                link.removeAttribute('id');
-                callback(e ? register_module(moduleName, link) : head.removeChild(link) && e); // e === undefined if error
-            }
-        }, 3000, head); // in that moment head === undefined
+        global.setTimeout(onload, 3000);
 
         head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(link, head.firstChild);
@@ -214,9 +218,10 @@
                 try {
                     var sheets = global_document.styleSheets;
                     for (var j = 0, k = sheets.length; j < k; j++) {
-                        if(sheets[j].ownerNode.id == id && sheets[j].cssRules.length) {
+                        if((sheets[j].ownerNode || sheets[j].owningElement).id == id &&
+                           (sheets[j].cssRules || sheets[j].rules).length) {
 //#JSCOVERAGE_IF 0
-                            return link.onload(1);
+                            return onload(1);
 //#JSCOVERAGE_ENDIF
                         }
                     }
@@ -224,7 +229,7 @@
                     throw 1;
                 } catch(e) {
                     // Keep polling
-                    global.setTimeout(poll, 20);
+                    global.setTimeout(poll, 90);
                 }
             }
         }());
@@ -334,14 +339,13 @@ exports.some_function = function () {
     });
 
     test("require() module-functions", function () {
-        expect(10);
+        expect(9);
 
         var fd = require('module_function_fd'),
             fe = require('module_function_fe'),
             plain = require('module_function_plain');
 
         ok(fd() === true, "can require function definitions");
-        ok(typeof require('fd') === "undefined", "function definition's name should not leak into globals");
         ok(fe() === true, "can require function expressions");
         ok(plain() === true, "can require plain modules");
 

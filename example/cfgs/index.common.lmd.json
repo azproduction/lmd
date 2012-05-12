@@ -16,5 +16,6 @@
     "js": true,
     "css": true,
     "lazy": false,
-    "pack": false
+    "pack": false,
+    "ie": true
 }

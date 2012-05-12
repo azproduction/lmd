@@ -53,6 +53,7 @@
                 if (xhr.status < 201) {
                     module = xhr.responseText;
                     if ((/script$|json$/).test(xhr.getResponseHeader('content-type'))) {
+                        /*$IF IE$*/module = '(function(){return' + module + '})()';/*$ENDIF IE$*/
                         module = global_eval('(' + module + ')');
                     }
                     // 4. Then callback it
