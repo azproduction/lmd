@@ -24,6 +24,11 @@
 
             return modules[moduleName] = module;
         },
+        /**
+         * @param {String} moduleName module name or path to file
+         *
+         * @returns {*}
+         */
         require = function (moduleName) {
             var module = modules[moduleName];
 
@@ -45,7 +50,21 @@
         // reset module init flag in case of overwriting
         initialized_modules[moduleName] = 0;
     }
+/**
+ * @name global
+ * @name require
+ * @name initialized_modules
+ * @name modules
+ * @name global_eval
+ * @name register_module
+ */
 
+    /**
+     * Load off-package LMD module
+     *
+     * @param {String}   moduleName same origin path to LMD module
+     * @param {Function} callback   callback(result) undefined on error others on success
+     */
     require.async = function (moduleName, callback) {
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
@@ -101,9 +120,22 @@
 //#JSCOVERAGE_ENDIF
 
     };
+/**
+ * @name global
+ * @name require
+ * @name initialized_modules
+ * @name modules
+ * @name global_eval
+ * @name register_module
+ * @name global_document
+ */
 
-
-
+    /**
+     * Loads any JavaScript file a non-LMD module
+     *
+     * @param {String}   moduleName path to file
+     * @param {Function} callback   callback(result) undefined on error HTMLScriptElement on success
+     */
     require.js = function (moduleName, callback) {
         var module = modules[moduleName],
             readyState = 'readyState',
@@ -143,7 +175,7 @@
                 !script[readyState] ||
                 script[readyState] == "loaded" ||
                 script[readyState] == "complete")) {
-                
+
                 isNotLoaded = 0;
                 // register or cleanup
                 callback(e ? register_module(moduleName, script) : head.removeChild(script) && e); // e === undefined if error
@@ -157,11 +189,26 @@
 //#JSCOVERAGE_ENDIF
 
     };
+/**
+ * @name global
+ * @name require
+ * @name initialized_modules
+ * @name modules
+ * @name global_eval
+ * @name register_module
+ * @name global_document
+ */
 
-
-
-    // Inspired by yepnope.css.js
-    // @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
+    /**
+     * Loads any CSS file
+     *
+     * Inspired by yepnope.css.js
+     *
+     * @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
+     *
+     * @param {String}   moduleName path to css file
+     * @param {Function} callback   callback(result) undefined on error HTMLLinkElement on success
+     */
     require.css = function (moduleName, callback) {
         var module = modules[moduleName],
             isNotLoaded = 1,
@@ -221,8 +268,6 @@
 //#JSCOVERAGE_ENDIF
 
     };
-
-
 
     main(require, output.exports, output);
 })(node_global_environment,(function (require) {

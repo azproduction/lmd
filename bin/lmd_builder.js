@@ -304,7 +304,28 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
         rightIndex,
         flagName;
 
-    // Apply
+    // Add plugins
+    for (flagName in LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP) {
+        optionNames = LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP[flagName];
+
+        optionNames.forEach(function (optionName) {
+            var includePattern = new RegExp('\\/\\*\\$INCLUDE IF ' + optionName + '\\s+([a-z\\.]+)\\s+\\$\\*\\/', ''),
+                patchContent = '',
+                match;
+
+            // Add plugin
+            if (config[flagName]) {
+                // apply: remove left & right side
+                match = lmd_js.match(includePattern);
+                if (match && match[1]) {
+                    patchContent = fs.readFileSync(LMD_JS_SRC_PATH + 'plugin/' + match[1]);
+                }
+            }
+            lmd_js = lmd_js.replace(includePattern, patchContent);
+        });
+    }
+
+    // Apply IF statements
     for (flagName in LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP) {
         optionNames = LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP[flagName];
 
@@ -316,7 +337,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
         }
     }
 
-    // Wipe
+    // Wipe IF statements
     for (flagName in LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP) {
         optionNames = LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP[flagName];
 
