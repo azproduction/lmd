@@ -6,6 +6,7 @@
  * @name global_eval
  * @name register_module
  * @name global_document
+ * @name local_undefined
  */
 
     /**
@@ -16,9 +17,10 @@
      * @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
      *
      * @param {String}   moduleName path to css file
-     * @param {Function} callback   callback(result) undefined on error HTMLLinkElement on success
+     * @param {Function} [callback]   callback(result) undefined on error HTMLLinkElement on success
      */
     require.css = function (moduleName, callback) {
+        callback = callback || function () {};
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;
@@ -26,7 +28,7 @@
         // If module exists or its a worker or node.js environment
         if (module || !global_document) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return;
+            return require;
         }
 
 /*$IF WORKER_OR_NODE$*/
@@ -36,12 +38,12 @@
         // Create stylesheet link
         var link = global_document.createElement("link"),
             id = +new global.Date,
-            onload = function (e, x) {
+            onload = function (e) {
                 if (isNotLoaded) {
                     isNotLoaded = 0;
                     // register or cleanup
                     link.removeAttribute('id');
-                    callback(e ? register_module(moduleName, link) : head.removeChild(link) && x); // e === undefined if error
+                    callback(e ? register_module(moduleName, link) : head.removeChild(link) && local_undefined); // e === undefined if error
                 }
             };
 
@@ -50,7 +52,7 @@
         link.rel = "stylesheet";
         link.id = id;
 
-        global.setTimeout(onload, 3000);
+        global.setTimeout(onload, 3000, 0);
 
         head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(link, head.firstChild);
@@ -75,6 +77,8 @@
                 }
             }
         }());
+
+        return require;
 /*$IF WORKER_OR_NODE$*/
 //#JSCOVERAGE_ENDIF
 /*$ENDIF WORKER_OR_NODE$*/

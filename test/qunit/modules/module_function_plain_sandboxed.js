@@ -1,4 +1,4 @@
-if (require !== null) {
+if (typeof require !== "undefined") {
 //#JSCOVERAGE_IF 0
     throw 'require should be null';
 //#JSCOVERAGE_ENDIF

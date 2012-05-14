@@ -6,15 +6,17 @@
  * @name global_eval
  * @name register_module
  * @name global_document
+ * @name local_undefined
  */
 
     /**
      * Loads any JavaScript file a non-LMD module
      *
      * @param {String}   moduleName path to file
-     * @param {Function} callback   callback(result) undefined on error HTMLScriptElement on success
+     * @param {Function} [callback]   callback(result) undefined on error HTMLScriptElement on success
      */
     require.js = function (moduleName, callback) {
+        callback = callback || function () {};
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
@@ -23,7 +25,7 @@
         // If module exists
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return;
+            return require;
         }
 
         // by default return undefined
@@ -40,7 +42,7 @@
             }
 /*$ENDIF WORKER_OR_NODE$*/
             callback(module);
-            return;
+            return require;
         }
 
 /*$IF WORKER_OR_NODE$*/
@@ -57,13 +59,15 @@
 
                 isNotLoaded = 0;
                 // register or cleanup
-                callback(e ? register_module(moduleName, script) : head.removeChild(script) && void 0); // e === undefined if error
+                callback(e ? register_module(moduleName, script) : head.removeChild(script) && local_undefined); // e === undefined if error
             }
-        }, 3000); // in that moment head === undefined
+        }, 3000, 0);
 
         script.src = moduleName;
         head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(script, head.firstChild);
+
+        return require;
 /*$IF WORKER_OR_NODE$*/
 //#JSCOVERAGE_ENDIF
 /*$ENDIF WORKER_OR_NODE$*/

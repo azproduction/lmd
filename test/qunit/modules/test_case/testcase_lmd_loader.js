@@ -39,6 +39,26 @@
         });
     });
 
+    asyncTest("require.js() JSON callback and chain calls", function () {
+        expect(2);
+
+        var id = require('setTimeout')(function () {
+            ok(false, 'JSONP call fails');
+            start();
+        }, 3000);
+
+        require('window').someJsonHandler = function (result) {
+            ok(result.ok, 'JSON called');
+            require('window').someJsonHandler = null;
+            require('clearTimeout')(id);
+            start();
+        };
+
+        var requireReturned = require.js('./modules/loader/non_lmd_module.jsonp.js' + rnd);
+
+        ok(requireReturned === require, "require.js() must return require");
+    });
+
     asyncTest("require.css()", function () {
         expect(6);
 
@@ -61,5 +81,16 @@
                 });
             });
         });
+    });
+
+    asyncTest("require.css() CSS loader without callback", function () {
+        expect(1);
+
+        var requireReturned = require
+            .css('./modules/loader/some_css_callbackless.css' + rnd)
+            .css('./modules/loader/some_css_callbackless.css' + rnd + 1);
+
+        ok(requireReturned === require, "require.css() must return require");
+        start();
     });
 })

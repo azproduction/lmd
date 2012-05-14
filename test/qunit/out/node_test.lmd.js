@@ -2,6 +2,7 @@
     var initialized_modules = {},
         global_eval = global.eval,
         global_document = global.document,
+        local_undefined,
         /**
          * @param {String} moduleName module name or path to file
          * @param {*}      module module content
@@ -19,7 +20,7 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                module = module(sandboxed_modules[moduleName] ? null : require, output.exports, output) || output.exports;
+                module = module(sandboxed_modules[moduleName] ? local_undefined : require, output.exports, output) || output.exports;
             }
 
             return modules[moduleName] = module;
@@ -64,16 +65,17 @@
      * Load off-package LMD module
      *
      * @param {String}   moduleName same origin path to LMD module
-     * @param {Function} callback   callback(result) undefined on error others on success
+     * @param {Function} [callback]   callback(result) undefined on error others on success
      */
     require.async = function (moduleName, callback) {
+        callback = callback || function () {};
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
 
         // If module exists or its a node.js env
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return;
+            return require;
         }
 
 
@@ -90,7 +92,7 @@
                 // 4. Then callback it
                 callback(register_module(moduleName, module));
             });
-            return;
+            return require;
         }
 
 
@@ -119,6 +121,8 @@
         xhr.open('get', moduleName);
         xhr.send();
 
+        return require;
+
 //#JSCOVERAGE_ENDIF
 
     };
@@ -130,15 +134,17 @@
  * @name global_eval
  * @name register_module
  * @name global_document
+ * @name local_undefined
  */
 
     /**
      * Loads any JavaScript file a non-LMD module
      *
      * @param {String}   moduleName path to file
-     * @param {Function} callback   callback(result) undefined on error HTMLScriptElement on success
+     * @param {Function} [callback]   callback(result) undefined on error HTMLScriptElement on success
      */
     require.js = function (moduleName, callback) {
+        callback = callback || function () {};
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
@@ -147,7 +153,7 @@
         // If module exists
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return;
+            return require;
         }
 
         // by default return undefined
@@ -164,7 +170,7 @@
             }
 
             callback(module);
-            return;
+            return require;
         }
 
 
@@ -181,13 +187,15 @@
 
                 isNotLoaded = 0;
                 // register or cleanup
-                callback(e ? register_module(moduleName, script) : head.removeChild(script) && void 0); // e === undefined if error
+                callback(e ? register_module(moduleName, script) : head.removeChild(script) && local_undefined); // e === undefined if error
             }
-        }, 3000); // in that moment head === undefined
+        }, 3000, 0);
 
         script.src = moduleName;
         head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(script, head.firstChild);
+
+        return require;
 
 //#JSCOVERAGE_ENDIF
 
@@ -200,6 +208,7 @@
  * @name global_eval
  * @name register_module
  * @name global_document
+ * @name local_undefined
  */
 
     /**
@@ -210,9 +219,10 @@
      * @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
      *
      * @param {String}   moduleName path to css file
-     * @param {Function} callback   callback(result) undefined on error HTMLLinkElement on success
+     * @param {Function} [callback]   callback(result) undefined on error HTMLLinkElement on success
      */
     require.css = function (moduleName, callback) {
+        callback = callback || function () {};
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;
@@ -220,7 +230,7 @@
         // If module exists or its a worker or node.js environment
         if (module || !global_document) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return;
+            return require;
         }
 
 
@@ -230,12 +240,12 @@
         // Create stylesheet link
         var link = global_document.createElement("link"),
             id = +new global.Date,
-            onload = function (e, x) {
+            onload = function (e) {
                 if (isNotLoaded) {
                     isNotLoaded = 0;
                     // register or cleanup
                     link.removeAttribute('id');
-                    callback(e ? register_module(moduleName, link) : head.removeChild(link) && x); // e === undefined if error
+                    callback(e ? register_module(moduleName, link) : head.removeChild(link) && local_undefined); // e === undefined if error
                 }
             };
 
@@ -244,7 +254,7 @@
         link.rel = "stylesheet";
         link.id = id;
 
-        global.setTimeout(onload, 3000);
+        global.setTimeout(onload, 3000, 0);
 
         head = global_document.getElementsByTagName("head")[0];
         head.insertBefore(link, head.firstChild);
@@ -269,6 +279,8 @@
                 }
             }
         }());
+
+        return require;
 
 //#JSCOVERAGE_ENDIF
 
@@ -306,7 +318,7 @@
     }
 },
 "module_function_fd_sandboxed": function fd(require, exports, module) {
-    if (require !== null) {
+    if (typeof require !== "undefined") {
 //#JSCOVERAGE_IF 0
         throw 'require should be null';
 //#JSCOVERAGE_ENDIF
@@ -324,7 +336,7 @@
     }
 }),
 "module_function_fe_sandboxed": (function (require, exports, module) {
-    if (require !== null) {
+    if (typeof require !== "undefined") {
 //#JSCOVERAGE_IF 0
         throw 'require should be null';
 //#JSCOVERAGE_ENDIF
@@ -343,7 +355,7 @@ module.exports = function () {
 };
 }),
 "module_function_plain_sandboxed": (function (require, exports, module) { /* wrapped by builder */
-if (require !== null) {
+if (typeof require !== "undefined") {
 //#JSCOVERAGE_IF 0
     throw 'require should be null';
 //#JSCOVERAGE_ENDIF
@@ -486,6 +498,21 @@ exports.some_function = function () {
             ok(require('./modules/async/module_as_json_async.json' + rnd) === module_as_json_async, "can sync require, loaded async module-object");
             start();
         });
+    });
+
+    asyncTest("require.async() chain calls", function () {
+        expect(3);
+
+        var requireReturned = require
+            .async('./modules/async/module_as_json_async.json' + rnd)
+            .async('./modules/async/module_as_json_async.json' + rnd, function () {
+                ok(true, 'Callback is optional');
+                ok(true, 'WeCan use chain calls');
+
+                start();
+            });
+
+        ok(requireReturned === require, "require.async() must return require");
     });
 
     asyncTest("require.async() errors", function () {

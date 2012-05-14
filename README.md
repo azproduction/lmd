@@ -402,6 +402,9 @@ Major versions changelog
   - Unit tests and code coverage
   - Worker (`worker: true`) and Node.js (`node: true`) environments for require.css, require.js and require.async
   - Older IE support `ie: true` flag
+  - Sandboxed module now accepts require arg as undefined (was null)
+  - Callback argument in require.js .css .async now optional. Each of them returns require for chaining
+  - Firefox 13 setTimeout callback poisoning bug
 
 Licence
 -------

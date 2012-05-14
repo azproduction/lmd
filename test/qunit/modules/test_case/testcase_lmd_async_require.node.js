@@ -53,6 +53,21 @@
         });
     });
 
+    asyncTest("require.async() chain calls", function () {
+        expect(3);
+
+        var requireReturned = require
+            .async('./modules/async/module_as_json_async.json' + rnd)
+            .async('./modules/async/module_as_json_async.json' + rnd, function () {
+                ok(true, 'Callback is optional');
+                ok(true, 'WeCan use chain calls');
+
+                start();
+            });
+
+        ok(requireReturned === require, "require.async() must return require");
+    });
+
     asyncTest("require.async() errors", function () {
         expect(2);
 

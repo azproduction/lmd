@@ -2,6 +2,7 @@
     var initialized_modules = {},
         global_eval = global.eval,
         global_document = global.document,
+        local_undefined,
         /**
          * @param {String} moduleName module name or path to file
          * @param {*}      module module content
@@ -19,7 +20,7 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                module = module(sandboxed_modules[moduleName] ? null : require, output.exports, output) || output.exports;
+                module = module(sandboxed_modules[moduleName] ? local_undefined : require, output.exports, output) || output.exports;
             }
 
             return modules[moduleName] = module;

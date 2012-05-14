@@ -1,0 +1,3 @@
+someJsonHandler && someJsonHandler({
+    "ok": true
+});

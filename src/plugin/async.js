@@ -11,16 +11,17 @@
      * Load off-package LMD module
      *
      * @param {String}   moduleName same origin path to LMD module
-     * @param {Function} callback   callback(result) undefined on error others on success
+     * @param {Function} [callback]   callback(result) undefined on error others on success
      */
     require.async = function (moduleName, callback) {
+        callback = callback || function () {};
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
 
         // If module exists or its a node.js env
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return;
+            return require;
         }
 
 /*$IF NODE$*/
@@ -37,7 +38,7 @@
                 // 4. Then callback it
                 callback(register_module(moduleName, module));
             });
-            return;
+            return require;
         }
 /*$ENDIF NODE$*/
 
@@ -65,6 +66,8 @@
         };
         xhr.open('get', moduleName);
         xhr.send();
+
+        return require;
 /*$IF NODE$*/
 //#JSCOVERAGE_ENDIF
 /*$ENDIF NODE$*/
