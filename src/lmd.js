@@ -1,7 +1,8 @@
 (function /*$IF CACHE$*/lmd/*$ENDIF CACHE$*/(global, main, modules, sandboxed_modules/*$IF CACHE$*/, version/*$ENDIF CACHE$*/) {
     var initialized_modules = {},
         global_eval = global.eval,
-        global_document = global.document,
+        /*$IF CSS_OR_JS_OR_ASYNC$*/global_noop = function () {},/*$ENDIF CSS_OR_JS_OR_ASYNC$*/
+        /*$IF CSS_OR_JS$*/global_document = global.document,/*$ENDIF CSS_OR_JS$*/
         local_undefined,
         /**
          * @param {String} moduleName module name or path to file

@@ -6,6 +6,7 @@
  * @name global_eval
  * @name register_module
  * @name global_document
+ * @name global_noop
  * @name local_undefined
  */
 
@@ -20,7 +21,7 @@
      * @param {Function} [callback]   callback(result) undefined on error HTMLLinkElement on success
      */
     require.css = function (moduleName, callback) {
-        callback = callback || function () {};
+        callback = callback || global_noop;
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;

@@ -279,16 +279,6 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, san
     return result;
 };
 
-LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP = {
-    async: ["ASYNC"],
-    cache: ["CACHE"],
-    js: ["JS"],
-    css: ["CSS"],
-    node: ["WORKER_OR_NODE", "NODE"],
-    worker: ["WORKER_OR_NODE"],
-    ie: ["IE"]
-};
-
 /**
  * Patches lmd source
  *
@@ -305,9 +295,11 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
         rightIndex,
         flagName;
 
+    var flagToOptionNameMap = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_flags.json'));
+
     // Add plugins
-    for (flagName in LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP) {
-        optionNames = LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP[flagName];
+    for (flagName in flagToOptionNameMap) {
+        optionNames = flagToOptionNameMap[flagName];
 
         optionNames.forEach(function (optionName) {
             var includePattern = new RegExp('\\/\\*\\$INCLUDE IF ' + optionName + '\\s+([a-z\\.]+)\\s+\\$\\*\\/', ''),
@@ -327,8 +319,8 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
     }
 
     // Apply IF statements
-    for (flagName in LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP) {
-        optionNames = LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP[flagName];
+    for (flagName in flagToOptionNameMap) {
+        optionNames = flagToOptionNameMap[flagName];
 
         if (config[flagName]) {
             // apply: remove left & right side
@@ -339,8 +331,8 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
     }
 
     // Wipe IF statements
-    for (flagName in LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP) {
-        optionNames = LmdBuilder.FLAG_NAME_TO_OPTION_NAME_MAP[flagName];
+    for (flagName in flagToOptionNameMap) {
+        optionNames = flagToOptionNameMap[flagName];
 
         if (!config[flagName]) {
             // remove: wipe all content

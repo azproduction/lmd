@@ -1,0 +1,9 @@
+{
+    "async": ["ASYNC", "CSS_OR_JS_OR_ASYNC"],
+    "cache": ["CACHE"],
+    "js": ["JS", "CSS_OR_JS", "CSS_OR_JS_OR_ASYNC"],
+    "css": ["CSS", "CSS_OR_JS", "CSS_OR_JS_OR_ASYNC"],
+    "node": ["WORKER_OR_NODE", "NODE"],
+    "worker": ["WORKER_OR_NODE"],
+    "ie": ["IE"]
+}

@@ -4,6 +4,7 @@
  * @name initialized_modules
  * @name modules
  * @name global_eval
+ * @name global_noop
  * @name register_module
  */
 
@@ -14,7 +15,7 @@
      * @param {Function} [callback]   callback(result) undefined on error others on success
      */
     require.async = function (moduleName, callback) {
-        callback = callback || function () {};
+        callback = callback || global_noop;
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
 

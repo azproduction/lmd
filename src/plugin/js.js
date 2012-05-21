@@ -6,6 +6,7 @@
  * @name global_eval
  * @name register_module
  * @name global_document
+ * @name global_noop
  * @name local_undefined
  */
 
@@ -16,7 +17,7 @@
      * @param {Function} [callback]   callback(result) undefined on error HTMLScriptElement on success
      */
     require.js = function (moduleName, callback) {
-        callback = callback || function () {};
+        callback = callback || global_noop;
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,

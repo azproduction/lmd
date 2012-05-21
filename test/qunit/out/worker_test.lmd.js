@@ -1,6 +1,7 @@
 (function (global, main, modules, sandboxed_modules) {
     var initialized_modules = {},
         global_eval = global.eval,
+        global_noop = function () {},
         global_document = global.document,
         local_undefined,
         /**
@@ -58,6 +59,7 @@
  * @name initialized_modules
  * @name modules
  * @name global_eval
+ * @name global_noop
  * @name register_module
  */
 
@@ -68,7 +70,7 @@
      * @param {Function} [callback]   callback(result) undefined on error others on success
      */
     require.async = function (moduleName, callback) {
-        callback = callback || function () {};
+        callback = callback || global_noop;
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
 
@@ -114,6 +116,7 @@
  * @name global_eval
  * @name register_module
  * @name global_document
+ * @name global_noop
  * @name local_undefined
  */
 
@@ -124,7 +127,7 @@
      * @param {Function} [callback]   callback(result) undefined on error HTMLScriptElement on success
      */
     require.js = function (moduleName, callback) {
-        callback = callback || function () {};
+        callback = callback || global_noop;
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
@@ -188,6 +191,7 @@
  * @name global_eval
  * @name register_module
  * @name global_document
+ * @name global_noop
  * @name local_undefined
  */
 
@@ -202,7 +206,7 @@
      * @param {Function} [callback]   callback(result) undefined on error HTMLLinkElement on success
      */
     require.css = function (moduleName, callback) {
-        callback = callback || function () {};
+        callback = callback || global_noop;
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;
