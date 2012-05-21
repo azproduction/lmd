@@ -38,6 +38,23 @@
         });
     });
 
+    asyncTest("require.js() race calls", function () {
+        expect(1);
+        var result;
+
+        var check_result = function (object) {
+            if (typeof result === "undefined") {
+                result = object;
+            } else {
+                ok(result === object, "Must perform one call. Results must be the same");
+                start();
+            }
+        };
+
+        require.js('./modules/loader_race/non_lmd_module.js' + rnd, check_result);
+        require.js('./modules/loader_race/non_lmd_module.js' + rnd, check_result);
+    });
+
     asyncTest("require.css()", function () {
         expect(3);
 

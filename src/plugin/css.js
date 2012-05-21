@@ -8,6 +8,8 @@
  * @name global_document
  * @name global_noop
  * @name local_undefined
+ * @name create_race
+ * @name race_callbacks
  */
 
     /**
@@ -31,6 +33,14 @@
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
+
+/*$IF RACE$*/
+        callback = create_race(moduleName, callback);
+        // if already called
+        if (race_callbacks[moduleName].length > 1) {
+            return require;
+        }
+/*$ENDIF RACE$*/
 
 /*$IF WORKER_OR_NODE$*/
 //#JSCOVERAGE_IF 0

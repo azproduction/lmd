@@ -40,6 +40,7 @@
     "async": true,
     "js": true,
     "css": true,
+    "race": true,
     "lazy": false,
     "pack": false
 }

@@ -59,6 +59,23 @@
         ok(requireReturned === require, "require.js() must return require");
     });
 
+    asyncTest("require.js() race calls", function () {
+        expect(1);
+        var result;
+
+        var check_result = function (scriptTag) {
+            if (typeof result === "undefined") {
+                result = scriptTag;
+            } else {
+                ok(result === scriptTag, "Must perform one call. Results must be the same");
+                start();
+            }
+        };
+
+        require.js('./modules/loader_race/non_lmd_module.js' + rnd, check_result);
+        require.js('./modules/loader_race/non_lmd_module.js' + rnd, check_result);
+    });
+
     asyncTest("require.css()", function () {
         expect(6);
 
@@ -92,5 +109,22 @@
 
         ok(requireReturned === require, "require.css() must return require");
         start();
+    });
+
+    asyncTest("require.css() race calls", function () {
+        expect(1);
+        var result;
+
+        var check_result = function (linkTag) {
+            if (typeof result === "undefined") {
+                result = linkTag;
+            } else {
+                ok(result === linkTag, "Must perform one call. Results must be the same");
+                start();
+            }
+        };
+
+        require.css('./modules/loader_race/some_css.css' + rnd, check_result);
+        require.css('./modules/loader_race/some_css.css' + rnd, check_result);
     });
 })

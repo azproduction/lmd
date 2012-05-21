@@ -64,6 +64,57 @@
         ok(requireReturned === require, "must return require");
     });
 
+    asyncTest("require.async():json race calls", function () {
+        expect(1);
+        var result;
+
+        var check_result = function (module_as_json_async) {
+            if (typeof result === "undefined") {
+                result = module_as_json_async;
+            } else {
+                ok(result === module_as_json_async, "Must perform one call. Results must be the same");
+                start();
+            }
+        };
+
+        require.async('./modules/async_race/module_as_json_async.json' + rnd, check_result);
+        require.async('./modules/async_race/module_as_json_async.json' + rnd, check_result);
+    });
+
+    asyncTest("require.async():js race calls", function () {
+        expect(2); // 1 +1 in module ok()
+        var result;
+
+        var check_result = function (module_as_json_async) {
+            if (typeof result === "undefined") {
+                result = module_as_json_async;
+            } else {
+                ok(result === module_as_json_async, "Must perform one call. Results must be the same");
+                start();
+            }
+        };
+
+        require.async('./modules/async_race/module_function_async.js' + rnd, check_result);
+        require.async('./modules/async_race/module_function_async.js' + rnd, check_result);
+    });
+
+    asyncTest("require.async():string race calls", function () {
+        expect(1);
+        var result;
+
+        var check_result = function (module_as_json_async) {
+            if (typeof result === "undefined") {
+                result = module_as_json_async;
+            } else {
+                ok(result === module_as_json_async, "Must perform one call. Results must be the same");
+                start();
+            }
+        };
+
+        require.async('./modules/async_race/module_as_string_async.html' + rnd, check_result);
+        require.async('./modules/async_race/module_as_string_async.html' + rnd, check_result);
+    });
+
     asyncTest("require.async() errors", function () {
         expect(2);
 

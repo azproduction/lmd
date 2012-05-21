@@ -190,7 +190,7 @@ Use
 (function(b){var c=b("depA");c("ololo")})
 ```
 
-Asynchronous module require. Flag: `async`
+Asynchronous module require. Flags: `async`, `race`
 ------------------------------------------
 
 You can build async LMD package.  (Disabled by default)
@@ -210,6 +210,8 @@ and eval it (if json or javascript) or return as string
  - If all you modules are in-package then set `async` flag to false (300 bytes less)
  - If async require fails (status code will be >= 400) loader will return `undefined`
    (LMD doesn't re-request on error)
+ - If you are performing parallel loading of the same resource add `race: true` (Disabled by default)
+   flag to prevent duplication of requests.
 
 ```javascript
 // Valid
@@ -282,12 +284,15 @@ See `example/cfgs/index.prodoction.lmd.json` and `example/index.html` for detail
 **Note**: `version` property from config and from `data-version` attribute must match to use code from localStorage!
 Yep! Each time you have to change config file and your html file!
 
-Loading CSS and JavaScript files. Flags: `js`, `css`
+Loading CSS and JavaScript files. Flags: `js`, `css`, `race`
 ----------------------------------------------------
 
-**Note**: See "Web Worker and Node.js" if your package will run as worker or node script
-
 You can enable flags `css: true` and `js: true` to use css and js loader as all loaders do. (Disabled by default)
+
+**Notice**
+ - See "Web Worker and Node.js" if your package will run as worker or node script
+ - If you are performing parallel loading of the same resource add `race: true` (Disabled by default)
+   flag to prevent duplication of requests.
 
 ```javascript
 // require some off-package javascript file - not a lmd module. Config flag: `js: true`
@@ -407,6 +412,7 @@ Major versions changelog
   - Callback argument in require.js .css .async now optional. Each of them returns require for chaining
   - Firefox 13 setTimeout callback poisoning bug
   - LMD Warnings for: Parse error, more to come...
+  - Prevent requiring same sources while they are loading from server (`race` flag)
 
 Licence
 -------

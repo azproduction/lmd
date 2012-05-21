@@ -6,6 +6,8 @@
  * @name global_eval
  * @name global_noop
  * @name register_module
+ * @name create_race
+ * @name race_callbacks
  */
 
     /**
@@ -24,6 +26,14 @@
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
+
+/*$IF RACE$*/
+        callback = create_race(moduleName, callback);
+        // if already called
+        if (race_callbacks[moduleName].length > 1) {
+            return require;
+        }
+/*$ENDIF RACE$*/
 
 /*$IF NODE$*/
         if (!XMLHttpRequestConstructor) {

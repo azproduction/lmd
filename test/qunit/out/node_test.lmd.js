@@ -47,6 +47,33 @@
 
             return register_module(moduleName, module);
         },
+        
+        
+        race_callbacks = {},
+        /**
+         * Creates race.
+         *
+         * @param {String}   name     race name
+         * @param {Function} callback callback
+         */
+        create_race = function (name, callback) {
+            if (!race_callbacks[name]) {
+                // create race
+                race_callbacks[name] = [];
+            }
+            race_callbacks[name].push(callback);
+
+            return function (result) {
+                var callbacks = race_callbacks[name];
+                while(callbacks && callbacks.length) {
+                    callbacks.shift()(result);
+                }
+                // reset race
+                race_callbacks[name] = false;
+            }
+        },
+        
+        
         output = {exports: {}};
 
     for (var moduleName in modules) {
@@ -61,6 +88,8 @@
  * @name global_eval
  * @name global_noop
  * @name register_module
+ * @name create_race
+ * @name race_callbacks
  */
 
     /**
@@ -79,6 +108,14 @@
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
+
+
+        callback = create_race(moduleName, callback);
+        // if already called
+        if (race_callbacks[moduleName].length > 1) {
+            return require;
+        }
+
 
 
         if (!XMLHttpRequestConstructor) {
@@ -138,6 +175,8 @@
  * @name global_document
  * @name global_noop
  * @name local_undefined
+ * @name create_race
+ * @name race_callbacks
  */
 
     /**
@@ -158,6 +197,14 @@
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
+
+
+        callback = create_race(moduleName, callback);
+        // if already called
+        if (race_callbacks[moduleName].length > 1) {
+            return require;
+        }
+
 
         // by default return undefined
         if (!global_document) {
@@ -213,6 +260,8 @@
  * @name global_document
  * @name global_noop
  * @name local_undefined
+ * @name create_race
+ * @name race_callbacks
  */
 
     /**
@@ -236,6 +285,14 @@
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
+
+
+        callback = create_race(moduleName, callback);
+        // if already called
+        if (race_callbacks[moduleName].length > 1) {
+            return require;
+        }
+
 
 
 //#JSCOVERAGE_IF 0
@@ -502,6 +559,57 @@ exports.some_function = function () {
             ok(require('./modules/async/module_as_json_async.json' + rnd) === module_as_json_async, "can sync require, loaded async module-object");
             start();
         });
+    });
+
+    asyncTest("require.async():json race calls", function () {
+        expect(1);
+        var result;
+
+        var check_result = function (module_as_json_async) {
+            if (typeof result === "undefined") {
+                result = module_as_json_async;
+            } else {
+                ok(result === module_as_json_async, "Must perform one call. Results must be the same");
+                start();
+            }
+        };
+
+        require.async('./modules/async_race/module_as_json_async.json' + rnd, check_result);
+        require.async('./modules/async_race/module_as_json_async.json' + rnd, check_result);
+    });
+
+    asyncTest("require.async():js race calls", function () {
+        expect(2); // 1 +1 in module ok()
+        var result;
+
+        var check_result = function (module_as_json_async) {
+            if (typeof result === "undefined") {
+                result = module_as_json_async;
+            } else {
+                ok(result === module_as_json_async, "Must perform one call. Results must be the same");
+                start();
+            }
+        };
+
+        require.async('./modules/async_race/module_function_async.js' + rnd, check_result);
+        require.async('./modules/async_race/module_function_async.js' + rnd, check_result);
+    });
+
+    asyncTest("require.async():string race calls", function () {
+        expect(1);
+        var result;
+
+        var check_result = function (module_as_json_async) {
+            if (typeof result === "undefined") {
+                result = module_as_json_async;
+            } else {
+                ok(result === module_as_json_async, "Must perform one call. Results must be the same");
+                start();
+            }
+        };
+
+        require.async('./modules/async_race/module_as_string_async.html' + rnd, check_result);
+        require.async('./modules/async_race/module_as_string_async.html' + rnd, check_result);
     });
 
     asyncTest("require.async() chain calls", function () {

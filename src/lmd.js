@@ -47,6 +47,33 @@
 
             return register_module(moduleName, module);
         },
+        /*$IF CSS_OR_JS_OR_ASYNC$*/
+        /*$IF RACE$*/
+        race_callbacks = {},
+        /**
+         * Creates race.
+         *
+         * @param {String}   name     race name
+         * @param {Function} callback callback
+         */
+        create_race = function (name, callback) {
+            if (!race_callbacks[name]) {
+                // create race
+                race_callbacks[name] = [];
+            }
+            race_callbacks[name].push(callback);
+
+            return function (result) {
+                var callbacks = race_callbacks[name];
+                while(callbacks && callbacks.length) {
+                    callbacks.shift()(result);
+                }
+                // reset race
+                race_callbacks[name] = false;
+            }
+        },
+        /*$ENDIF RACE$*/
+        /*$ENDIF CSS_OR_JS_OR_ASYNC$*/
         output = {exports: {}};
 
     for (var moduleName in modules) {
