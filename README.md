@@ -351,6 +351,7 @@ new style `lmd [-m mode] -c config [-o output] [-l]`
  - `-c` `-config` lmd package config file
  - `-o` `-output` lmd output file - default STDOUT
  - `-l` `-log` print work log - default false
+ - `-no-w` `-no-warn` disable warnings
 
 Running tests
 -------------
@@ -405,6 +406,7 @@ Major versions changelog
   - Sandboxed module now accepts require arg as undefined (was null)
   - Callback argument in require.js .css .async now optional. Each of them returns require for chaining
   - Firefox 13 setTimeout callback poisoning bug
+  - LMD Warnings for: Parse error, more to come...
 
 Licence
 -------

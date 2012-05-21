@@ -34,10 +34,11 @@ var LMD_JS_SRC_PATH = __dirname + '/../src/',
  *      node lmd_builder.js [-m main] -c path/to/config.lmd.json [-r result.js] [-v lmd_tiny] [-l]
  *
  *      -c -config
- *      -m -mode    default main
- *      -o -output  default print to stdout
- *      -l -log     default false
- *      -v -version default lmd_tiny
+ *      -m -mode       default main
+ *      -o -output     default print to stdout
+ *      -l -log        default false
+ *      -v -version    default lmd_tiny
+ *      -no-w -no-warn disable warnings
  *
  * @example
  *      // pass and object
@@ -64,6 +65,7 @@ var LmdBuilder = function (data) {
     this.configFile = args.config;
     this.outputFile = args.output;
     this.isLog = args.log || false;
+    this.isWarn = this.isLog && !args['no-warn'];
 
     if (LmdBuilder.availableModes.indexOf(this.mode) === -1) {
         throw new Error('No such LMD run mode - ' + this.mode);
@@ -150,6 +152,7 @@ LmdBuilder.prototype.parseData = function (data) {
             config.output = config.output || config.o;
             config.log = config.log || config.l;
             config.config = config.config || config.c;
+            config['no-warn'] = config['no-warn'] || config['no-w'];
         } else {
             // an old argv format, split argv and parse manually
             data = data.split(' ');
@@ -595,6 +598,24 @@ LmdBuilder.prototype.fsWatch = function () {
 };
 
 /**
+ * Formats and prints an warning
+ *
+ * @param {String} text simple markdown syntax
+ *
+ * @example
+ *     Pewpew **ololo** - ololo will be green
+ */
+LmdBuilder.prototype.warn = function (text) {
+    if (this.isWarn) {
+        text = text.replace(/\*\*/g, function bold() {
+            bold.odd_even = !bold.odd_even;
+            return bold.odd_even ? '\033[32m' : '\033[0m';
+        });
+        console.log('\t\033[31mWarning:\033[0m ' + text);
+    }
+};
+
+/**
  * Main builder
  *
  * @param [callback] {Function}
@@ -638,6 +659,12 @@ LmdBuilder.prototype.build = function (callback) {
                     isModule = true;
                 } catch(e) {
                     isModule = false;
+                }
+
+                // #12 Warn if parse error in .js file
+                if (!isModule && /.js$/.test(module.path)) {
+                    this.warn('File "**' + module.path + '**" has extension **.js** and LMD detect an parse error. ' +
+                              'This module will be string. Please check the source.');
                 }
 
                 if (isModule && pack) {
