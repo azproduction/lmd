@@ -127,7 +127,8 @@ Config file
     "css": true,        // enables css-loader feature `require.css` [default=false]
     "worker": true,     // set true if LMD package will run as worker [default=false]
     "node": true,       // set true if LMD package will run as node.js script [default=false]
-    "ie": true          // set false if script will run only in modern browsers [default=true]
+    "ie": true,         // set false if script will run only in modern browsers [default=true]
+    "race": true        // set true if you are performing parallel loading of the same resource [default=false]
 }
 ```
 
