@@ -6,5 +6,6 @@
     "node": ["WORKER_OR_NODE", "NODE"],
     "worker": ["WORKER_OR_NODE"],
     "ie": ["IE"],
-    "race": ["RACE"]
+    "race": ["RACE"],
+    "cache_async": ["CACHE_ASYNC"]
 }

@@ -1,4 +1,4 @@
-(function (global, main, modules, sandboxed_modules) {
+(function lmd(global, main, modules, sandboxed_modules, version) {
     var initialized_modules = {},
         global_eval = global.eval,
         global_noop = function () {},
@@ -80,6 +80,19 @@
         // reset module init flag in case of overwriting
         initialized_modules[moduleName] = 0;
     }
+
+/**
+ * @name global
+ * @name version
+ */
+
+function cache_async(moduleName, module) {
+    if (global.localStorage && version) {
+        try {
+            global.localStorage['lmd:' + version + ':' + moduleName] = global.JSON.stringify(module);
+        } catch(e) {}
+    }
+}
 /**
  * @name global
  * @name require
@@ -90,6 +103,7 @@
  * @name register_module
  * @name create_race
  * @name race_callbacks
+ * @name cache_async
  */
 
     /**
@@ -132,6 +146,7 @@
                         module = '(function(){return' + module + '})()';
                         module = global_eval('(' + module + ')');
                     }
+                    cache_async(moduleName, typeof module === "function" ? xhr.responseText : module);
                     // 4. Then callback it
                     callback(register_module(moduleName, module));
                 } else {
@@ -308,423 +323,48 @@
         return require;
 
     };
+/**
+ * @name global
+ * @name lmd
+ * @name sandboxed_modules
+ * @name modules
+ * @name main
+ * @name version
+ */
 
+    // If possible to dump and version passed (fallback mode)
+    // then dump application source
+    if (global.localStorage && version) {
+        (function () {
+            try {
+                global.localStorage['lmd'] = global.JSON.stringify({
+                    version: version,
+                    modules: modules,
+                    // main module function
+                    main: '(' + main + ')',
+                    // lmd function === arguments.callee
+                    lmd: '(' + lmd + ')',
+                    sandboxed: sandboxed_modules
+                });
+            } catch(e) {}
+        }());
+    }
     main(require, output.exports, output);
-})(this,(function (require) {
-    // common for BOM Node and Worker Envs
-    require('testcase_lmd_basic_features');
-
-    // common for BOM and Worker Envs, Node uses testcase_lmd_async_require.node.js
-    require('testcase_lmd_async_require');
-
-    // BOM uses testcase_lmd_loader.js,
-    // Worker - lmd_loader.worker.js
-    // Node - testcase_lmd_loader._node.js
-    require('testcase_lmd_loader');
-}),{
+})(this,(function(a){a("testcase_lmd_basic_features"),a("testcase_lmd_async_require"),a("testcase_lmd_loader"),a("testcase_lmd_cache")}),{
 "module_as_json": {
     "ok": true
 },
 "module_as_string": "<div class=\"b-template\">${pewpew}</div>",
-"module_function_fd": function fd(require, exports, module) {
-    require('ok')(true, "fd should be called once");
-
-    return function () {
-        return true;
-    }
-},
-"module_function_fd2": function fd2(require, exports, module) {
-    require('ok')(true, "fd2 should be called once");
-
-    return function () {
-        return true;
-    }
-},
-"module_function_fd_sandboxed": function fd(require, exports, module) {
-    if (typeof require !== "undefined") {
-//#JSCOVERAGE_IF 0
-        throw 'require should be null';
-//#JSCOVERAGE_ENDIF
-    }
-
-    exports.some_function = function () {
-        return true;
-    };
-},
-"module_function_fe": (function (require, exports, module) {
-    require('ok')(true, "fe should be called once");
-
-    return function () {
-        return true;
-    }
-}),
-"module_function_fe_sandboxed": (function (require, exports, module) {
-    if (typeof require !== "undefined") {
-//#JSCOVERAGE_IF 0
-        throw 'require should be null';
-//#JSCOVERAGE_ENDIF
-    }
-
-    exports.some_function = function () {
-        return true;
-    };
-}),
-"module_function_lazy": "(function(require, exports, module) {\n    require('ok')(true, \"lazy function must be evaled and called once\");\n\n    return function () {\n        return true;\n    }\n})",
-"module_function_plain": (function (require, exports, module) { /* wrapped by builder */
-require('ok')(true, "plain module must be called once");
-
-module.exports = function () {
-    return true;
-};
-}),
-"module_function_plain_sandboxed": (function (require, exports, module) { /* wrapped by builder */
-if (typeof require !== "undefined") {
-//#JSCOVERAGE_IF 0
-    throw 'require should be null';
-//#JSCOVERAGE_ENDIF
-}
-
-exports.some_function = function () {
-    return true;
-};
-}),
-"testcase_lmd_basic_features": (function (require) {
-    var test = require('test'),
-        asyncTest = require('asyncTest'),
-        start = require('start'),
-        module = require('module'),
-        ok = require('ok'),
-        expect = require('expect'),
-        $ = require('$'),
-        raises = require('raises'),
-
-        rnd = '?' + +new Date(),
-
-        ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
-
-    module('LMD basic features @ ' + ENV_NAME);
-
-    test("require() globals", function () {
-        expect(2);
-
-        ok(require('eval'), "should require globals as modules");
-        ok(typeof require('some_undefined') === "undefined", "if no module nor global - return undefined");
-    });
-
-    test("require() module-functions", function () {
-        expect(9);
-
-        var fd = require('module_function_fd'),
-            fe = require('module_function_fe'),
-            plain = require('module_function_plain');
-
-        ok(fd() === true, "can require function definitions");
-        ok(fe() === true, "can require function expressions");
-        ok(plain() === true, "can require plain modules");
-
-        ok(fd === require('module_function_fd'), "require must return the same instance of fd");
-        ok(fe === require('module_function_fe'), "require must return the same instance of fe");
-        ok(plain === require('module_function_plain'), "require must return the same instance of plain module");
-    });
-
-    test("require() sandboxed module-functions", function () {
-        expect(3);
-
-        var fd = require('module_function_fd_sandboxed'),
-            fe = require('module_function_fe_sandboxed'),
-            plain = require('module_function_plain_sandboxed');
-
-        ok(fd.some_function() === true, "can require sandboxed function definitions");
-        ok(fe.some_function() === true, "can require sandboxed function expressions");
-        ok(plain.some_function() === true, "can require sandboxed plain modules");
-    });
-
-    test("require() lazy module-functions", function () {
-        expect(4);
-
-        var lazy = require('module_function_lazy');
-
-        ok(lazy() === true, "can require lazy function definitions");
-        ok(typeof require('lazy_fd') === "undefined", "lazy function definition's name should not leak into globals");
-        ok(lazy === require('module_function_lazy'), "require must return the same instance of lazy fd");
-    });
-
-    test("require() module-objects/json", function () {
-        expect(3);
-
-        var json = require('module_as_json');
-
-        ok(typeof json === "object", "json module should be an object");
-        ok(json.ok === true, "should return content");
-        ok(json === require('module_as_json'), "require of json module should return the same instance");
-    });
-
-    test("require() module-strings", function () {
-        expect(2);
-
-        var string = require('module_as_string');
-
-        ok(typeof string === "string", "string module should be an string");
-        ok(string === require('module_as_string'), "require of string module should return the same instance");
-    });
-}),
-"testcase_lmd_async_require": (function (require) {
-    var test = require('test'),
-        asyncTest = require('asyncTest'),
-        start = require('start'),
-        module = require('module'),
-        ok = require('ok'),
-        expect = require('expect'),
-        $ = require('$'),
-        raises = require('raises'),
-
-        rnd = '?' + +new Date(),
-
-        ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
-
-    module('LMD async require @ ' + ENV_NAME);
-
-    asyncTest("require.async() module-functions", function () {
-        expect(5);
-
-        require.async('./modules/async/module_function_async.js' + rnd, function (module_function_async) {
-
-            ok(module_function_async.some_function() === true, "should require async module-functions");
-            ok(require('./modules/async/module_function_async.js' + rnd) === module_function_async, "can sync require, loaded async module-functions");
-            require.async('module_function_fd2', function (fd) {
-                ok(fd() === true, "can require async in-package modules");
-                start();
-            });
-        });
-    });
-
-    asyncTest("require.async() module-strings", function () {
-        expect(3);
-
-        require.async('./modules/async/module_as_string_async.html' + rnd, function (module_as_string_async) {
-            ok(typeof module_as_string_async === "string", "should require async module-strings");
-            ok(module_as_string_async === '<div class="b-template">${pewpew}</div>', "content ok?");
-            ok(require('./modules/async/module_as_string_async.html' + rnd) === module_as_string_async, "can sync require, loaded async module-strings");
-            start();
-        });
-    });
-
-    asyncTest("require.async() module-objects", function () {
-        expect(2);
-
-        require.async('./modules/async/module_as_json_async.json' + rnd, function (module_as_json_async) {
-            ok(typeof module_as_json_async === "object", "should require async module-object");
-            ok(require('./modules/async/module_as_json_async.json' + rnd) === module_as_json_async, "can sync require, loaded async module-object");
-            start();
-        });
-    });
-
-    asyncTest("require.async() chain calls", function () {
-        expect(3);
-
-        var requireReturned = require
-            .async('./modules/async/module_as_json_async.json' + rnd)
-            .async('./modules/async/module_as_json_async.json' + rnd, function () {
-                ok(true, 'Callback is optional');
-                ok(true, 'WeCan use chain calls');
-
-                start();
-            });
-
-        ok(requireReturned === require, "must return require");
-    });
-
-    asyncTest("require.async():json race calls", function () {
-        expect(1);
-        var result;
-
-        var check_result = function (module_as_json_async) {
-            if (typeof result === "undefined") {
-                result = module_as_json_async;
-            } else {
-                ok(result === module_as_json_async, "Must perform one call. Results must be the same");
-                start();
-            }
-        };
-
-        require.async('./modules/async_race/module_as_json_async.json' + rnd, check_result);
-        require.async('./modules/async_race/module_as_json_async.json' + rnd, check_result);
-    });
-
-    asyncTest("require.async():js race calls", function () {
-        expect(2); // 1 +1 in module ok()
-        var result;
-
-        var check_result = function (module_as_json_async) {
-            if (typeof result === "undefined") {
-                result = module_as_json_async;
-            } else {
-                ok(result === module_as_json_async, "Must perform one call. Results must be the same");
-                start();
-            }
-        };
-
-        require.async('./modules/async_race/module_function_async.js' + rnd, check_result);
-        require.async('./modules/async_race/module_function_async.js' + rnd, check_result);
-    });
-
-    asyncTest("require.async():string race calls", function () {
-        expect(1);
-        var result;
-
-        var check_result = function (module_as_json_async) {
-            if (typeof result === "undefined") {
-                result = module_as_json_async;
-            } else {
-                ok(result === module_as_json_async, "Must perform one call. Results must be the same");
-                start();
-            }
-        };
-
-        require.async('./modules/async_race/module_as_string_async.html' + rnd, check_result);
-        require.async('./modules/async_race/module_as_string_async.html' + rnd, check_result);
-    });
-
-    asyncTest("require.async() errors", function () {
-        expect(2);
-
-        require.async('./modules/async/undefined_module.js' + rnd, function (undefined_module) {
-            ok(typeof undefined_module === "undefined", "should return undefined on error");
-            require.async('./modules/async/undefined_module.js' + rnd, function (undefined_module_2) {
-                ok(typeof undefined_module_2 === "undefined", "should not cache errorous modules");
-                start();
-            });
-        });
-    });
-}),
-"testcase_lmd_loader": (function (require) {
-    var test = require('test'),
-        asyncTest = require('asyncTest'),
-        start = require('start'),
-        module = require('module'),
-        ok = require('ok'),
-        expect = require('expect'),
-        $ = require('$'),
-        raises = require('raises'),
-
-        rnd = '?' + +new Date(),
-
-        ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
-
-    module('LMD loader @ ' + ENV_NAME);
-
-    asyncTest("require.js()", function () {
-        expect(6);
-
-        require.js('./modules/loader/non_lmd_module.js' + rnd, function (script_tag) {
-            ok(typeof script_tag === "object" &&
-               script_tag.nodeName.toUpperCase() === "SCRIPT", "should return script tag on success");
-
-            ok(require('some_function')() === true, "we can grab content of the loaded script");
-
-            ok(require('./modules/loader/non_lmd_module.js' + rnd) === script_tag, "should cache script tag on success");
-
-            // some external
-            require.js('http://8.8.8.8:8/jquery.js' + rnd, function (script_tag) {
-                ok(typeof script_tag === "undefined", "should return undefined on error in 3 seconds");
-                ok(typeof require('http://8.8.8.8:8/jquery.js' + rnd) === "undefined", "should not cache errorous modules");
-                require.js('module_as_string', function (module_as_string) {
-                    require.async('module_as_string', function (module_as_string_expected) {
-                        ok(module_as_string === module_as_string_expected, 'require.js() acts like require.async() if in-package/declared module passed');
-                        start();
-                    });
-                });
-            });
-        });
-    });
-
-    asyncTest("require.js() JSON callback and chain calls", function () {
-        expect(2);
-
-        var id = require('setTimeout')(function () {
-            ok(false, 'JSONP call fails');
-            start();
-        }, 3000);
-
-        require('window').someJsonHandler = function (result) {
-            ok(result.ok, 'JSON called');
-            require('window').someJsonHandler = null;
-            require('clearTimeout')(id);
-            start();
-        };
-
-        var requireReturned = require.js('./modules/loader/non_lmd_module.jsonp.js' + rnd);
-
-        ok(requireReturned === require, "require.js() must return require");
-    });
-
-    asyncTest("require.js() race calls", function () {
-        expect(1);
-        var result;
-
-        var check_result = function (scriptTag) {
-            if (typeof result === "undefined") {
-                result = scriptTag;
-            } else {
-                ok(result === scriptTag, "Must perform one call. Results must be the same");
-                start();
-            }
-        };
-
-        require.js('./modules/loader_race/non_lmd_module.js' + rnd, check_result);
-        require.js('./modules/loader_race/non_lmd_module.js' + rnd, check_result);
-    });
-
-    asyncTest("require.css()", function () {
-        expect(6);
-
-        require.css('./modules/loader/some_css.css' + rnd, function (link_tag) {
-            ok(typeof link_tag === "object" &&
-                link_tag.nodeName.toUpperCase() === "LINK", "should return link tag on success");
-
-            ok($('#qunit-fixture').css('visibility') === "hidden", "css should be applied");
-
-            ok(require('./modules/loader/some_css.css' + rnd) === link_tag, "should cache link tag on success");
-
-            require.css('./modules/loader/some_css_404.css' + rnd, function (link_tag) {
-                ok(typeof link_tag === "undefined", "should return undefined on error in 3 seconds");
-                ok(typeof require('./modules/loader/some_css_404.css' + rnd) === "undefined", "should not cache errorous modules");
-                require.css('module_as_string', function (module_as_string) {
-                    require.async('module_as_string', function (module_as_string_expected) {
-                        ok(module_as_string === module_as_string_expected, 'require.css() acts like require.async() if in-package/declared module passed');
-                        start();
-                    });
-                });
-            });
-        });
-    });
-
-    asyncTest("require.css() CSS loader without callback", function () {
-        expect(1);
-
-        var requireReturned = require
-            .css('./modules/loader/some_css_callbackless.css' + rnd)
-            .css('./modules/loader/some_css_callbackless.css' + rnd + 1);
-
-        ok(requireReturned === require, "require.css() must return require");
-        start();
-    });
-
-    asyncTest("require.css() race calls", function () {
-        expect(1);
-        var result;
-
-        var check_result = function (linkTag) {
-            if (typeof result === "undefined") {
-                result = linkTag;
-            } else {
-                ok(result === linkTag, "Must perform one call. Results must be the same");
-                start();
-            }
-        };
-
-        require.css('./modules/loader_race/some_css.css' + rnd, check_result);
-        require.css('./modules/loader_race/some_css.css' + rnd, check_result);
-    });
-})
-},{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true})
+"module_function_fd": "(function(a,b,c){return a(\"ok\")(!0,\"fd should be called once\"),function(){return!0}})",
+"module_function_fd2": "(function(a,b,c){return a(\"ok\")(!0,\"fd2 should be called once\"),function(){return!0}})",
+"module_function_fd_sandboxed": "(function(a,b,c){if(typeof a!=\"undefined\")throw\"require should be null\";b.some_function=function(){return!0}})",
+"module_function_fe": "(function(a,b,c){return a(\"ok\")(!0,\"fe should be called once\"),function(){return!0}})",
+"module_function_fe_sandboxed": "(function(a,b,c){if(typeof a!=\"undefined\")throw\"require should be null\";b.some_function=function(){return!0}})",
+"module_function_lazy": "(function(a,b,c){return a(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
+"module_function_plain": "(function(a,b,c){a(\"ok\")(!0,\"plain module must be called once\"),c.exports=function(){return!0}})",
+"module_function_plain_sandboxed": "(function(a,b,c){if(typeof a!=\"undefined\")throw\"require should be null\";b.some_function=function(){return!0}})",
+"testcase_lmd_basic_features": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"raises\"),j=\"?\"+ +(new Date),k=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\";e(\"LMD basic features @ \"+k),b(\"require() globals\",function(){g(2),f(a(\"eval\"),\"should require globals as modules\"),f(typeof a(\"some_undefined\")==\"undefined\",\"if no module nor global - return undefined\")}),b(\"require() module-functions\",function(){g(9);var b=a(\"module_function_fd\"),c=a(\"module_function_fe\"),d=a(\"module_function_plain\");f(b()===!0,\"can require function definitions\"),f(c()===!0,\"can require function expressions\"),f(d()===!0,\"can require plain modules\"),f(b===a(\"module_function_fd\"),\"require must return the same instance of fd\"),f(c===a(\"module_function_fe\"),\"require must return the same instance of fe\"),f(d===a(\"module_function_plain\"),\"require must return the same instance of plain module\")}),b(\"require() sandboxed module-functions\",function(){g(3);var b=a(\"module_function_fd_sandboxed\"),c=a(\"module_function_fe_sandboxed\"),d=a(\"module_function_plain_sandboxed\");f(b.some_function()===!0,\"can require sandboxed function definitions\"),f(c.some_function()===!0,\"can require sandboxed function expressions\"),f(d.some_function()===!0,\"can require sandboxed plain modules\")}),b(\"require() lazy module-functions\",function(){g(4);var b=a(\"module_function_lazy\");f(b()===!0,\"can require lazy function definitions\"),f(typeof a(\"lazy_fd\")==\"undefined\",\"lazy function definition's name should not leak into globals\"),f(b===a(\"module_function_lazy\"),\"require must return the same instance of lazy fd\")}),b(\"require() module-objects/json\",function(){g(3);var b=a(\"module_as_json\");f(typeof b==\"object\",\"json module should be an object\"),f(b.ok===!0,\"should return content\"),f(b===a(\"module_as_json\"),\"require of json module should return the same instance\")}),b(\"require() module-strings\",function(){g(2);var b=a(\"module_as_string\");f(typeof b==\"string\",\"string module should be an string\"),f(b===a(\"module_as_string\"),\"require of string module should return the same instance\")})})",
+"testcase_lmd_async_require": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"raises\"),j=\"?\"+ +(new Date),k=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\";e(\"LMD async require @ \"+k),c(\"require.async() module-functions\",function(){g(5),a.async(\"./modules/async/module_function_async.js\"+j,function(b){f(b.some_function()===!0,\"should require async module-functions\"),f(a(\"./modules/async/module_function_async.js\"+j)===b,\"can sync require, loaded async module-functions\"),a.async(\"module_function_fd2\",function(a){f(a()===!0,\"can require async in-package modules\"),d()})})}),c(\"require.async() module-strings\",function(){g(3),a.async(\"./modules/async/module_as_string_async.html\"+j,function(b){f(typeof b==\"string\",\"should require async module-strings\"),f(b==='<div class=\"b-template\">${pewpew}</div>',\"content ok?\"),f(a(\"./modules/async/module_as_string_async.html\"+j)===b,\"can sync require, loaded async module-strings\"),d()})}),c(\"require.async() module-objects\",function(){g(2),a.async(\"./modules/async/module_as_json_async.json\"+j,function(b){f(typeof b==\"object\",\"should require async module-object\"),f(a(\"./modules/async/module_as_json_async.json\"+j)===b,\"can sync require, loaded async module-object\"),d()})}),c(\"require.async() chain calls\",function(){g(3);var b=a.async(\"./modules/async/module_as_json_async.json\"+j).async(\"./modules/async/module_as_json_async.json\"+j,function(){f(!0,\"Callback is optional\"),f(!0,\"WeCan use chain calls\"),d()});f(b===a,\"must return require\")}),c(\"require.async():json race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.async(\"./modules/async_race/module_as_json_async.json\"+j,c),a.async(\"./modules/async_race/module_as_json_async.json\"+j,c)}),c(\"require.async():js race calls\",function(){g(2);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.async(\"./modules/async_race/module_function_async.js\"+j,c),a.async(\"./modules/async_race/module_function_async.js\"+j,c)}),c(\"require.async():string race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.async(\"./modules/async_race/module_as_string_async.html\"+j,c),a.async(\"./modules/async_race/module_as_string_async.html\"+j,c)}),c(\"require.async() errors\",function(){g(2),a.async(\"./modules/async/undefined_module.js\"+j,function(b){f(typeof b==\"undefined\",\"should return undefined on error\"),a.async(\"./modules/async/undefined_module.js\"+j,function(a){f(typeof a==\"undefined\",\"should not cache errorous modules\"),d()})})})})",
+"testcase_lmd_loader": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"raises\"),j=\"?\"+ +(new Date),k=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\";e(\"LMD loader @ \"+k),c(\"require.js()\",function(){g(6),a.js(\"./modules/loader/non_lmd_module.js\"+j,function(b){f(typeof b==\"object\"&&b.nodeName.toUpperCase()===\"SCRIPT\",\"should return script tag on success\"),f(a(\"some_function\")()===!0,\"we can grab content of the loaded script\"),f(a(\"./modules/loader/non_lmd_module.js\"+j)===b,\"should cache script tag on success\"),a.js(\"http://8.8.8.8:8/jquery.js\"+j,function(b){f(typeof b==\"undefined\",\"should return undefined on error in 3 seconds\"),f(typeof a(\"http://8.8.8.8:8/jquery.js\"+j)==\"undefined\",\"should not cache errorous modules\"),a.js(\"module_as_string\",function(b){a.async(\"module_as_string\",function(a){f(b===a,\"require.js() acts like require.async() if in-package/declared module passed\"),d()})})})})}),c(\"require.js() JSON callback and chain calls\",function(){g(2);var b=a(\"setTimeout\")(function(){f(!1,\"JSONP call fails\"),d()},3e3);a(\"window\").someJsonHandler=function(c){f(c.ok,\"JSON called\"),a(\"window\").someJsonHandler=null,a(\"clearTimeout\")(b),d()};var c=a.js(\"./modules/loader/non_lmd_module.jsonp.js\"+j);f(c===a,\"require.js() must return require\")}),c(\"require.js() race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.js(\"./modules/loader_race/non_lmd_module.js\"+j,c),a.js(\"./modules/loader_race/non_lmd_module.js\"+j,c)}),c(\"require.css()\",function(){g(6),a.css(\"./modules/loader/some_css.css\"+j,function(b){f(typeof b==\"object\"&&b.nodeName.toUpperCase()===\"LINK\",\"should return link tag on success\"),f(h(\"#qunit-fixture\").css(\"visibility\")===\"hidden\",\"css should be applied\"),f(a(\"./modules/loader/some_css.css\"+j)===b,\"should cache link tag on success\"),a.css(\"./modules/loader/some_css_404.css\"+j,function(b){f(typeof b==\"undefined\",\"should return undefined on error in 3 seconds\"),f(typeof a(\"./modules/loader/some_css_404.css\"+j)==\"undefined\",\"should not cache errorous modules\"),a.css(\"module_as_string\",function(b){a.async(\"module_as_string\",function(a){f(b===a,\"require.css() acts like require.async() if in-package/declared module passed\"),d()})})})})}),c(\"require.css() CSS loader without callback\",function(){g(1);var b=a.css(\"./modules/loader/some_css_callbackless.css\"+j).css(\"./modules/loader/some_css_callbackless.css\"+j+1);f(b===a,\"require.css() must return require\"),d()}),c(\"require.css() race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.css(\"./modules/loader_race/some_css.css\"+j,c),a.css(\"./modules/loader_race/some_css.css\"+j,c)})})",
+"testcase_lmd_cache": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"raises\"),j=a(\"localStorage\"),k=\"?\"+ +(new Date),l=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\",m=\"latest\";if(!j)return;e(\"LMD cache @ \"+l),c(\"localStorage cache + cache_async test\",function(){g(10),f(typeof j.lmd==\"string\",\"LMD Should create cache\");var b=JSON.parse(j.lmd);f(b.version===m,\"Should save version\"),f(typeof b.modules==\"object\",\"Should save modules\"),f(typeof b.main==\"string\",\"Should save main function as string\"),f(typeof b.lmd==\"string\",\"Should save lmd source as string\"),f(typeof b.sandboxed==\"object\",\"Should save sandboxed modules\"),a.async(\"./modules/async/module_function_async.js\",function(b){var c=\"lmd:\"+m+\":\"+\"./modules/async/module_function_async.js\";f(b.some_function()===!0,\"should require async module-functions\"),f(typeof j[c]==\"string\",\"LMD Should cache async requests\"),j.removeItem(c),a.async(\"./modules/async/module_function_async.js\"),f(!j[c],\"LMD Should not recreate cache it was manually deleted key=\"+c),d()})})})"
+},{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true},"latest")

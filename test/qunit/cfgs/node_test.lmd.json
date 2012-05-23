@@ -5,5 +5,7 @@
         "testcase_lmd_loader": "test_case/testcase_lmd_loader.node.js"
     },
     "global": "node_global_environment",
-    "node": true
+    "node": true,
+    "cache": false,
+    "cache_async": false
 }

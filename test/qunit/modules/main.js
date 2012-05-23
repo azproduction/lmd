@@ -9,4 +9,7 @@
     // Worker - lmd_loader.worker.js
     // Node - testcase_lmd_loader._node.js
     require('testcase_lmd_loader');
+
+    // Cache
+    require('testcase_lmd_cache');
 })

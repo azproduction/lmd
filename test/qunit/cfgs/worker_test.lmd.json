@@ -4,5 +4,7 @@
         "testcase_lmd_loader": "test_case/testcase_lmd_loader.worker.js"
     },
     "global": "worker_global_environment",
-    "worker": true
+    "worker": true,
+    "cache": false,
+    "cache_async": false
 }

@@ -8,6 +8,7 @@
  * @name register_module
  * @name create_race
  * @name race_callbacks
+ * @name cache_async
  */
 
     /**
@@ -68,6 +69,7 @@
                         /*$IF IE$*/module = '(function(){return' + module + '})()';/*$ENDIF IE$*/
                         module = global_eval('(' + module + ')');
                     }
+                    /*$IF CACHE_ASYNC$*/cache_async(moduleName, typeof module === "function" ? xhr.responseText : module);/*$ENDIF CACHE_ASYNC$*/
                     // 4. Then callback it
                     callback(register_module(moduleName, module));
                 } else {

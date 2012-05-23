@@ -80,6 +80,8 @@
         // reset module init flag in case of overwriting
         initialized_modules[moduleName] = 0;
     }
+
+
 /**
  * @name global
  * @name require
@@ -90,6 +92,7 @@
  * @name register_module
  * @name create_race
  * @name race_callbacks
+ * @name cache_async
  */
 
     /**
@@ -132,6 +135,7 @@
                         module = '(function(){return' + module + '})()';
                         module = global_eval('(' + module + ')');
                     }
+                    
                     // 4. Then callback it
                     callback(register_module(moduleName, module));
                 } else {
@@ -339,6 +343,9 @@
     // Worker - lmd_loader.worker.js
     // Node - testcase_lmd_loader._node.js
     require('testcase_lmd_loader');
+
+    // Cache
+    require('testcase_lmd_cache');
 }),{
 "module_as_json": {
     "ok": true
@@ -387,7 +394,7 @@
         return true;
     };
 }),
-"module_function_lazy": "(function(require, exports, module) {\n    require('ok')(true, \"lazy function must be evaled and called once\");\n\n    return function () {\n        return true;\n    }\n})",
+"module_function_lazy": "(function(a,b,c){return a(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
 "module_function_plain": (function (require, exports, module) { /* wrapped by builder */
 require('ok')(true, "plain module must be called once");
 
@@ -686,5 +693,58 @@ exports.some_function = function () {
             });
         });
     });
+}),
+"testcase_lmd_cache": (function (require) {
+    var test = require('test'),
+        asyncTest = require('asyncTest'),
+        start = require('start'),
+        module = require('module'),
+        ok = require('ok'),
+        expect = require('expect'),
+        $ = require('$'),
+        raises = require('raises'),
+        ls = require('localStorage'),
+
+        rnd = '?' + +new Date(),
+
+        ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM',
+
+        PACKAGE_VERSION = 'latest';
+
+    if (!ls) {
+        return;
+    }
+
+    module('LMD cache @ ' + ENV_NAME);
+
+    asyncTest("localStorage cache + cache_async test", function () {
+        expect(10);
+
+        ok(typeof ls['lmd'] === "string", 'LMD Should create cache');
+
+        var lmd = JSON.parse(ls['lmd']);
+
+        ok(lmd.version === PACKAGE_VERSION, 'Should save version');
+        ok(typeof lmd.modules === 'object', 'Should save modules');
+        ok(typeof lmd.main === 'string', 'Should save main function as string');
+        ok(typeof lmd.lmd === 'string', 'Should save lmd source as string');
+        ok(typeof lmd.sandboxed === 'object', 'Should save sandboxed modules');
+
+        require.async('./modules/async/module_function_async.js', function (module_function_async) {
+            var key = 'lmd:' + PACKAGE_VERSION + ':' + './modules/async/module_function_async.js';
+
+            ok(module_function_async.some_function() === true, "should require async module-functions");
+
+            ok(typeof ls[key] === "string", 'LMD Should cache async requests');
+
+            ls.removeItem(key);
+
+            require.async('./modules/async/module_function_async.js');
+
+            ok(!ls[key], 'LMD Should not recreate cache it was manually deleted key=' + key);
+
+            start();
+        });
+    });
 })
-},{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true})
+},{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true},"latest")

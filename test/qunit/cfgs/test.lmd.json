@@ -32,7 +32,9 @@
 
         "testcase_lmd_basic_features": "test_case/testcase_lmd_basic_features.js",
         "testcase_lmd_async_require": "test_case/testcase_lmd_async_require.js",
-        "testcase_lmd_loader": "test_case/testcase_lmd_loader.js"
+        "testcase_lmd_loader": "test_case/testcase_lmd_loader.js",
+
+        "testcase_lmd_cache": "test_case/testcase_lmd_cache.js"
     },
     "main": "main",
     "global": "this",
@@ -42,5 +44,9 @@
     "css": true,
     "race": true,
     "lazy": false,
-    "pack": false
+    "pack": false,
+
+    "cache": true,
+    "cache_async": true,
+    "version": "latest"
 }

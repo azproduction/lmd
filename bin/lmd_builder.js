@@ -305,7 +305,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
         optionNames = flagToOptionNameMap[flagName];
 
         optionNames.forEach(function (optionName) {
-            var includePattern = new RegExp('\\/\\*\\$INCLUDE IF ' + optionName + '\\s+([a-z\\.]+)\\s+\\$\\*\\/', ''),
+            var includePattern = new RegExp('\\/\\*\\$INCLUDE IF ' + optionName + '\\s+([a-z-_\\.]+)\\s+\\$\\*\\/', ''),
                 patchContent = '',
                 match;
 
@@ -639,6 +639,17 @@ LmdBuilder.prototype.build = function (callback) {
         config.ie = true;
     }
 
+    if (!config.cache && config.cache_async) {
+        this.warn('This package was configured with flag **cache_async: true**, but without flag **cache**; ' +
+            'cache_async cant work independently. Flag cache_async is disabled! Please switch on **cache**.');
+        config.cache_async = false;
+    }
+
+    if (config.cache && typeof config.version === "undefined") {
+        this.warn('This package was configured with flag **cache: true**, but without flag **version** parameter. ' +
+            'Please define **version** to enable cache.');
+    }
+
     if (config.modules) {
         modules = this.collectModules(config);
         // build modules string
@@ -667,7 +678,7 @@ LmdBuilder.prototype.build = function (callback) {
                               'This module will be string. Please check the source.');
                 }
 
-                if (isModule && pack) {
+                if (isModule && (module.is_lazy || pack)) {
                     moduleContent = this.compress(moduleContent);
                 }
             }

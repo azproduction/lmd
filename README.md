@@ -128,7 +128,8 @@ Config file
     "worker": true,     // set true if LMD package will run as worker [default=false]
     "node": true,       // set true if LMD package will run as node.js script [default=false]
     "ie": true,         // set false if script will run only in modern browsers [default=true]
-    "race": true        // set true if you are performing parallel loading of the same resource [default=false]
+    "race": true,       // set true if you are performing parallel loading of the same resource [default=false]
+    "cache_async": true,// depend on cache flag, enables localStorage cache for require.async() [default=false]
 }
 ```
 
@@ -191,7 +192,7 @@ Use
 (function(b){var c=b("depA");c("ololo")})
 ```
 
-Asynchronous module require. Flags: `async`, `race`
+Asynchronous module require. Flags: `async`, `race`, `cache_async`
 ------------------------------------------
 
 You can build async LMD package.  (Disabled by default)
@@ -213,6 +214,8 @@ and eval it (if json or javascript) or return as string
    (LMD doesn't re-request on error)
  - If you are performing parallel loading of the same resource add `race: true` (Disabled by default)
    flag to prevent duplication of requests.
+ - You can set both flags `cache` and `cache_async` to true to enable localStorage cache for `require.async()`
+   (see Local Storage cache)
 
 ```javascript
 // Valid
@@ -256,7 +259,7 @@ function module(require, exports, module) {
 
 See `example/modules/main.js` near `async_template.html` for real life example
 
-Local Storage cache. Flag: `cache`, Property: `version`
+Local Storage cache. Flags: `cache`, `cache_async`, Property: `version`
 -------------------------------------------------------
 
 You can store all your in-package modules and lmd itself in localStorage. (Disabled by default)
@@ -264,7 +267,8 @@ You can store all your in-package modules and lmd itself in localStorage. (Disab
 1. Set config flag `cache: true` and add `version: your_current_build_version` property to your
 config file then build your LMD package - it will be created in cache mode. If no version - LMD package will run
 in default mode - without dumping modules
-2. Remove script tag `<script src="out/index.production.lmd.js" id="source"></script>` with LMD initializer:
+2. Set config flag `cache_async: true` to cache `require.async()` requests in localStorage too
+3. Remove script tag `<script src="out/index.production.lmd.js" id="source"></script>` with LMD initializer:
 
 ```html
 <script id="lmd-initializer"
@@ -414,6 +418,7 @@ Major versions changelog
   - Firefox 13 setTimeout callback poisoning bug
   - LMD Warnings for: Parse error, more to come...
   - Prevent requiring same sources while they are loading from server (`race` flag)
+  - `require.async()` cache (`cache_async` flag)
 
 Licence
 -------
