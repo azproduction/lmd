@@ -48,5 +48,6 @@
 
     "cache": true,
     "cache_async": true,
-    "version": "latest"
+    "version": "latest",
+    "parallel": true
 }

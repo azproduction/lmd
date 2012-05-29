@@ -81,6 +81,7 @@
         initialized_modules[moduleName] = 0;
     }
 
+/*$INCLUDE IF PARALLEL parallel.js $*/
 /*$INCLUDE IF CACHE_ASYNC cache_async.js $*/
 /*$INCLUDE IF ASYNC async.js $*/
 /*$INCLUDE IF JS    js.js $*/

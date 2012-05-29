@@ -1,0 +1,25 @@
+.b-talk__item {
+    margin-left: 5px;
+
+    margin-bottom: 10px;
+}
+
+.b-talk__item__name {
+    color: #fff;
+    background: #66ccff;
+
+    display: inline-block;
+
+    padding: 2px 6px;
+
+    border-radius: 5px;
+}
+
+.b-talk__item__message {
+    color: #333;
+    margin-left: 5px;
+}
+
+.b-talk__item__name_self_yes {
+    background: #000;
+}

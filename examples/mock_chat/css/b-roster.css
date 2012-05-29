@@ -1,0 +1,66 @@
+.b-roster {
+    width: 300px;
+
+    position: fixed;
+    height: 100%;
+    border-left:  2px solid #777;
+
+    right: 0;
+    top: 0;
+
+    overflow-y: auto;
+}
+
+.b-roster__item {
+    height: 40px;
+
+    padding: 5px;
+    margin-bottom: 5px;
+
+    background:  #eee;
+
+    cursor: pointer;
+}
+
+.b-roster__item:hover {
+    background: #ffffcc;
+}
+
+.b-roster__item__photo {
+    width: 40px;
+    height: 40px;
+
+    float: left;
+
+    background: #66ccff;
+
+    border-radius: 5px;
+}
+
+.b-roster__item__meta {
+    float: left;
+
+    margin-left: 10px;
+}
+
+.b-roster__item__meta__name {
+    font-size: 20px;
+}
+
+.b-roster__item__meta__status {
+    font-size: 1em;
+}
+
+.b-roster__item__meta__status_status_online {
+    color: #009900;
+}
+
+.b-roster__item__meta__status_status_online .b-roster__item__meta__status_icon {
+    width: 10px;
+    height: 10px;
+
+    background: #009900;
+    display: inline-block;
+
+    border-radius: 5px;
+}

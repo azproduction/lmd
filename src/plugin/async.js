@@ -9,16 +9,24 @@
  * @name create_race
  * @name race_callbacks
  * @name cache_async
+ * @name parallel
  */
 
     /**
      * Load off-package LMD module
      *
-     * @param {String}   moduleName same origin path to LMD module
-     * @param {Function} [callback]   callback(result) undefined on error others on success
+     * @param {String|Array} moduleName same origin path to LMD module
+     * @param {Function}     [callback]   callback(result) undefined on error others on success
      */
     require.async = function (moduleName, callback) {
         callback = callback || global_noop;
+/*$IF PARALLEL$*/
+        // expect that its an array
+        if (typeof moduleName !== "string") {
+            parallel(require.async, moduleName, callback);
+            return require;
+        }
+/*$ENDIF PARALLEL$*/
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
 

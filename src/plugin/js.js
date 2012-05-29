@@ -15,11 +15,18 @@
     /**
      * Loads any JavaScript file a non-LMD module
      *
-     * @param {String}   moduleName path to file
-     * @param {Function} [callback]   callback(result) undefined on error HTMLScriptElement on success
+     * @param {String|Array} moduleName path to file
+     * @param {Function}     [callback]   callback(result) undefined on error HTMLScriptElement on success
      */
     require.js = function (moduleName, callback) {
         callback = callback || global_noop;
+/*$IF PARALLEL$*/
+        // expect that its an array
+        if (typeof moduleName !== "string") {
+            parallel(require.js, moduleName, callback);
+            return require;
+        }
+/*$ENDIF PARALLEL$*/
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,

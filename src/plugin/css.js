@@ -19,11 +19,18 @@
      *
      * @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
      *
-     * @param {String}   moduleName path to css file
-     * @param {Function} [callback]   callback(result) undefined on error HTMLLinkElement on success
+     * @param {String|Array} moduleName path to css file
+     * @param {Function}     [callback]   callback(result) undefined on error HTMLLinkElement on success
      */
     require.css = function (moduleName, callback) {
         callback = callback || global_noop;
+/*$IF PARALLEL$*/
+        // expect that its an array
+        if (typeof moduleName !== "string") {
+            parallel(require.css, moduleName, callback);
+            return require;
+        }
+/*$ENDIF PARALLEL$*/
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;

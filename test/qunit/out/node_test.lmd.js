@@ -81,6 +81,41 @@
         initialized_modules[moduleName] = 0;
     }
 
+/**
+ * @name global
+ * @name require
+ * @name initialized_modules
+ * @name modules
+ * @name global_eval
+ * @name register_module
+ * @name global_document
+ * @name global_noop
+ * @name local_undefined
+ * @name create_race
+ * @name race_callbacks
+ */
+
+function parallel(method, items, callback) {
+    var i = 0,
+        j = 0,
+        c = items.length,
+        results = [];
+
+    var readyFactory = function (index) {
+        return function (data) {
+            // keep the order
+            results[index] = data;
+            j++;
+            if (j >= c) {
+                callback.apply(global, results);
+            }
+        }
+    };
+
+    for (; i < c; i++) {
+        method(items[i], readyFactory(i));
+    }
+}
 
 /**
  * @name global
@@ -93,16 +128,24 @@
  * @name create_race
  * @name race_callbacks
  * @name cache_async
+ * @name parallel
  */
 
     /**
      * Load off-package LMD module
      *
-     * @param {String}   moduleName same origin path to LMD module
-     * @param {Function} [callback]   callback(result) undefined on error others on success
+     * @param {String|Array} moduleName same origin path to LMD module
+     * @param {Function}     [callback]   callback(result) undefined on error others on success
      */
     require.async = function (moduleName, callback) {
         callback = callback || global_noop;
+
+        // expect that its an array
+        if (typeof moduleName !== "string") {
+            parallel(require.async, moduleName, callback);
+            return require;
+        }
+
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
 
@@ -186,11 +229,18 @@
     /**
      * Loads any JavaScript file a non-LMD module
      *
-     * @param {String}   moduleName path to file
-     * @param {Function} [callback]   callback(result) undefined on error HTMLScriptElement on success
+     * @param {String|Array} moduleName path to file
+     * @param {Function}     [callback]   callback(result) undefined on error HTMLScriptElement on success
      */
     require.js = function (moduleName, callback) {
         callback = callback || global_noop;
+
+        // expect that its an array
+        if (typeof moduleName !== "string") {
+            parallel(require.js, moduleName, callback);
+            return require;
+        }
+
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
@@ -275,11 +325,18 @@
      *
      * @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
      *
-     * @param {String}   moduleName path to css file
-     * @param {Function} [callback]   callback(result) undefined on error HTMLLinkElement on success
+     * @param {String|Array} moduleName path to css file
+     * @param {Function}     [callback]   callback(result) undefined on error HTMLLinkElement on success
      */
     require.css = function (moduleName, callback) {
         callback = callback || global_noop;
+
+        // expect that its an array
+        if (typeof moduleName !== "string") {
+            parallel(require.css, moduleName, callback);
+            return require;
+        }
+
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;
@@ -643,6 +700,21 @@ exports.some_function = function () {
                 ok(typeof undefined_module_2 === "undefined", "should not cache errorous modules");
                 start();
             });
+        });
+    });
+
+    asyncTest("require.async() parallel loading", function () {
+        expect(2);
+
+        require.async(['./modules/parallel/1.js' + rnd,
+                       './modules/parallel/2.js' + rnd,
+                       './modules/parallel/3.js' + rnd],
+        function (module1, module2, module3) {
+            console.log(arguments);
+            ok(true, "Modules executes as they are loaded - in load order");
+            ok(module1.file === "1.js" && module2.file === "2.js" && module3.file === "3.js",
+              "Modules should be callbacked in list order");
+            start();
         });
     });
 }),

@@ -1,0 +1,15 @@
+{
+    "path": "./modules/",
+    "modules": {
+        "main": "index.js",
+        "b-roster": "b-roster.js",
+        "undefined": "utils.js"
+    },
+    "main": "main",
+    "global": "this",
+    "ie": false,
+    "async": true,
+    "lazy": false,
+    "pack": true,
+    "parallel": true
+}

@@ -130,6 +130,9 @@ Config file
     "ie": true,         // set false if script will run only in modern browsers [default=true]
     "race": true,       // set true if you are performing parallel loading of the same resource [default=false]
     "cache_async": true,// depend on cache flag, enables localStorage cache for require.async() [default=false]
+    "parallel": true    // enables parallel loading [default=false]
+                        // - if you are using parallel loading you are doing something wrong...
+                        // - resources will be executed in **load order**! And passed to callback in list order
 }
 ```
 
@@ -158,7 +161,7 @@ Config file
 Build
 -----
 
-`lmd example/cfgs/index.development.lmd.json example/out/index.development.lmd.js` or `node ./lmd/bin/lmd.js ... `
+`lmd examples/basic/cfgs/index.development.lmd.json examples/basic/out/index.development.lmd.js` or `node ./lmd/bin/lmd.js ... `
 
 Or print to `STDOUT`
 

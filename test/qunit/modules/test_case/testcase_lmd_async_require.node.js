@@ -130,4 +130,18 @@
             });
         });
     });
+
+    asyncTest("require.async() parallel loading", function () {
+        expect(2);
+
+        require.async(['./modules/parallel/1.js' + rnd,
+                       './modules/parallel/2.js' + rnd,
+                       './modules/parallel/3.js' + rnd],
+        function (module1, module2, module3) {
+            ok(true, "Modules executes as they are loaded - in load order");
+            ok(module1.file === "1.js" && module2.file === "2.js" && module3.file === "3.js",
+              "Modules should be callbacked in list order");
+            start();
+        });
+    });
 })
