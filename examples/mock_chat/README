@@ -1,8 +1,0 @@
-Part of loader test example
----------------------------
-
- - `index.html` - basic version without cache
- - `index_cahce.html` - version with cache enabled
-
-Run `make` to build project
-
