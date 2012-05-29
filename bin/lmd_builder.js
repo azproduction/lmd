@@ -5,10 +5,54 @@
  * @licence MIT
  */
 
-var LMD_JS_SRC_PATH = __dirname + '/../src/',
-    fs = require('fs'),
+var LMD_JS_SRC_PATH = __dirname + '/../src/';
+
+var JSHINT_CONFIG = {
+    debug:      true,
+    eqnull:     true,
+    boss:       true,
+    loopfunc:   true,
+    evil:       true,
+    laxbreak:   true,
+    undef:      true,
+    nonew:      true,
+    maxerr:     Infinity
+};
+
+var JSHINT_GLOBALS = {
+    Array               : 0,
+    Boolean             : 0,
+    Date                : 0,
+    decodeURI           : 0,
+    decodeURIComponent  : 0,
+    encodeURI           : 0,
+    encodeURIComponent  : 0,
+    Error               : 0,
+    'eval'              : 0,
+    EvalError           : 0,
+    Function            : 0,
+    hasOwnProperty      : 0,
+    isFinite            : 0,
+    isNaN               : 0,
+    JSON                : 0,
+    Math                : 0,
+    Number              : 0,
+    Object              : 0,
+    parseInt            : 0,
+    parseFloat          : 0,
+    RangeError          : 0,
+    ReferenceError      : 0,
+    RegExp              : 0,
+    String              : 0,
+    SyntaxError         : 0,
+    TypeError           : 0,
+    URIError            : 0
+};
+
+var fs = require('fs'),
     parser = require("uglify-js").parser,
-    uglify = require("uglify-js").uglify;
+    uglify = require("uglify-js").uglify,
+    JsHint = require('jshint').JSHINT;
 
 /**
  * LmdBuilder
@@ -611,7 +655,31 @@ LmdBuilder.prototype.warn = function (text) {
             bold.odd_even = !bold.odd_even;
             return bold.odd_even ? '\033[32m' : '\033[0m';
         });
-        console.log('\t\033[31mWarning:\033[0m ' + text);
+        console.log('  \033[31mWarning:\033[0m ' + text);
+    }
+};
+
+/**
+ * Using JsHint, it checks for direct global vars access
+ *
+ * @param {String} moduleName
+ * @param {String} moduleCode
+ */
+LmdBuilder.prototype.checkForDirectGlobalsAccess = function (moduleName, moduleCode) {
+    new JsHint(moduleCode, JSHINT_CONFIG, JSHINT_GLOBALS);
+    var globalsObjects = [];
+    for (var i = 0, c = JsHint.errors.length, error; i < c; i++) {
+        error = JsHint.errors[i];
+        if (error.raw === '\'{a}\' is not defined.') {
+            if (globalsObjects.indexOf(error.a) === -1) {
+                globalsObjects.push(error.a);
+            }
+        }
+    }
+
+    if (globalsObjects.length) {
+         this.warn("Lazy module **" + moduleName + "** uses some globals directly (" + globalsObjects.join(', ') +  "). " +
+                   "Replace them with require('" + globalsObjects[0] + "') etc");
     }
 };
 
@@ -676,6 +744,11 @@ LmdBuilder.prototype.build = function (callback) {
                 if (!isModule && /.js$/.test(module.path)) {
                     this.warn('File "**' + module.path + '**" has extension **.js** and LMD detect an parse error. ' +
                               'This module will be string. Please check the source.');
+                }
+
+                // #14 	Check direct access of globals in lazy modules
+                if (this.isWarn && isModule && module.is_lazy) {
+                    this.checkForDirectGlobalsAccess(module.path, moduleContent);
                 }
 
                 if (isModule && (module.is_lazy || pack)) {

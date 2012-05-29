@@ -47,12 +47,17 @@
 
             return register_module(moduleName, module);
         },
+        
+        
+        
         output = {exports: {}};
 
     for (var moduleName in modules) {
         // reset module init flag in case of overwriting
         initialized_modules[moduleName] = 0;
     }
+
+
 /**
  * @name global
  * @name require
@@ -61,6 +66,9 @@
  * @name global_eval
  * @name global_noop
  * @name register_module
+ * @name create_race
+ * @name race_callbacks
+ * @name cache_async
  */
 
     /**
@@ -83,6 +91,8 @@
 
 
 
+
+
         // Optimized tiny ajax get
         // @see https://gist.github.com/1625623
         var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
@@ -95,6 +105,7 @@
                         module = '(function(){return' + module + '})()';
                         module = global_eval('(' + module + ')');
                     }
+                    
                     // 4. Then callback it
                     callback(register_module(moduleName, module));
                 } else {
@@ -118,6 +129,8 @@
  * @name global_document
  * @name global_noop
  * @name local_undefined
+ * @name create_race
+ * @name race_callbacks
  */
 
     /**
@@ -138,6 +151,8 @@
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
+
+
 
         // by default return undefined
         if (!global_document) {
@@ -179,6 +194,8 @@
  * @name global_document
  * @name global_noop
  * @name local_undefined
+ * @name create_race
+ * @name race_callbacks
  */
 
     /**
@@ -202,6 +219,8 @@
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
+
+
 
 
 
@@ -320,7 +339,8 @@
     print(text);
 },{
 "depA": (function (require) {
-    var escape = require('depB');
+    var escape = require('depB'),
+        console = require('console');
     return function(message) {
         console.log(escape(message));
     }

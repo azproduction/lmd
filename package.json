@@ -5,7 +5,7 @@
         "name": "Mikhail Davydov",
         "email": "azazel.private@gmail.com"
     },
-    "version" : "1.6.8",
+    "version" : "1.6.9",
     "bin"     : {
         "lmd" : "./bin/lmd"
     },
@@ -15,6 +15,7 @@
     },
     "keywords": ["lmd", "amd", "module", "builder"],
     "dependencies": {
-        "uglify-js": ">= 1.2.0"
+        "uglify-js": ">= 1.2.0",
+        "jshint": ">= 0.7.1"
     }
 }

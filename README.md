@@ -419,6 +419,7 @@ Major versions changelog
   - LMD Warnings for: Parse error, more to come...
   - Prevent requiring same sources while they are loading from server (`race` flag)
   - `require.async()` cache (`cache_async` flag)
+  - LMD checks for direct globals access in lazy modules
 
 Licence
 -------
