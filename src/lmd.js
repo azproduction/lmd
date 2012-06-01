@@ -38,9 +38,16 @@
             if (initialized_modules[moduleName] && module) {
                 return module;
             }
-
+            /*$IF SHORTCUTS$*/
+            // Do not init shortcut as module!
+            // return shortcut as is
+            if (is_shortcut(moduleName, module)) {
+                // return as is w/ checking globals
+                return modules[module.replace('@', '')];
+            }
+            /*$ENDIF SHORTCUTS$*/
             // Lazy LMD module not a string
-            if (/^\(function\(/.test(module)) {
+            if (typeof module === "string" && module.indexOf('(function(') === 0) {
                 /*$IF IE$*/module = '(function(){return' + module + '})()';/*$ENDIF IE$*/
                 module = global_eval(module);
             }
@@ -81,6 +88,7 @@
         initialized_modules[moduleName] = 0;
     }
 
+/*$INCLUDE IF SHORTCUTS shortcuts.js $*/
 /*$INCLUDE IF PARALLEL parallel.js $*/
 /*$INCLUDE IF CACHE_ASYNC cache_async.js $*/
 /*$INCLUDE IF ASYNC async.js $*/

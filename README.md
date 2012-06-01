@@ -114,7 +114,10 @@ Config file
         // string template
         "template": "templates/template.html"
         
-        "i18n": "i18n.ru.json"
+        "i18n": "i18n.ru.json",
+
+        // shortcuts for require.async("abstract_name") or .js() or .css()
+        "abstract_name": "@/path/to/real-file.js"
     },
     "main": "main",     // a main module - content of that module will be called on start (no reason to eval)
     "lazy": false,      // if true - all modules will be evaled on demand [default=true]
@@ -130,9 +133,10 @@ Config file
     "ie": true,         // set false if script will run only in modern browsers [default=true]
     "race": true,       // set true if you are performing parallel loading of the same resource [default=false]
     "cache_async": true,// depend on cache flag, enables localStorage cache for require.async() [default=false]
-    "parallel": true    // enables parallel loading [default=false]
+    "parallel": true,   // enables parallel loading [default=false]
                         // - if you are using parallel loading you are doing something wrong...
                         // - resources will be executed in **load order**! And passed to callback in list order
+    "shortcuts": true   // enables shortcuts in LMD package [default=false]
 }
 ```
 
@@ -337,6 +341,37 @@ config flag to optimise lmd source for modern browsers (removes few IE hacks)
 
 Tested on Opera 11.63, Chrome 17, Safari 5, IE 6+, Firefox 12, iOS Safari 5, to be updated...
 
+Shortcuts. Flag `shortcuts`
+---------------------------
+
+You can define flag `shortcuts: true` to enable shortcuts in LMD package. Then you can use short names instead of full paths.
+Symbol `@` indicates that module content is shortcut.
+
+```javascript
+{
+    "modules": {
+        "some-json": "@/path/to/file.json",
+        "jquery": "@http://yandex.st/jquery/1.7.1/jquery.min.js",
+    }
+}
+```
+
+```javascript
+// old way...
+require.async("/path/to/file.json", function () {});
+
+// its the same as above, but much abstract and short
+require.async("some-json", function (data) {
+    console.log('data');
+});
+
+require.js("jquery", function () {
+    require('$').ready(function () {
+        // do your stuff
+    });
+});
+```
+
 Watch mode
 ----------
 
@@ -423,6 +458,7 @@ Major versions changelog
   - Prevent requiring same sources while they are loading from server (`race` flag)
   - `require.async()` cache (`cache_async` flag)
   - LMD checks for direct globals access in lazy modules
+  - Shortcuts `"shortcut": "@/path/to/real-file.js"` for `require.async("shortcut")` `.js()` or `.css()`
 
 Licence
 -------

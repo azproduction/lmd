@@ -8,7 +8,7 @@
         $ = require('$'),
         raises = require('raises'),
 
-        rnd = '?' + +new Date(),
+        rnd = '?' + Math.random(),
 
         ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
 
@@ -138,6 +138,26 @@
             ok(module1.file === "1.js" && module2.file === "2.js" && module3.file === "3.js",
               "Modules should be callbacked in list order");
             start();
+        });
+    });
+
+    asyncTest("require.async() shortcuts", function () {
+        expect(7);
+
+        ok(typeof require('sk_async_html') === "undefined", 'require should return undefined if shortcuts not initialized by loaders');
+        ok(typeof require('sk_async_html') === "undefined", 'require should return undefined ... always');
+
+        require.async('sk_async_json', function (json) {
+            ok(json.ok === true, 'should require shortcuts: json');
+            ok(require('sk_async_json') === json, 'if shortcut is defined require should return the same code');
+            ok(require('/modules/shortcuts/async.json') === json, 'Module should be inited using shortcut content');
+            require.async('sk_async_html', function (html) {
+                ok(html === 'ok', 'should require shortcuts: html');
+                require.async('sk_async_js', function (js) {
+                    ok(js() === 'ok', 'should require shortcuts: js');
+                    start();
+                });
+            });
         });
     });
 })

@@ -34,7 +34,13 @@
         "testcase_lmd_async_require": "test_case/testcase_lmd_async_require.js",
         "testcase_lmd_loader": "test_case/testcase_lmd_loader.js",
 
-        "testcase_lmd_cache": "test_case/testcase_lmd_cache.js"
+        "testcase_lmd_cache": "test_case/testcase_lmd_cache.js",
+
+        "sk_async_html": "@/modules/shortcuts/async.html",
+        "sk_async_js": "@/modules/shortcuts/async.js",
+        "sk_async_json": "@/modules/shortcuts/async.json",
+        "sk_css_css": "@/modules/shortcuts/css.css",
+        "sk_js_js": "@/modules/shortcuts/js.js"
     },
     "main": "main",
     "global": "this",
@@ -49,5 +55,6 @@
     "cache": true,
     "cache_async": true,
     "version": "latest",
-    "parallel": true
+    "parallel": true,
+    "shortcuts": true
 }

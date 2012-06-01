@@ -533,6 +533,7 @@ LmdBuilder.prototype.collectModules = function (config) {
                         path: fs.realpathSync(path + descriptor.path + fileName),
                         is_lazy: moduleLazy,
                         is_greedy: true,
+                        is_shortcut: false,
                         is_sandbox: moduleDesciptor.sandbox || false
                     };
 
@@ -543,6 +544,16 @@ LmdBuilder.prototype.collectModules = function (config) {
                     }
                 }
             });
+        } else if (/^@/.test(modulePath)) {
+            // shortcut
+            modules[moduleName] = {
+                name: moduleName,
+                path: modulePath,
+                is_lazy: moduleLazy,
+                is_greedy: false,
+                is_shortcut: true,
+                is_sandbox: moduleDesciptor.sandbox || false
+            };
         } else {
             // normal name
             // "name": "name.js"
@@ -551,6 +562,7 @@ LmdBuilder.prototype.collectModules = function (config) {
                 path: fs.realpathSync(path + modulePath),
                 is_lazy: moduleLazy,
                 is_greedy: false,
+                is_shortcut: false,
                 is_sandbox: moduleDesciptor.sandbox || false
             };
         }
@@ -700,6 +712,7 @@ LmdBuilder.prototype.build = function (callback) {
         lmdFile,
         isJson,
         isModule,
+        is_using_shortcuts = false,
         module,
         modules;
 
@@ -723,6 +736,15 @@ LmdBuilder.prototype.build = function (callback) {
         // build modules string
         for (var index in modules) {
             module = modules[index];
+            if (module.is_shortcut) {
+                is_using_shortcuts = true;
+                if (module.name === mainModuleName) {
+                    this.warn('Main module can not be a shortcut. Your app will throw an error.')
+                } else {
+                    lmdModules.push(this.escape(module.name) + ': ' + this.escape(module.path));
+                }
+                continue;
+            }
             moduleContent = fs.readFileSync(module.path, 'utf8');
 
             try {
@@ -771,6 +793,16 @@ LmdBuilder.prototype.build = function (callback) {
 
                 lmdModules.push(this.escape(module.name) + ': ' + moduleContent);
             }
+        }
+
+        if (is_using_shortcuts && !config.shortcuts) {
+            this.warn('Some of your modules are shortcuts, but config flag **shortcuts** is undefined or falsy. ' +
+                      'Enable that flag for proper work.');
+        }
+
+        if (!is_using_shortcuts && config.shortcuts) {
+            this.warn('Config flag **shortcuts** is enabled, but there is no shortcuts in your package. ' +
+                      'Disable that flag to optimize your package.');
         }
 
         sandbox = this.getSandboxedModules(modules, config);

@@ -38,9 +38,9 @@
             if (initialized_modules[moduleName] && module) {
                 return module;
             }
-
+            
             // Lazy LMD module not a string
-            if (/^\(function\(/.test(module)) {
+            if (typeof module === "string" && module.indexOf('(function(') === 0) {
                 module = '(function(){return' + module + '})()';
                 module = global_eval(module);
             }
@@ -58,6 +58,8 @@
     }
 
 
+
+
 /**
  * @name global
  * @name require
@@ -69,18 +71,22 @@
  * @name create_race
  * @name race_callbacks
  * @name cache_async
+ * @name parallel
  */
 
     /**
      * Load off-package LMD module
      *
-     * @param {String}   moduleName same origin path to LMD module
-     * @param {Function} [callback]   callback(result) undefined on error others on success
+     * @param {String|Array} moduleName same origin path to LMD module
+     * @param {Function}     [callback]   callback(result) undefined on error others on success
      */
     require.async = function (moduleName, callback) {
         callback = callback || global_noop;
+
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
+
+        
 
         // If module exists or its a node.js env
         if (module) {
@@ -136,15 +142,18 @@
     /**
      * Loads any JavaScript file a non-LMD module
      *
-     * @param {String}   moduleName path to file
-     * @param {Function} [callback]   callback(result) undefined on error HTMLScriptElement on success
+     * @param {String|Array} moduleName path to file
+     * @param {Function}     [callback]   callback(result) undefined on error HTMLScriptElement on success
      */
     require.js = function (moduleName, callback) {
         callback = callback || global_noop;
+
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
             head;
+
+        
 
         // If module exists
         if (module) {
@@ -205,14 +214,17 @@
      *
      * @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
      *
-     * @param {String}   moduleName path to css file
-     * @param {Function} [callback]   callback(result) undefined on error HTMLLinkElement on success
+     * @param {String|Array} moduleName path to css file
+     * @param {Function}     [callback]   callback(result) undefined on error HTMLLinkElement on success
      */
     require.css = function (moduleName, callback) {
         callback = callback || global_noop;
+
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;
+
+        
 
         // If module exists or its a worker or node.js environment
         if (module || !global_document) {

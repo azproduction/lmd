@@ -8,7 +8,7 @@
         $ = require('$'),
         raises = require('raises'),
 
-        rnd = '?' + +new Date(),
+        rnd = '?' + Math.random(),
 
         ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
 
@@ -126,5 +126,40 @@
 
         require.css('./modules/loader_race/some_css.css' + rnd, check_result);
         require.css('./modules/loader_race/some_css.css' + rnd, check_result);
+    });
+
+    asyncTest("require.css() shortcut", function () {
+        expect(4);
+
+        require.css('sk_css_css', function (link_tag) {
+            console.log(arguments);
+            ok(typeof link_tag === "object" &&
+                link_tag.nodeName.toUpperCase() === "LINK", "should return link tag on success");
+
+            ok(require('sk_css_css') === link_tag, "require should return the same result");
+            require.css('sk_css_css', function (link_tag2) {
+                ok(link_tag2 === link_tag, 'should load once');
+                ok(require('sk_css_css') === require('/modules/shortcuts/css.css'), "should be defined using path-to-module");
+                start();
+            })
+        });
+    });
+
+    asyncTest("require.js() shortcut", function () {
+        expect(5);
+
+        require.js('sk_js_js', function (script_tag) {
+            console.log(arguments);
+            ok(typeof script_tag === "object" &&
+               script_tag.nodeName.toUpperCase() === "SCRIPT", "should return script tag on success");
+
+            ok(require('sk_js_js') === script_tag, "require should return the same result");
+            require.js('sk_js_js', function (script_tag2) {
+                ok(script_tag2 === script_tag, 'should load once');
+                ok(require('sk_js_js') === require('/modules/shortcuts/js.js'), "should be defined using path-to-module");
+                ok(typeof require('shortcuts_js') === "function", 'Should create a global function shortcuts_js as in module function');
+                start();
+            })
+        });
     });
 })

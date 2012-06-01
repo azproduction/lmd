@@ -32,6 +32,15 @@
             isNotLoaded = 1,
             head;
 
+        /*$IF SHORTCUTS$*/
+        // Its an shortcut
+        if (is_shortcut(moduleName, module)) {
+            // rewrite module name
+            moduleName = module.replace('@', '');
+            module = modules[moduleName];
+        }
+        /*$ENDIF SHORTCUTS$*/
+
         // If module exists
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));

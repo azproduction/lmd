@@ -30,6 +30,15 @@
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
 
+        /*$IF SHORTCUTS$*/
+        // Its an shortcut
+        if (is_shortcut(moduleName, module)) {
+            // rewrite module name
+            moduleName = module.replace('@', '');
+            module = modules[moduleName];
+        }
+        /*$ENDIF SHORTCUTS$*/
+
         // If module exists or its a node.js env
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));

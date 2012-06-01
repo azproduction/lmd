@@ -38,9 +38,16 @@
             if (initialized_modules[moduleName] && module) {
                 return module;
             }
-
+            
+            // Do not init shortcut as module!
+            // return shortcut as is
+            if (is_shortcut(moduleName, module)) {
+                // return as is w/ checking globals
+                return modules[module.replace('@', '')];
+            }
+            
             // Lazy LMD module not a string
-            if (/^\(function\(/.test(module)) {
+            if (typeof module === "string" && module.indexOf('(function(') === 0) {
                 module = '(function(){return' + module + '})()';
                 module = global_eval(module);
             }
@@ -81,6 +88,25 @@
         initialized_modules[moduleName] = 0;
     }
 
+/**
+ * @name global
+ * @name require
+ * @name initialized_modules
+ * @name modules
+ * @name global_eval
+ * @name register_module
+ * @name global_document
+ * @name global_noop
+ * @name local_undefined
+ * @name create_race
+ * @name race_callbacks
+ */
+
+function is_shortcut(moduleName, moduleContent) {
+    return !initialized_modules[moduleName] &&
+           typeof moduleContent === "string" &&
+           moduleContent.charAt(0) == '@';
+}
 /**
  * @name global
  * @name require
@@ -148,6 +174,15 @@ function parallel(method, items, callback) {
 
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
+
+        
+        // Its an shortcut
+        if (is_shortcut(moduleName, module)) {
+            // rewrite module name
+            moduleName = module.replace('@', '');
+            module = modules[moduleName];
+        }
+        
 
         // If module exists or its a node.js env
         if (module) {
@@ -225,6 +260,15 @@ function parallel(method, items, callback) {
             readyState = 'readyState',
             isNotLoaded = 1,
             head;
+
+        
+        // Its an shortcut
+        if (is_shortcut(moduleName, module)) {
+            // rewrite module name
+            moduleName = module.replace('@', '');
+            module = modules[moduleName];
+        }
+        
 
         // If module exists
         if (module) {
@@ -320,6 +364,15 @@ function parallel(method, items, callback) {
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;
+
+        
+        // Its an shortcut
+        if (is_shortcut(moduleName, module)) {
+            // rewrite module name
+            moduleName = module.replace('@', '');
+            module = modules[moduleName];
+        }
+        
 
         // If module exists or its a worker or node.js environment
         if (module || !global_document) {
@@ -480,7 +533,7 @@ exports.some_function = function () {
         $ = require('$'),
         raises = require('raises'),
 
-        rnd = '?' + +new Date(),
+        rnd = '?' + Math.random(),
 
         ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
 
@@ -560,7 +613,7 @@ exports.some_function = function () {
         $ = require('$'),
         raises = require('raises'),
 
-        rnd = '?' + +new Date(),
+        rnd = '?' + Math.random(),
 
         ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
 
@@ -692,6 +745,26 @@ exports.some_function = function () {
             start();
         });
     });
+
+    asyncTest("require.async() shortcuts", function () {
+        expect(7);
+
+        ok(typeof require('sk_async_html') === "undefined", 'require should return undefined if shortcuts not initialized by loaders');
+        ok(typeof require('sk_async_html') === "undefined", 'require should return undefined ... always');
+
+        require.async('sk_async_json', function (json) {
+            ok(json.ok === true, 'should require shortcuts: json');
+            ok(require('sk_async_json') === json, 'if shortcut is defined require should return the same code');
+            ok(require('/modules/shortcuts/async.json') === json, 'Module should be inited using shortcut content');
+            require.async('sk_async_html', function (html) {
+                ok(html === 'ok', 'should require shortcuts: html');
+                require.async('sk_async_js', function (js) {
+                    ok(js() === 'ok', 'should require shortcuts: js');
+                    start();
+                });
+            });
+        });
+    });
 }),
 "testcase_lmd_loader": (function (require) {
     var test = require('test'),
@@ -703,7 +776,7 @@ exports.some_function = function () {
         $ = require('$'),
         raises = require('raises'),
 
-        rnd = '?' + +new Date(),
+        rnd = '?' + Math.random(),
 
         ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
 
@@ -776,7 +849,7 @@ exports.some_function = function () {
         raises = require('raises'),
         ls = require('localStorage'),
 
-        rnd = '?' + +new Date(),
+        rnd = '?' + Math.random(),
 
         ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM',
 
@@ -817,5 +890,10 @@ exports.some_function = function () {
             start();
         });
     });
-})
+}),
+"sk_async_html": "@/modules/shortcuts/async.html",
+"sk_async_js": "@/modules/shortcuts/async.js",
+"sk_async_json": "@/modules/shortcuts/async.json",
+"sk_css_css": "@/modules/shortcuts/css.css",
+"sk_js_js": "@/modules/shortcuts/js.js"
 },{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true},"latest")

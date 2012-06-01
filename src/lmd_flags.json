@@ -8,5 +8,6 @@
     "ie": ["IE"],
     "race": ["RACE"],
     "cache_async": ["CACHE_ASYNC"],
-    "parallel": ["PARALLEL"]
+    "parallel": ["PARALLEL"],
+    "shortcuts": ["SHORTCUTS"]
 }

@@ -13,7 +13,9 @@ function Roster(element) {
 
     $('.b-roster').addEventListener('click', function (e) {
         // Preload talk for dialog using parallel resource loading
-        require.async(['js/lmd/modules/b-dialog.min.js', 'js/lmd/modules/b-talk.min.js'], function (Dialog) {
+
+        // they are both shortcuts
+        require.async(['b-dialog', 'b-talk'], function (Dialog) {
             new Dialog(element);
         });
     }, false);

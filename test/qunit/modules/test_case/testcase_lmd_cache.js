@@ -9,7 +9,7 @@
         raises = require('raises'),
         ls = require('localStorage'),
 
-        rnd = '?' + +new Date(),
+        rnd = '?' + Math.random(),
 
         ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM',
 

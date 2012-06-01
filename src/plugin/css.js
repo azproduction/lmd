@@ -35,6 +35,15 @@
             isNotLoaded = 1,
             head;
 
+        /*$IF SHORTCUTS$*/
+        // Its an shortcut
+        if (is_shortcut(moduleName, module)) {
+            // rewrite module name
+            moduleName = module.replace('@', '');
+            module = modules[moduleName];
+        }
+        /*$ENDIF SHORTCUTS$*/
+
         // If module exists or its a worker or node.js environment
         if (module || !global_document) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));

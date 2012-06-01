@@ -1,4 +1,4 @@
-LMD_BUILD = ../bin/lmd.js
+LMD_BUILD = ../../bin/lmd.js
 
 all: development production
 
