@@ -3,7 +3,9 @@ LMD: Lazy Module Declaration
 
 Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without
 touching any part of DOM. LMD is inspired by AMD and provides similar module interface. It evals module only when
-they are required. LMD is "Yet Another Loader"
+they are required. LMD is "Yet Another Loader" with all loader features: js, css, parallel... Why LMD?
+- it can initialize modules when they are required, it tiny and flexible (minimal only 288bytes and up to 1.5kb
+all-in-one), you can write your modules as Node.js without define or require wrappers, and more...
 
 Features
 --------
