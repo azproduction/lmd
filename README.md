@@ -1,26 +1,27 @@
-LMD: Lazy (and synchronous) Module Declaration
+LMD: Lazy Module Declaration
 ==============================================
 
-Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without touching any part of DOM. LMD is inspired by AMD and provides similar module interface. It evals module only when they are required.
+Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without
+touching any part of DOM. LMD is inspired by AMD and provides similar module interface. It evals module only when
+they are required. LMD is "Yet Another Loader"
 
 Features
 --------
 
-1. Modules are similar to AMD: there is a require, but no define (all defined on startup)
+1. Modules are similar to AMD: there is a require, but no define
 2. LMD does not create globals
 3. LMD is standalone, tiny and flexible (minimal only 288bytes! and up to 1.5Kb all-in-one)
-4. All in-package modules are loaded at startup
-5. Each function-module can be initialized/evaled on demand (`lazy: true`)
-6. LMD module is as easy to debug as normal JavaScript file
-7. Build system compresses JavaScript files using uglifyjs (or any other)
-8. LMD module can define object via return or module.exports/exports as CommonJS Module
-9. Module can be wrapped automatically in builder so you can write your modules as node.js modules (see Usage and Asynchronous module require)
-10. Starting from version 1.5.2 LMD can require off-package modules `"async": true` (see Asynchronous module require)
-11. From version 1.6.0 LMD can cache all in-package modules in localStorage `"cache": true` (see Local Storage cache)
-12. From version 1.6.2 LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
-13. LMD package is possible to run as Web Worker or execute as Node.js script (see Web Worker and Node.js)
-14. LMD works in all modern browsers and in older IE (see Browsers support)
-15. Ready for production - `lmd.js` is 100% covered by unit tests see `test/README.md` for details
+4. Each function-module can be initialized/evaled on demand (`lazy: true`)
+5. LMD module is as easy to debug as normal JavaScript file
+6. Build system compresses JavaScript files using UglifyJs (or any other)
+7. LMD module can define object via return or module.exports/exports as CommonJS Module
+8. Module can be wrapped automatically in builder so you can write your modules as node.js modules (see Usage and Asynchronous module require)
+9. Starting from version 1.5.2 LMD can require off-package modules `"async": true` (see Asynchronous module require)
+10. From version 1.6.0 LMD can cache all in-package modules in localStorage `"cache": true` (see Local Storage cache)
+11. From version 1.6.2 LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
+12. LMD package is possible to run as Web Worker or execute as Node.js script (see Web Worker and Node.js)
+13. LMD works in all modern browsers and in older IE (see Browsers support)
+14. Ready for production - `lmd.js` is 100% covered by unit tests see `test/README.md` for details
 
 Installing
 ----------
@@ -72,7 +73,9 @@ module.exports = function(message) {
 };
 ```
 
-**Note**: plain module will be wrapped by builder `(function (require, exports, module) {\n%code%\n})`
+**Note**:
+ - plain module will be wrapped by builder `(function (require, exports, module) {\n%code%\n})`
+ - you can not require plain off-package module now (using require.async())
 
 **1\.2\. Module - objects (for config, i18n and other resources)**
 
@@ -161,6 +164,8 @@ Config file
     "css": true
 }
 ```
+
+You can extend config file with another using `"extends": "path/to/file.lmd.json"` parameter
 
 Build
 -----
