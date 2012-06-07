@@ -116,7 +116,7 @@ var LmdBuilder = function (data) {
     }
 
     this.configDir = fs.realpathSync(this.configFile);
-    this.configDir = this.configDir.split('/');
+    this.configDir = this.configDir.split(/\/|\\/);
     this.configDir.pop();
     this.configDir = this.configDir.join('/');
     if (this.configure()) {
@@ -418,7 +418,7 @@ LmdBuilder.prototype.configure = function () {
  * @param file
  */
 LmdBuilder.prototype.extract = function (file) {
-    file = file.split('/');
+    file = file.split(/\/|\\/);
     return {
         file: file.pop(),
         path: (file.length ? file.join('/') + '/' : '')
