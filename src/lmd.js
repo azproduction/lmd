@@ -1,8 +1,10 @@
-(function /*$IF CACHE$*/lmd/*$ENDIF CACHE$*/(global, main, modules, sandboxed_modules/*$IF CACHE$*/, version/*$ENDIF CACHE$*/) {
+(function /*if ($P.CACHE) {*/lmd/*}*/(global, main, modules, sandboxed_modules/*if ($P.CACHE) {*/, version/*}*/) {
     var initialized_modules = {},
-        global_eval = global.eval,
-        /*$IF CSS_OR_JS_OR_ASYNC$*/global_noop = function () {},/*$ENDIF CSS_OR_JS_OR_ASYNC$*/
-        /*$IF CSS_OR_JS$*/global_document = global.document,/*$ENDIF CSS_OR_JS$*/
+        global_eval = function (code) {
+            return Function('return ' + code)();
+        },
+        /*if ($P.CSS || $P.JS || $P.ASYNC) {*/global_noop = function () {},/*}*/
+        /*if ($P.CSS || $P.JS) {*/global_document = global.document,/*}*/
         local_undefined,
         /**
          * @param {String} moduleName module name or path to file
@@ -23,6 +25,9 @@
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
                 module = module(sandboxed_modules[moduleName] ? local_undefined : require, output.exports, output) || output.exports;
             }
+            if ($P.STATS) {
+                stats_initEnd(moduleName);
+            }
 
             return modules[moduleName] = module;
         },
@@ -36,51 +41,39 @@
 
             // Already inited - return as is
             if (initialized_modules[moduleName] && module) {
+                if ($P.STATS) {
+                    stats_require(moduleName);
+                }
                 return module;
             }
-            /*$IF SHORTCUTS$*/
-            // Do not init shortcut as module!
-            // return shortcut as is
-            if (is_shortcut(moduleName, module)) {
-                // return as is w/ checking globals
-                return modules[module.replace('@', '')];
+
+            if ($P.SHORTCUTS) {
+                // Do not init shortcut as module!
+                // return shortcut as is
+                if (is_shortcut(moduleName, module)) {
+                    if ($P.STATS) {
+                        // assign shortcut name for module
+                        stats_shortcut(module, moduleName);
+                    }
+                    // return as is w/ checking globals
+                    return modules[module.replace('@', '')];
+                }
             }
-            /*$ENDIF SHORTCUTS$*/
+
+            if ($P.STATS) {
+                stats_require(moduleName);
+            }
+            
+            if ($P.STATS) {
+                stats_initStart(moduleName);
+            }
             // Lazy LMD module not a string
             if (typeof module === "string" && module.indexOf('(function(') === 0) {
-                /*$IF IE$*/module = '(function(){return' + module + '})()';/*$ENDIF IE$*/
                 module = global_eval(module);
             }
 
             return register_module(moduleName, module);
         },
-        /*$IF CSS_OR_JS_OR_ASYNC$*/
-        /*$IF RACE$*/
-        race_callbacks = {},
-        /**
-         * Creates race.
-         *
-         * @param {String}   name     race name
-         * @param {Function} callback callback
-         */
-        create_race = function (name, callback) {
-            if (!race_callbacks[name]) {
-                // create race
-                race_callbacks[name] = [];
-            }
-            race_callbacks[name].push(callback);
-
-            return function (result) {
-                var callbacks = race_callbacks[name];
-                while(callbacks && callbacks.length) {
-                    callbacks.shift()(result);
-                }
-                // reset race
-                race_callbacks[name] = false;
-            }
-        },
-        /*$ENDIF RACE$*/
-        /*$ENDIF CSS_OR_JS_OR_ASYNC$*/
         output = {exports: {}};
 
     for (var moduleName in modules) {
@@ -88,12 +81,14 @@
         initialized_modules[moduleName] = 0;
     }
 
-/*$INCLUDE IF SHORTCUTS shortcuts.js $*/
-/*$INCLUDE IF PARALLEL parallel.js $*/
-/*$INCLUDE IF CACHE_ASYNC cache_async.js $*/
-/*$INCLUDE IF ASYNC async.js $*/
-/*$INCLUDE IF JS    js.js $*/
-/*$INCLUDE IF CSS   css.js $*/
-/*$INCLUDE IF CACHE cache.js $*/
+/*if ($P.RACE) include('race.js');*/
+/*if ($P.STATS) include('stats.js');*/
+/*if ($P.SHORTCUTS) include('shortcuts.js');*/
+/*if ($P.PARALLEL) include('parallel.js');*/
+/*if ($P.CACHE_ASYNC) include('cache_async.js');*/
+/*if ($P.ASYNC) include('async.js');*/
+/*if ($P.JS) include('js.js');*/
+/*if ($P.CSS) include('css.js');*/
+/*if ($P.CACHE) include('cache.js');*/
     main(require, output.exports, output);
 })

@@ -15,7 +15,7 @@
     module('LMD async require @ ' + ENV_NAME);
 
     asyncTest("require.async() module-functions", function () {
-        expect(5);
+        expect(6);
 
         require.async('./modules/async/module_function_async.js' + rnd, function (module_function_async) {
 
@@ -23,6 +23,9 @@
             ok(require('./modules/async/module_function_async.js' + rnd) === module_function_async, "can sync require, loaded async module-functions");
             require.async('module_function_fd2', function (fd) {
                 ok(fd() === true, "can require async in-package modules");
+
+                // stats
+                ok(!!require.stats('module_function_fd2'), "should count stats: async modules");
                 start();
             });
         });
@@ -142,7 +145,7 @@
     });
 
     asyncTest("require.async() shortcuts", function () {
-        expect(7);
+        expect(10);
 
         ok(typeof require('sk_async_html') === "undefined", 'require should return undefined if shortcuts not initialized by loaders');
         ok(typeof require('sk_async_html') === "undefined", 'require should return undefined ... always');
@@ -155,6 +158,11 @@
                 ok(html === 'ok', 'should require shortcuts: html');
                 require.async('sk_async_js', function (js) {
                     ok(js() === 'ok', 'should require shortcuts: js');
+
+                    // stats
+                    ok(require.stats('sk_async_js') === require.stats('/modules/shortcuts/async.js'), "shortcut should point to the same object as module");
+                    ok(!!require.stats('/modules/shortcuts/async.js'), "should count stats of real file");
+                    ok(require.stats('/modules/shortcuts/async.js').shortcuts[0] === 'sk_async_js', "should pass shourtcuts names");
                     start();
                 });
             });

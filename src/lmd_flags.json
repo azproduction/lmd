@@ -1,13 +1,14 @@
 {
-    "async": ["ASYNC", "CSS_OR_JS_OR_ASYNC"],
-    "cache": ["CACHE"],
-    "js": ["JS", "CSS_OR_JS", "CSS_OR_JS_OR_ASYNC"],
-    "css": ["CSS", "CSS_OR_JS", "CSS_OR_JS_OR_ASYNC"],
-    "node": ["WORKER_OR_NODE", "NODE"],
-    "worker": ["WORKER_OR_NODE"],
-    "ie": ["IE"],
-    "race": ["RACE"],
-    "cache_async": ["CACHE_ASYNC"],
-    "parallel": ["PARALLEL"],
-    "shortcuts": ["SHORTCUTS"]
+    "async": ["$P.ASYNC", "$P.CSS || $P.JS || $P.ASYNC"],
+    "cache": ["$P.CACHE"],
+    "js": ["$P.JS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC"],
+    "css": ["$P.CSS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC"],
+    "node": ["$P.WORKER || $P.NODE", "$P.NODE"],
+    "worker": ["$P.WORKER || $P.NODE"],
+    "ie": ["$P.IE"],
+    "race": ["$P.RACE"],
+    "cache_async": ["$P.CACHE_ASYNC"],
+    "parallel": ["$P.PARALLEL"],
+    "shortcuts": ["$P.SHORTCUTS"],
+    "stats": ["$P.STATS"]
 }

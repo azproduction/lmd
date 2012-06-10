@@ -24,44 +24,54 @@
      */
     require.css = function (moduleName, callback) {
         callback = callback || global_noop;
-/*$IF PARALLEL$*/
-        // expect that its an array
-        if (typeof moduleName !== "string") {
-            parallel(require.css, moduleName, callback);
-            return require;
+
+        if ($P.PARALLEL) {
+            // expect that its an array
+            if (typeof moduleName !== "string") {
+                parallel(require.css, moduleName, callback);
+                return require;
+            }
         }
-/*$ENDIF PARALLEL$*/
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;
 
-        /*$IF SHORTCUTS$*/
-        // Its an shortcut
-        if (is_shortcut(moduleName, module)) {
-            // rewrite module name
-            moduleName = module.replace('@', '');
-            module = modules[moduleName];
+        if ($P.SHORTCUTS) {
+            // Its an shortcut
+            if (is_shortcut(moduleName, module)) {
+                if ($P.STATS) {
+                    // assign shortcut name for module
+                    stats_shortcut(module, moduleName);
+                }
+                // rewrite module name
+                moduleName = module.replace('@', '');
+                module = modules[moduleName];
+            }
         }
-        /*$ENDIF SHORTCUTS$*/
 
+        if ($P.STATS) {
+            if (!(module || !global_document) || initialized_modules[moduleName]) {
+                stats_require(moduleName);
+            }
+        }
         // If module exists or its a worker or node.js environment
         if (module || !global_document) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
 
-/*$IF RACE$*/
-        callback = create_race(moduleName, callback);
-        // if already called
-        if (race_callbacks[moduleName].length > 1) {
-            return require;
+        if ($P.STATS) {
+            stats_initStart(moduleName);
         }
-/*$ENDIF RACE$*/
 
-/*$IF WORKER_OR_NODE$*/
-//#JSCOVERAGE_IF 0
-/*$ENDIF WORKER_OR_NODE$*/
-
+        if ($P.RACE) {
+            callback = create_race(moduleName, callback);
+            // if already called
+            if (race_callbacks[moduleName].length > 1) {
+                return require;
+            }
+        }
+/*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
         // Create stylesheet link
         var link = global_document.createElement("link"),
             id = +new global.Date,
@@ -70,6 +80,11 @@
                     isNotLoaded = 0;
                     // register or cleanup
                     link.removeAttribute('id');
+
+                    if ($P.STATS) {
+                        // stop init on error
+                        !e && stats_initEnd(moduleName);
+                    }
                     callback(e ? register_module(moduleName, link) : head.removeChild(link) && local_undefined); // e === undefined if error
                 }
             };
@@ -89,8 +104,8 @@
                 try {
                     var sheets = global_document.styleSheets;
                     for (var j = 0, k = sheets.length; j < k; j++) {
-                        if((sheets[j].ownerNode/*$IF IE$*/ || sheets[j].owningElement/*$ENDIF IE$*/).id == id &&
-                           (sheets[j].cssRules/*$IF IE$*/ || sheets[j].rules/*$ENDIF IE$*/).length) {
+                        if((sheets[j].ownerNode/*if ($P.IE) {*/ || sheets[j].owningElement/*}*/).id == id &&
+                           (sheets[j].cssRules/*if ($P.IE) {*/ || sheets[j].rules/*}*/).length) {
 //#JSCOVERAGE_IF 0
                             return onload(1);
 //#JSCOVERAGE_ENDIF
@@ -106,7 +121,5 @@
         }());
 
         return require;
-/*$IF WORKER_OR_NODE$*/
-//#JSCOVERAGE_ENDIF
-/*$ENDIF WORKER_OR_NODE$*/
+/*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_ENDIF/*}*/
     };

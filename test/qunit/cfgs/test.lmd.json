@@ -56,5 +56,6 @@
     "cache_async": true,
     "version": "latest",
     "parallel": true,
-    "shortcuts": true
+    "shortcuts": true,
+    "stats": true
 }

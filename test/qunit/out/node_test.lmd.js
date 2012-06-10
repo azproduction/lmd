@@ -1,6 +1,8 @@
 (function (global, main, modules, sandboxed_modules) {
     var initialized_modules = {},
-        global_eval = global.eval,
+        global_eval = function (code) {
+            return Function('return ' + code)();
+        },
         global_noop = function () {},
         global_document = global.document,
         local_undefined,
@@ -23,6 +25,7 @@
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
                 module = module(sandboxed_modules[moduleName] ? local_undefined : require, output.exports, output) || output.exports;
             }
+            stats_initEnd(moduleName);
 
             return modules[moduleName] = module;
         },
@@ -36,51 +39,29 @@
 
             // Already inited - return as is
             if (initialized_modules[moduleName] && module) {
+                stats_require(moduleName);
                 return module;
             }
-            
+
             // Do not init shortcut as module!
             // return shortcut as is
             if (is_shortcut(moduleName, module)) {
+                // assign shortcut name for module
+                stats_shortcut(module, moduleName);
                 // return as is w/ checking globals
                 return modules[module.replace('@', '')];
             }
+
+            stats_require(moduleName);
             
+            stats_initStart(moduleName);
             // Lazy LMD module not a string
             if (typeof module === "string" && module.indexOf('(function(') === 0) {
-                module = '(function(){return' + module + '})()';
                 module = global_eval(module);
             }
 
             return register_module(moduleName, module);
         },
-        
-        
-        race_callbacks = {},
-        /**
-         * Creates race.
-         *
-         * @param {String}   name     race name
-         * @param {Function} callback callback
-         */
-        create_race = function (name, callback) {
-            if (!race_callbacks[name]) {
-                // create race
-                race_callbacks[name] = [];
-            }
-            race_callbacks[name].push(callback);
-
-            return function (result) {
-                var callbacks = race_callbacks[name];
-                while(callbacks && callbacks.length) {
-                    callbacks.shift()(result);
-                }
-                // reset race
-                race_callbacks[name] = false;
-            }
-        },
-        
-        
         output = {exports: {}};
 
     for (var moduleName in modules) {
@@ -88,6 +69,96 @@
         initialized_modules[moduleName] = 0;
     }
 
+
+var race_callbacks = {},
+    /**
+     * Creates race.
+     *
+     * @param {String}   name     race name
+     * @param {Function} callback callback
+     */
+    create_race = function (name, callback) {
+        if (!race_callbacks[name]) {
+            // create race
+            race_callbacks[name] = [];
+        }
+        race_callbacks[name].push(callback);
+
+        return function (result) {
+            var callbacks = race_callbacks[name];
+            while(callbacks && callbacks.length) {
+                callbacks.shift()(result);
+            }
+            // reset race
+            race_callbacks[name] = false;
+        }
+    };
+/**
+ * @name global
+ * @name require
+ * @name initialized_modules
+ * @name modules
+ * @name global_eval
+ * @name register_module
+ * @name global_document
+ * @name global_noop
+ * @name local_undefined
+ * @name create_race
+ * @name race_callbacks
+ */
+
+var stats_results = {},
+    stats_Date = global.Date,
+    stats_startTime = +new stats_Date;
+
+function stats_get(moduleName) {
+    return stats_results[moduleName] ?
+           stats_results[moduleName] :
+           stats_results[moduleName] = {
+               name: moduleName,
+               accessTimes: []
+           };
+}
+
+function stats_initStart(moduleName) {
+    stats_get(moduleName).initTime = +new stats_Date;
+}
+
+function stats_initEnd(moduleName) {
+    var stat = stats_get(moduleName);
+    stat.initTime = +new stats_Date - stat.initTime;
+}
+
+function stats_require(moduleName) {
+    var stat = stats_get(moduleName);
+    stat.accessTimes.push(+new stats_Date - stats_startTime);
+}
+
+function stats_shortcut(moduleName, shortcut) {
+    var module = stats_get(moduleName.replace('@', '')),
+        shortcuts = module.shortcuts,
+        index;
+    
+    if (!shortcuts) {
+        shortcuts = module.shortcuts = [];
+    }
+
+    // Link shortcut and real module
+    if (!stats_results[shortcut]) {
+        stats_results[shortcut] = module;
+    }
+
+    // ie6 indexOf hackz
+    index = shortcuts.indexOf ? shortcuts.indexOf(shortcut):function(){for(var i=shortcuts.length;i-->0;)if(shortcuts[i]===shortcut)return i;return-1;}();
+
+    if (index === -1) {
+        shortcuts.push(shortcut);
+    }
+}
+
+require.stats = function (moduleName) {
+    return moduleName ? stats_results[moduleName] : stats_results;
+};
 /**
  * @name global
  * @name require
@@ -171,25 +242,28 @@ function parallel(method, items, callback) {
             parallel(require.async, moduleName, callback);
             return require;
         }
-
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
 
-        
         // Its an shortcut
         if (is_shortcut(moduleName, module)) {
             // rewrite module name
+            // assign shortcut name for module
+            stats_shortcut(module, moduleName);
             moduleName = module.replace('@', '');
             module = modules[moduleName];
         }
-        
 
+        if (!module || initialized_modules[moduleName]) {
+            stats_require(moduleName);
+        }
         // If module exists or its a node.js env
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
 
+        stats_initStart(moduleName);
 
         callback = create_race(moduleName, callback);
         // if already called
@@ -197,11 +271,12 @@ function parallel(method, items, callback) {
             return require;
         }
 
-
-
         if (!XMLHttpRequestConstructor) {
             global.require('fs').readFile(moduleName, 'utf8', function (err, module) {
                 if (err) {
+
+                    // stop init on error
+                    stats_initEnd(moduleName);
                     callback();
                     return;
                 }
@@ -214,11 +289,7 @@ function parallel(method, items, callback) {
             });
             return require;
         }
-
-
-
 //#JSCOVERAGE_IF 0
-
         // Optimized tiny ajax get
         // @see https://gist.github.com/1625623
         var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
@@ -228,13 +299,14 @@ function parallel(method, items, callback) {
                 if (xhr.status < 201) {
                     module = xhr.responseText;
                     if ((/script$|json$/).test(xhr.getResponseHeader('content-type'))) {
-                        module = '(function(){return' + module + '})()';
                         module = global_eval('(' + module + ')');
                     }
-                    
+
                     // 4. Then callback it
                     callback(register_module(moduleName, module));
                 } else {
+                    // stop init on error
+                    stats_initEnd(moduleName);
                     callback();
                 }
             }
@@ -243,9 +315,7 @@ function parallel(method, items, callback) {
         xhr.send();
 
         return require;
-
 //#JSCOVERAGE_ENDIF
-
     };
 /**
  * @name global
@@ -275,35 +345,36 @@ function parallel(method, items, callback) {
             parallel(require.js, moduleName, callback);
             return require;
         }
-
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
             head;
 
-        
         // Its an shortcut
         if (is_shortcut(moduleName, module)) {
+            // assign shortcut name for module
+            stats_shortcut(module, moduleName);
             // rewrite module name
             moduleName = module.replace('@', '');
             module = modules[moduleName];
         }
-        
 
+        if (!module || initialized_modules[moduleName]) {
+            stats_require(moduleName);
+        }
         // If module exists
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
 
+        stats_initStart(moduleName);
 
         callback = create_race(moduleName, callback);
         // if already called
         if (race_callbacks[moduleName].length > 1) {
             return require;
         }
-
-
         // by default return undefined
         if (!global_document) {
 
@@ -315,15 +386,14 @@ function parallel(method, items, callback) {
                 module = register_module(moduleName, (global.importScripts || global.require)(moduleName) || {});
             } catch (e) {
                 // error -> default behaviour
+                // stop init on error
+                stats_initEnd(moduleName);
             }
-
             callback(module);
             return require;
         }
 
-
 //#JSCOVERAGE_IF 0
-
         var script = global_document.createElement("script");
         global.setTimeout(script.onreadystatechange = script.onload = function (e) {
             e = e || global.event;
@@ -335,6 +405,8 @@ function parallel(method, items, callback) {
 
                 isNotLoaded = 0;
                 // register or cleanup
+                // stop init on error
+                !e && stats_initEnd(moduleName);
                 callback(e ? register_module(moduleName, script) : head.removeChild(script) && local_undefined); // e === undefined if error
             }
         }, 3000, 0);
@@ -344,9 +416,7 @@ function parallel(method, items, callback) {
         head.insertBefore(script, head.firstChild);
 
         return require;
-
 //#JSCOVERAGE_ENDIF
-
     };
 /**
  * @name global
@@ -380,38 +450,36 @@ function parallel(method, items, callback) {
             parallel(require.css, moduleName, callback);
             return require;
         }
-
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;
 
-        
         // Its an shortcut
         if (is_shortcut(moduleName, module)) {
+            // assign shortcut name for module
+            stats_shortcut(module, moduleName);
             // rewrite module name
             moduleName = module.replace('@', '');
             module = modules[moduleName];
         }
-        
 
+        if (!(module || !global_document) || initialized_modules[moduleName]) {
+            stats_require(moduleName);
+        }
         // If module exists or its a worker or node.js environment
         if (module || !global_document) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
 
+        stats_initStart(moduleName);
 
         callback = create_race(moduleName, callback);
         // if already called
         if (race_callbacks[moduleName].length > 1) {
             return require;
         }
-
-
-
 //#JSCOVERAGE_IF 0
-
-
         // Create stylesheet link
         var link = global_document.createElement("link"),
             id = +new global.Date,
@@ -420,6 +488,9 @@ function parallel(method, items, callback) {
                     isNotLoaded = 0;
                     // register or cleanup
                     link.removeAttribute('id');
+
+                    // stop init on error
+                    !e && stats_initEnd(moduleName);
                     callback(e ? register_module(moduleName, link) : head.removeChild(link) && local_undefined); // e === undefined if error
                 }
             };
@@ -456,9 +527,7 @@ function parallel(method, items, callback) {
         }());
 
         return require;
-
 //#JSCOVERAGE_ENDIF
-
     };
 
     main(require, output.exports, output);
@@ -560,14 +629,18 @@ exports.some_function = function () {
     module('LMD basic features @ ' + ENV_NAME);
 
     test("require() globals", function () {
-        expect(2);
+        expect(4);
 
         ok(require('eval'), "should require globals as modules");
         ok(typeof require('some_undefined') === "undefined", "if no module nor global - return undefined");
+
+        // stats
+        ok(!!require.stats('eval'), "should count stats: globals");
+        ok(!!require.stats('some_undefined'), "should count stats: undefineds");
     });
 
     test("require() module-functions", function () {
-        expect(9);
+        expect(10);
 
         var fd = require('module_function_fd'),
             fe = require('module_function_fe'),
@@ -580,6 +653,8 @@ exports.some_function = function () {
         ok(fd === require('module_function_fd'), "require must return the same instance of fd");
         ok(fe === require('module_function_fe'), "require must return the same instance of fe");
         ok(plain === require('module_function_plain'), "require must return the same instance of plain module");
+
+        ok(!!require.stats('module_function_fd'), "should count stats: in-package modules");
     });
 
     test("require() sandboxed module-functions", function () {

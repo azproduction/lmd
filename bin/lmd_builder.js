@@ -51,8 +51,8 @@ var JSHINT_GLOBALS = {
 
 var fs = require('fs'),
     parser = require("uglify-js").parser,
-    uglify = require("uglify-js").uglify,
-    JsHint = require('jshint').JSHINT;
+    uglify = require("uglify-js").uglify/*,
+    JsHint = require('jshint').JSHINT*/;
 
 /**
  * LmdBuilder
@@ -336,20 +336,115 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, san
  */
 LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
     var optionNames,
-        leftPattern,
-        rightPattern,
-        leftIndex,
-        rightIndex,
         flagName;
 
     var flagToOptionNameMap = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_flags.json'));
+
+    /**
+     * Applies or removes block from lmd_js
+     *
+     * @param {String} optionName block name eg $P.CACHE
+     * @param isApply  apply or remove block
+     * @param isInline block is inline (based on block comment)
+     *
+     * @returns {Boolean} true if block was found, false - not found
+     */
+    var preProcessBlock = function (optionName, isApply, isInline) {
+        // /*if ($P.CSS || $P.JS || $P.ASYNC) {*/
+        var inlinePreprocessorBlock = isInline ? '/*if (' + optionName + ') {*/' : 'if (' + optionName + ') {',
+            bracesCounter = 0,
+
+            startIndex = lmd_js.indexOf(inlinePreprocessorBlock),
+            startLength = inlinePreprocessorBlock.length,
+
+            endIndex = startIndex + inlinePreprocessorBlock.length,
+            endLength = isInline ? 5 : 1;
+
+        if (startIndex === -1) {
+            return false;
+        }
+
+        // lookup for own }
+        while (lmd_js.length > endIndex) {
+            if (lmd_js[endIndex] === '{') {
+                bracesCounter++;
+            }
+            if (lmd_js[endIndex] === '}') {
+                bracesCounter--;
+            }
+            
+            // found!
+            if (bracesCounter === -1) {
+                if (isInline) {
+                    // step back
+                    endIndex -= 2;
+                } else {
+                    // remove leading spaces from open part
+                    while (startIndex) {
+                        startIndex--;
+                        startLength++;
+                        if (lmd_js[startIndex] !== '\t' && lmd_js[startIndex] !== ' ') {
+                            startIndex++;
+                            startLength--;
+                            break;
+                        }
+                    }
+
+                    // remove leading spaces from close part
+                    while (endIndex) {
+                        endIndex--;
+                        endLength++;
+                        if (lmd_js[endIndex] !== '\t' && lmd_js[endIndex] !== ' ') {
+                            endIndex++;
+                            endLength--;
+                            break;
+                        }
+                    }
+                    // add front \n
+                    endLength++;
+                    startLength++;
+                }
+
+                if (isApply) {
+                    // wipe preprocessor blocks only
+                    // open
+                    lmd_js = lmd_js.substr(0, startIndex) + lmd_js.substr(startIndex + startLength);
+
+                    // close
+                    lmd_js = lmd_js.substr(0, endIndex - startLength) + lmd_js.substr(endIndex + endLength - startLength);
+
+                    if (!isInline) {
+                        // indent block back
+                        var blockForIndent = lmd_js.substr(startIndex, endIndex - startLength - startIndex);
+
+                        blockForIndent = blockForIndent
+                            .split('\n')
+                            .map(function (line) {
+                                return line.replace(/^\s{4}/, '');
+                            })
+                            .join('\n');
+
+                        lmd_js = lmd_js.substr(0, startIndex) + blockForIndent + lmd_js.substr(endIndex - startLength);
+                    }
+                } else {
+                    // wipe all
+                    lmd_js = lmd_js.substr(0, startIndex) + lmd_js.substr(endIndex + endLength);
+                }
+                break;
+            }
+            endIndex++;
+        }
+
+        return true;
+    };
 
     // Add plugins
     for (flagName in flagToOptionNameMap) {
         optionNames = flagToOptionNameMap[flagName];
 
         optionNames.forEach(function (optionName) {
-            var includePattern = new RegExp('\\/\\*\\$INCLUDE IF ' + optionName + '\\s+([a-z-_\\.]+)\\s+\\$\\*\\/', ''),
+            /*if ($P.STATS) include('stats.js');*/
+            var includePattern = new RegExp('\\/\\*\\if \\(' + optionName.replace(/\$/g, '\\$') + '\\)\\s+include\\(\'([a-z-_\\.]+)\'\\);?\\s*\\*\\/', ''),
                 patchContent = '',
                 match;
 
@@ -369,33 +464,32 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
     for (flagName in flagToOptionNameMap) {
         optionNames = flagToOptionNameMap[flagName];
 
-        if (config[flagName]) {
-            // apply: remove left & right side
-            optionNames.forEach(function (optionName) {
-                lmd_js = lmd_js.replace(new RegExp('\\/\\*\\$(END)?IF ' + optionName + '\\$\\*\\/', 'g'), '');
-            });
-        }
+        // first are inline
+        optionNames.forEach(function (optionName) {
+            // apply all blocks
+            if (config[flagName]) {
+                // 1. inline
+                while (preProcessBlock(optionName, true, true));
+                // 2. blocks
+                while (preProcessBlock(optionName, true, false));
+            }
+        });
     }
 
     // Wipe IF statements
     for (flagName in flagToOptionNameMap) {
         optionNames = flagToOptionNameMap[flagName];
 
-        if (!config[flagName]) {
-            // remove: wipe all content
-            optionNames.forEach(function (optionName) {
-                leftPattern = '/*$IF ' + optionName + '$*/';
-                rightPattern = '/*$ENDIF ' + optionName + '$*/';
-
-                // wipe all blocks
-                while (true) {
-                    leftIndex = lmd_js.indexOf(leftPattern);
-                    if (leftIndex === -1) break;
-                    rightIndex = lmd_js.indexOf(rightPattern) + rightPattern.length;
-                    lmd_js = lmd_js.substring(0, leftIndex) + lmd_js.substring(rightIndex);
-                }
-            });
-        }
+        // first are inline
+        optionNames.forEach(function (optionName) {
+            // wipe all blocks
+            if (!config[flagName]) {
+                // 1. inline
+                while (preProcessBlock(optionName, false, true));
+                // 2. blocks
+                while (preProcessBlock(optionName, false, false));
+            }
+        });
     }
 
     return lmd_js;
@@ -769,9 +863,9 @@ LmdBuilder.prototype.build = function (callback) {
                 }
 
                 // #14 	Check direct access of globals in lazy modules
-                if (this.isWarn && isModule && module.is_lazy) {
+                /*if (this.isWarn && isModule && module.is_lazy) {
                     this.checkForDirectGlobalsAccess(module.path, moduleContent);
-                }
+                }*/
 
                 if (isModule && (module.is_lazy || pack)) {
                     moduleContent = this.compress(moduleContent);

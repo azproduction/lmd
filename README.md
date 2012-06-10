@@ -141,7 +141,8 @@ Config file
     "parallel": true,   // enables parallel loading [default=false]
                         // - if you are using parallel loading you are doing something wrong...
                         // - resources will be executed in **load order**! And passed to callback in list order
-    "shortcuts": true   // enables shortcuts in LMD package [default=false]
+    "shortcuts": true,  // enables shortcuts in LMD package [default=false]
+    "stats": true       // enables require.stats() function - every module require, load, eval, call statistics
 }
 ```
 
@@ -379,6 +380,57 @@ require.js("jquery", function () {
 });
 ```
 
+Application statistics. Require, load, eval, call statistics. Flag: `stats`
+---------------------------------------------------
+
+You can dump your application/package statistics to analise numbers: load+eval+call time and requires count
+
+```javascript
+var $ = require('$');
+
+// You can check one module statistics
+require.async('module_shortcut', function (Module) { // module_shortcut: module.js
+    require.stats('module.js');
+    /*
+    {
+        name: 'module.js',
+        initTime: 31, // init time: load+eval+call
+        accessTimes: [10], // list of module access times, 10 ms from app start
+        shortcuts: ['module_shortcut'] // list of shortcuts [optional]
+    }
+    */
+});
+
+// Or for example dump all application module statistics
+
+// 1. Get usage stats
+var stats = require.stats();
+/*
+{
+    "$": {
+        name : "$",
+        initTime: 0,
+        accessTime: [3]
+    },
+    'module.js': {
+        name: 'module.js',
+        initTime: 31, // init time: load+eval+call
+        accessTimes: [10], // list of module access times, 10 ms from app start
+        shortcuts: ['module_shortcut'] // list of shortcuts pointed to this module [optional]
+    },
+    'module_shortcut': { // === same object as 'module.js'
+        name: 'module.js',
+        initTime: 31, // init time: load+eval+call
+        accessTimes: [10], // list of module access times, 10 ms from app start
+        shortcuts: ['module_shortcut'] // list of shortcuts pointed to this module [optional]
+    }
+}
+*/
+
+// 2. Push stats to server
+$.post('/lmd-stats', JSON.stringify(stats));
+```
+
 Watch mode
 ----------
 
@@ -466,6 +518,9 @@ Major versions changelog
   - `require.async()` cache (`cache_async` flag)
   - LMD checks for direct globals access in lazy modules
   - Shortcuts `"shortcut": "@/path/to/real-file.js"` for `require.async("shortcut")` `.js()` or `.css()`
+  - window.eval replaced with Function eval, removed IE eval hack
+  - added `require.stats([moduleName])` flag `stats: false`
+  - replaced old preprocessor with readable one
 
 Licence
 -------

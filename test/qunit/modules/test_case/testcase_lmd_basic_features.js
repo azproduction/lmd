@@ -15,14 +15,18 @@
     module('LMD basic features @ ' + ENV_NAME);
 
     test("require() globals", function () {
-        expect(2);
+        expect(4);
 
         ok(require('eval'), "should require globals as modules");
         ok(typeof require('some_undefined') === "undefined", "if no module nor global - return undefined");
+
+        // stats
+        ok(!!require.stats('eval'), "should count stats: globals");
+        ok(!!require.stats('some_undefined'), "should count stats: undefineds");
     });
 
     test("require() module-functions", function () {
-        expect(9);
+        expect(10);
 
         var fd = require('module_function_fd'),
             fe = require('module_function_fe'),
@@ -35,6 +39,8 @@
         ok(fd === require('module_function_fd'), "require must return the same instance of fd");
         ok(fe === require('module_function_fe'), "require must return the same instance of fe");
         ok(plain === require('module_function_plain'), "require must return the same instance of plain module");
+
+        ok(!!require.stats('module_function_fd'), "should count stats: in-package modules");
     });
 
     test("require() sandboxed module-functions", function () {

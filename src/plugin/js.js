@@ -20,64 +20,82 @@
      */
     require.js = function (moduleName, callback) {
         callback = callback || global_noop;
-/*$IF PARALLEL$*/
-        // expect that its an array
-        if (typeof moduleName !== "string") {
-            parallel(require.js, moduleName, callback);
-            return require;
+
+        if ($P.PARALLEL) {
+            // expect that its an array
+            if (typeof moduleName !== "string") {
+                parallel(require.js, moduleName, callback);
+                return require;
+            }
         }
-/*$ENDIF PARALLEL$*/
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
             head;
 
-        /*$IF SHORTCUTS$*/
-        // Its an shortcut
-        if (is_shortcut(moduleName, module)) {
-            // rewrite module name
-            moduleName = module.replace('@', '');
-            module = modules[moduleName];
+        if ($P.SHORTCUTS) {
+            // Its an shortcut
+            if (is_shortcut(moduleName, module)) {
+                if ($P.STATS) {
+                    // assign shortcut name for module
+                    stats_shortcut(module, moduleName);
+                }
+                // rewrite module name
+                moduleName = module.replace('@', '');
+                module = modules[moduleName];
+            }
         }
-        /*$ENDIF SHORTCUTS$*/
 
+        if ($P.STATS) {
+            if (!module || initialized_modules[moduleName]) {
+                stats_require(moduleName);
+            }
+        }
         // If module exists
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
 
-/*$IF RACE$*/
-        callback = create_race(moduleName, callback);
-        // if already called
-        if (race_callbacks[moduleName].length > 1) {
-            return require;
+        if ($P.STATS) {
+            stats_initStart(moduleName);
         }
-/*$ENDIF RACE$*/
 
+        if ($P.RACE) {
+            callback = create_race(moduleName, callback);
+            // if already called
+            if (race_callbacks[moduleName].length > 1) {
+                return require;
+            }
+        }
         // by default return undefined
         if (!global_document) {
-/*$IF WORKER_OR_NODE$*/
-            // if no global try to require
-            // node or worker
-            try {
-                // call importScripts or require
-                // any of them can throw error if file not found or transmission error
-                module = register_module(moduleName, (global.importScripts || global.require)(moduleName) || {});
-            } catch (e) {
-                // error -> default behaviour
+
+            if ($P.WORKER || $P.NODE) {
+                // if no global try to require
+                // node or worker
+                try {
+                    // call importScripts or require
+                    // any of them can throw error if file not found or transmission error
+                    module = register_module(moduleName, (global.importScripts || global.require)(moduleName) || {});
+                } catch (e) {
+                    // error -> default behaviour
+                    if ($P.STATS) {
+                        // stop init on error
+                        stats_initEnd(moduleName);
+                    }
+                }
             }
-/*$ENDIF WORKER_OR_NODE$*/
             callback(module);
             return require;
         }
 
-/*$IF WORKER_OR_NODE$*/
-//#JSCOVERAGE_IF 0
-/*$ENDIF WORKER_OR_NODE$*/
+/*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
         var script = global_document.createElement("script");
         global.setTimeout(script.onreadystatechange = script.onload = function (e) {
-            /*$IF IE$*/e = e || global.event;/*$ENDIF IE$*/
+            if ($P.IE) {
+                e = e || global.event;
+            }
             if (isNotLoaded &&
                 (!e ||
                 !script[readyState] ||
@@ -86,6 +104,10 @@
 
                 isNotLoaded = 0;
                 // register or cleanup
+                if ($P.STATS) {
+                    // stop init on error
+                    !e && stats_initEnd(moduleName);
+                }
                 callback(e ? register_module(moduleName, script) : head.removeChild(script) && local_undefined); // e === undefined if error
             }
         }, 3000, 0);
@@ -95,7 +117,5 @@
         head.insertBefore(script, head.firstChild);
 
         return require;
-/*$IF WORKER_OR_NODE$*/
-//#JSCOVERAGE_ENDIF
-/*$ENDIF WORKER_OR_NODE$*/
+/*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_ENDIF/*}*/
     };

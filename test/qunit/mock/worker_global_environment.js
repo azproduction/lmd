@@ -10,6 +10,7 @@ var worker_global_environment = {
     },
     eval: this.eval,
     XMLHttpRequest: this.XMLHttpRequest,
+    Date: this.Date,
     worker_some_global_var: true,
 
     // QUnit methods

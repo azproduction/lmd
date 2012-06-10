@@ -38,6 +38,7 @@ var node_global_environment = {
         };
     },
     eval: this.eval,
+    Date: this.Date,
     node_some_global_var: true,
 
     // QUnit methods

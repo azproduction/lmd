@@ -132,7 +132,6 @@
         expect(4);
 
         require.css('sk_css_css', function (link_tag) {
-            console.log(arguments);
             ok(typeof link_tag === "object" &&
                 link_tag.nodeName.toUpperCase() === "LINK", "should return link tag on success");
 
@@ -149,7 +148,6 @@
         expect(5);
 
         require.js('sk_js_js', function (script_tag) {
-            console.log(arguments);
             ok(typeof script_tag === "object" &&
                script_tag.nodeName.toUpperCase() === "SCRIPT", "should return script tag on success");
 
