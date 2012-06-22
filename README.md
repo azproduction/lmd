@@ -467,6 +467,7 @@ require.stats.sendTo('http://localhost:8081'); // you may specify report_name to
 *Note*
  - if you are using function-modules you have to name your require as require at that moment...
  - sandboxed module under CC will accept an object as require with coverage functions instead of undefined
+ - LMD cannot apply code coverage on async modules now (in future versions only)
 
 Stats server
 ------------
