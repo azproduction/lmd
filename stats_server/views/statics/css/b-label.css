@@ -1,0 +1,23 @@
+.b-label {
+    padding: 0 5px;
+    border-radius: 4px;
+    background-color: #333;
+    color: #fff;
+    font-size: 80%;
+}
+
+.b-label_size_normal {
+    font-size: 100%;
+}
+
+.b-label_type_function {
+    background-color: green;
+}
+
+.b-label_type_condition {
+    background-color: #0022ff;
+}
+
+.b-label_type_statement {
+    background-color: red;
+}

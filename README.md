@@ -77,7 +77,7 @@ module.exports = function(message) {
 
 **Note**:
  - plain module will be wrapped by builder `(function (require, exports, module) {\n%code%\n})`
- - you can not require plain off-package module now (using require.async())
+ - you can require plain off-package modules by declaring one of flags `async_plain` or `async_plainonly`
 
 **1\.2\. Module - objects (for config, i18n and other resources)**
 
@@ -124,25 +124,37 @@ Config file
         // shortcuts for require.async("abstract_name") or .js() or .css()
         "abstract_name": "@/path/to/real-file.js"
     },
-    "main": "main",     // a main module - content of that module will be called on start (no reason to eval)
-    "lazy": false,      // if true - all modules will be evaled on demand [default=true]
-    "pack": false,      // if true - module will be packed using uglifyjs [default=true]
-    "global": "this",   // name of global object, passed to the lmd [default="this"]
-    "async": true,      // if modules uses off-package module set this to true [default=false]
-    "cache": true,      // store all application lmd itself + all modules in localStorage
-                        // this flag will force all modules to be lazy [default=false]
-    "js": true,         // if you are going to load non LMD modules set this flag to true [default=false]
-    "css": true,        // enables css-loader feature `require.css` [default=false]
-    "worker": true,     // set true if LMD package will run as worker [default=false]
-    "node": true,       // set true if LMD package will run as node.js script [default=false]
-    "ie": true,         // set false if script will run only in modern browsers [default=true]
-    "race": true,       // set true if you are performing parallel loading of the same resource [default=false]
-    "cache_async": true,// depend on cache flag, enables localStorage cache for require.async() [default=false]
-    "parallel": true,   // enables parallel loading [default=false]
-                        // - if you are using parallel loading you are doing something wrong...
-                        // - resources will be executed in **load order**! And passed to callback in list order
-    "shortcuts": true,  // enables shortcuts in LMD package [default=false]
-    "stats": true       // enables require.stats() function - every module require, load, eval, call statistics
+    "main": "main",         // a main module - content of that module will be called on start (no reason to eval)
+    "lazy": false,          // if true - all modules will be evaled on demand [default=true]
+    "pack": false,          // if true - module will be packed using uglifyjs [default=true]
+    "global": "this",       // name of global object, passed to the lmd [default="this"]
+
+    "async": true,          // if modules uses off-package module set this to true [default=false]
+    "async_plain": true,    // enables async require of both plain and function-modules [default=false]
+    "async_plainonly":true, // if you are using only plain modules enable that flag instead of async_plain [default=false]
+
+    "cache": true,          // store all application lmd itself + all modules in localStorage
+                            // this flag will force all modules to be lazy [default=false]
+    "cache_async": true,    // depend on cache flag, enables localStorage cache for require.async() [default=false]
+
+    "js": true,             // if you are going to load non LMD modules set this flag to true [default=false]
+    "css": true,            // enables css-loader feature `require.css` [default=false]
+
+    "worker": true,         // set true if LMD package will run as worker [default=false]
+    "node": true,           // set true if LMD package will run as node.js script [default=false]
+    "ie": true,             // set false if script will run only in modern browsers [default=true]
+    "race": true,           // set true if you are performing parallel loading of the same resource [default=false]
+    "parallel": true,       // enables parallel loading [default=false]
+                            // - if you are using parallel loading you are doing something wrong...
+                            // - resources will be executed in **load order**! And passed to callback in list order
+
+    "shortcuts": true,      // enables shortcuts in LMD package [default=false]
+
+    "stats": true,          // enables require.stats() function - every module require, load, eval, call statistics [default=false]
+    "stats_coverage": true, // enables code coverage for all in-package modules, you can use list of module names
+                            // to cover only modules in that list [default=false]
+    "stats_sendto": true    // enables require.stats.sendTo(host[, reportName]) function
+                            // it POSTs stats&coverage report to specified stats server
 }
 ```
 
@@ -207,7 +219,7 @@ Use
 (function(b){var c=b("depA");c("ololo")})
 ```
 
-Asynchronous module require. Flags: `async`, `race`, `cache_async`
+Asynchronous module require. Flags: `async`, `race`, `cache_async`, `async_plain`, `async_plainonly`
 ------------------------------------------
 
 You can build async LMD package.  (Disabled by default)
@@ -223,7 +235,6 @@ then `Content-type` header will be INVALID so all modules will be strings.
  - If you use `file:` protocol then all modules will be strings
  - LMD loader uses simple RegExp `/script$|json$/` with `Content-type` to determine the kind of content
 and eval it (if json or javascript) or return as string
- - Your off-package module MUST be an FunctionsExpression wrapped in parentheses
  - If all you modules are in-package then set `async` flag to false (300 bytes less)
  - If async require fails (status code will be >= 400) loader will return `undefined`
    (LMD doesn't re-request on error)
@@ -231,6 +242,7 @@ and eval it (if json or javascript) or return as string
    flag to prevent duplication of requests.
  - You can set both flags `cache` and `cache_async` to true to enable localStorage cache for `require.async()`
    (see Local Storage cache)
+ - You can require plain off-package modules by declaring one of flags `async_plain` or `async_plainonly`
 
 ```javascript
 // Valid
@@ -429,7 +441,47 @@ var stats = require.stats();
 
 // 2. Push stats to server
 $.post('/lmd-stats', JSON.stringify(stats));
+
+// Or enable `stats_sendto` to post to stats server
+require.stats.sendTo('http://localhost:8081'); // you may specify report_name too
 ```
+
+Code coverage. Flag: `stats`, `stats_coverage`, `stats_sendto`
+-------------------------------------------------------------
+
+Add `stats_coverage` flag to your config file or use list of module names to cover only them. Rebuild your package.
+Now you can see coverage report in `require.stats()` object. See `src/plugin/stats.js:46` for more information.
+
+You may also enable `stats_sendto` flag to push your reports to the Stats Server.
+
+```javascript
+require.stats.sendTo('http://localhost:8081'); // you may specify report_name too
+```
+
+Stats server
+------------
+
+Stats server provides simple coverage and usage reports
+
+![](http://github.com/azproduction/lmd/raw/master/images/coverage_package.png)
+
+![](http://github.com/azproduction/lmd/raw/master/images/coverage_module.png)
+
+*Starting server*
+
+`$ node bin/lmd_stats.js -a 0.0.0.0 -p 8081 -c ./js/lmd/index.lmd.json -log ./logs/ -www ./`
+
+*Other arguments*
+
+`-address` `-a` address for log and admin server, default=0.0.0.0
+`-port` `-p` port for log and admin server, default=8081
+`-admin-address` `-aa` address admin server, default=address
+`-admin-port` `-ap` address admin server, default=port
+`-config` `-c` your application config file
+`-log` `-l` path where stats server will store stats logs
+`-www` `-wd` www dir of your site - required for async modules
+
+see `examples/mock_chat/README.md` for real example
 
 Watch mode
 ----------
@@ -521,6 +573,13 @@ Major versions changelog
   - window.eval replaced with Function eval, removed IE eval hack
   - added `require.stats([moduleName])` flag `stats: false`
   - replaced old preprocessor with readable one
+
+**v1.7.x**
+  - **Note** in sandboxed module require can be an object (`{coverage_line, coverage_function, coverage_condition}`) if sandboxed module is under code coverage
+  - `require.async()` can load plain modules flags `async_plain`, `async_plainonly`
+  - `require.stats()` shows modules usage and code coverage. Flags `stats`, `stats_coverage`, `stats_sendto`
+  - in-package Code coverage. Flag `stats_coverage`
+  - Stats server
 
 Licence
 -------

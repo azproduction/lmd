@@ -1,0 +1,11 @@
+.i-hidden {
+    display: none;
+}
+
+.b-layout {
+    width: 80%;
+    margin: 0 auto;
+    min-width: 500px;
+    max-width: 1200px;
+    font-family: "Consolas", monospace;
+}

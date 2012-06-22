@@ -39,11 +39,13 @@ var node_global_environment = {
     },
     eval: this.eval,
     Date: this.Date,
+    Function: this.Function,
     node_some_global_var: true,
 
     // QUnit methods
     test: this.test,
     asyncTest: this.asyncTest,
+    deepEqual: this.deepEqual,
     start: this.start,
     module: this.module,
     ok: this.ok,

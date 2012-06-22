@@ -1,0 +1,33 @@
+.b-summary {
+    margin-top: 20px;
+}
+
+.b-summary__item {
+    overflow: hidden;
+}
+
+.b-summary__item__percentage {
+    font-size: 300%;
+}
+
+.b-summary__item__percentage_coverage_lt-100 {
+    color: #509f00;
+}
+
+.b-summary__item__percentage_coverage_lt-75 {
+    color: orange;
+}
+
+.b-summary__item__percentage_coverage_lt-50 {
+    color: red;
+}
+
+.b-summary__item__percentage_coverage_100 {
+    color: green;
+}
+
+@media screen and (max-width: 1024px) {
+    .b-summary__item__percentage {
+        font-size: 200%;
+    }
+}

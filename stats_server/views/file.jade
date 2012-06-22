@@ -1,0 +1,191 @@
+!!! 5
+html
+    head
+        title
+            | LMD Stats /
+            | #{name}
+            | /
+            | #{module}
+        link(rel='stylesheet', href='/main.css')
+
+        if (options.highlight)
+            link(rel='stylesheet', href='/vendors/highlight/styles/#{options.highlight || "idea"}.css')
+            script(src='/vendors/highlight/highlight.pack.js')
+
+        script(src='http://yandex.st/jquery/1.7.2/jquery.min.js')
+        script(src='/main.js')
+        script hljs.initHighlightingOnLoad();
+    body
+        .b-layout
+            .g-12
+                .g-row.b-head
+                    .g-first.g-col-1.g-span-2.b-head__title
+                        a.b-head__title_type_logo(href='/') LMD Stats
+                    .g-col-3.g-span-10.b-head__title
+                        a.b-head__title_type_report(href="/report/#{name}") #{name}
+                        &#32;
+                        span.b-head__title_type_module=module
+
+                .g-row.b-summary
+                    .g-col-1.g-span-4.b-summary__item
+                        .b-summary__item__title Statements
+
+                        if (report.coverage.lines.percentage < 50)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-50 #{report.coverage.lines.percentage.toFixed(2)}%
+
+                        else if (report.coverage.lines.percentage < 75)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-75 #{report.coverage.lines.percentage.toFixed(2)}%
+
+                        else if (report.coverage.lines.percentage < 100)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-100 #{report.coverage.lines.percentage.toFixed(2)}%
+
+                        else
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_100 #{report.coverage.lines.percentage.toFixed(2)}%
+
+                    .g-col-5.g-span-4.b-summary__item
+                        .b-summary__item__title Functions
+
+                        if (report.coverage.functions.percentage < 50)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-50 #{report.coverage.functions.percentage.toFixed(2)}%
+
+                        else if (report.coverage.functions.percentage < 75)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-75 #{report.coverage.functions.percentage.toFixed(2)}%
+
+                        else if (report.coverage.functions.percentage < 100.0)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-100 #{report.coverage.functions.percentage.toFixed(2)}%
+
+                        else
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_100 #{report.coverage.functions.percentage.toFixed(2)}%
+
+                    .g-col-9.g-span-4.b-summary__item
+                        .b-summary__item__title Conditions
+
+                        if (report.coverage.conditions.percentage < 50)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-50 #{report.coverage.conditions.percentage.toFixed(2)}%
+
+                        else if (report.coverage.conditions.percentage < 75)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-75 #{report.coverage.conditions.percentage.toFixed(2)}%
+
+                        else if (report.coverage.conditions.percentage < 100.0)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-100 #{report.coverage.conditions.percentage.toFixed(2)}%
+
+                        else
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_100 #{report.coverage.conditions.percentage.toFixed(2)}%
+
+                if (report.coverage && report.coverage.report)
+                    - var MAX_ITEMS = 10
+                    - var functions = []
+                    - var functionsMore = []
+
+                    - var statements = []
+                    - var statementsMore = []
+
+                    - var conditions = []
+                    - var conditionsMore = []
+
+                    each reportItem, lineNumber in report.coverage.report
+                        if (reportItem.lines === false)
+                            - var line = '<a class="b-notes__tags__item" href="#L' + lineNumber + '">' + lineNumber + '</a>'
+                            if (statements.length < MAX_ITEMS)
+                                - statements.push(line)
+                            else
+                                - statementsMore.push(line)
+
+                        if (reportItem.functions)
+                            each functionName in reportItem.functions
+                                - var line = '<a class="b-notes__tags__item" href="#L' + lineNumber + '">' + functionName + ':' + lineNumber + '</a>'
+                                if (functions.length < MAX_ITEMS)
+                                    - functions.push(line)
+                                else
+                                    - functionsMore.push(line)
+
+                        if (reportItem.conditions)
+                            each condition in reportItem.conditions
+                                - var line = '<a class="b-notes__tags__item" href="#L' + lineNumber + '">f=' + condition[0] + ',t=' + condition[1] + ':' + lineNumber + '</a>'
+                                if (functions.length < MAX_ITEMS)
+                                    - conditions.push(line)
+                                else
+                                    - statementsMore.push(line)
+
+                    if (functions.length || statements.length || conditions.length)
+                        .g-first.g-col-1.g-span-12.b-title Notes
+                        .g-first.g-col-1.g-span-12.b-notes
+                            if (statements.length)
+                                .b-notes__section
+                                    span.b-label.b-label_size_normal.b-label_type_statement Statements
+                                    &#32;
+                                    span.b-notes__tags
+                                        !{statements.join(', ')}
+
+                                    if (statementsMore.length)
+                                        a.b-notes__more(href="#") #{'More ' + statementsMore.length + '...'}
+                                        span.b-notes__tags.b-notes__tags_type_more.i-hidden
+                                            !{statementsMore.join(', ')}
+
+                            if (functions.length)
+                                .b-notes__section
+                                    span.b-label.b-label_size_normal.b-label_type_function Functions
+                                    &#32;
+                                    span.js-functions.b-notes__tags
+                                        !{functions.join(', ')}
+
+                                    if (functionsMore.length)
+                                        a.b-notes__more(href="#") #{'More ' + functionsMore.length + '...'}
+                                        span.b-notes__tags.b-notes__tags_type_more.i-hidden
+                                            !{functionsMore.join(', ')}
+
+                            if (conditions.length)
+                                .b-notes__section
+                                    span.b-label.b-label_size_normal.b-label_type_condition Conditions
+                                    &#32;
+                                    span.js-conditions.b-notes__tags
+                                        !{conditions.join(', ')}
+
+                                    if (conditionsMore.length)
+                                        a.b-notes__more(href="#") #{'More ' + conditionsMore.length + '...'}
+                                        span.b-notes__tags.b-notes__tags_type_more.i-hidden
+                                            !{conditionsMore.join(', ')}
+
+                .g-first.g-col-1.g-span-12.b-title Module code
+
+                .g-first.g-col-1.g-span-12
+                    table.b-source(cellspacing="0", cellpadding="0")
+                        colgroup
+                            col(width='5%')
+                            col(width='5%')
+                            col(width='5%')
+                            col(width='85%')
+
+                        thead
+                            tr.b-source__head
+                                th.b-source__head__item Run
+                                th.b-source__head__item Notes
+                                th.b-source__head__item.b-source__head__item_type_line
+                                th.b-source__head__item
+
+                        tbody
+                            - var lineNumber = 0;
+                            - for (; lineNumber < lines; lineNumber++)
+                                - var lineClass = "b-source__line"
+                                - var lineId = 'L' + (lineNumber + 1)
+                                - if (report.coverage.report[lineNumber+1])
+                                    - lineClass += " b-source__line_state_warning"
+
+                                tr(id=lineId, class=lineClass)
+                                    td.b-source__line__item.b-source__line__item_type_call #{report.runLines[lineNumber+1] || '&nbsp;'}
+                                    td.b-source__line__item.b-source__line__item_type_notes
+                                        if (report.coverage.report[lineNumber+1])
+                                            if report.coverage.report[lineNumber+1].functions
+                                                span.b-label.b-label_type_function F
+
+                                            if report.coverage.report[lineNumber+1].conditions
+                                                span.b-label.b-label_type_condition C
+
+                                            if report.coverage.report[lineNumber+1].lines === false
+                                                span.b-label.b-label_type_statement S
+
+                                    td.b-source__line__item.b-source__line__item_type_line=lineNumber+1
+                                    if (lineNumber === 0)
+                                        td.b-source__line__item.b-source__line__item_type_code(rowspan='#{lines}')
+                                            pre
+                                                code.javascript=code

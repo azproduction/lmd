@@ -1,0 +1,27 @@
+!!! 5
+html(lang="en")
+    head
+        title LMD Stats
+        link(rel='stylesheet', href='/main.css')
+
+    body
+        .b-layout
+            .g-12
+                .g-row.b-head
+                    .g-first.g-col-1.g-span-2.b-head__title
+                        span.b-head__title_type_logo LMD Stats
+
+                .g-first.g-col-1.g-span-12.b-title Reports
+
+                .g-first.g-col-1.g-span-12
+                    table.b-list
+                        thead
+                            tr.b-list__head
+                                th.b-list__head__item Report&nbsp;name
+                                th.b-list__head__item Date&nbsp;(server)&nbsp;↓
+                        tbody
+                            each report in reports
+                                tr.b-list__line
+                                    td
+                                        a(href='/report/#{report.id}') #{report.id}
+                                    td.b-list__line__date=report.date

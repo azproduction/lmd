@@ -1,0 +1,201 @@
+!!! 5
+html
+    head
+        title
+            | LMD Stats /
+            | #{name}
+        link(rel='stylesheet', href='/main.css')
+
+    body
+        .b-layout
+            .g-12
+                .g-row.b-head
+                    .g-first.g-col-1.g-span-2.b-head__title
+                        a.b-head__title_type_logo(href='/') LMD Stats
+
+                    .g-col-3.g-span-10.b-head__title
+                        span.b-head__title_type_report=name
+
+                .g-row.b-summary
+                    .g-col-1.g-span-4.b-summary__item
+                        .b-summary__item__title Statements
+
+                        if (report.global.lines.percentage < 50)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-50 #{report.global.lines.percentage.toFixed(2)}%
+
+                        else if (report.global.lines.percentage < 75)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-75 #{report.global.lines.percentage.toFixed(2)}%
+
+                        else if (report.global.lines.percentage < 100)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-100 #{report.global.lines.percentage.toFixed(2)}%
+
+                        else
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_100 #{report.global.lines.percentage.toFixed(2)}%
+
+                    .g-col-5.g-span-4.b-summary__item
+                        .b-summary__item__title Functions
+
+                        if (report.global.functions.percentage < 50)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-50 #{report.global.functions.percentage.toFixed(2)}%
+
+                        else if (report.global.functions.percentage < 75)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-75 #{report.global.functions.percentage.toFixed(2)}%
+
+                        else if (report.global.functions.percentage < 100.0)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-100 #{report.global.functions.percentage.toFixed(2)}%
+
+                        else
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_100 #{report.global.functions.percentage.toFixed(2)}%
+
+                    .g-col-9.g-span-4.b-summary__item
+                        .b-summary__item__title Conditions
+
+                        if (report.global.conditions.percentage < 50)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-50 #{report.global.conditions.percentage.toFixed(2)}%
+
+                        else if (report.global.conditions.percentage < 75)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-75 #{report.global.conditions.percentage.toFixed(2)}%
+
+                        else if (report.global.conditions.percentage < 100.0)
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_lt-100 #{report.global.conditions.percentage.toFixed(2)}%
+
+                        else
+                            .b-summary__item__percentage.b-summary__item__percentage_coverage_100 #{report.global.conditions.percentage.toFixed(2)}%
+
+                //
+                    .g-first.g-col-1.g-span-12.b-title Notes
+
+                    .g-first.g-col-1.g-span-12.b-notes
+                        ol.b-notes__list
+                            li.b-notes__list__item
+                                | You can move in-package module
+                                a.b-notes__list__item__module-link(href='#module-b-module') b-module
+                                | out off package (First require 2000ms)
+                            li.b-notes__list__item
+                                | You can move in-package module
+                                a.b-notes__list__item__module-link(href='#module-b-module') b-module
+                                | out off package (First require 2000ms)
+                            li.b-notes__list__item
+                                | You can move in-package module
+                                a.b-notes__list__item__module-link(href='#module-b-module') b-module
+                                | out off package (First require 2000ms)
+                            li.b-notes__list__item
+                                | You can move in-package module
+                                a.b-notes__list__item__module-link(href='#module-b-module') b-module
+                                | out off package (First require 2000ms)
+                            li.b-notes__list__item.i-hidden
+                                | You can move in-package module
+                                a.b-notes__list__item__module-link(href='#module-b-module') b-module
+                                | out off package (First require 2000ms)
+                            li.b-notes__list__item.i-hidden
+                                | You can move in-package module
+                                a.b-notes__list__item__module-link(href='#module-b-module') b-module
+                                | out off package (First require 2000ms)
+                            li.b-notes__list__item.i-hidden
+                                | You can move in-package module
+                                a.b-notes__list__item__module-link(href='#module-b-module') b-module
+                                | out off package (First require 2000ms)
+                            li.b-notes__list__item.i-hidden
+                                | You can move in-package module
+                                a.b-notes__list__item__module-link(href='#module-b-module') b-module
+                                | out off package (First require 2000ms)
+                            li.b-notes__list__item.i-hidden
+                                | You can move in-package module
+                                a.b-notes__list__item__module-link(href='#module-b-module') b-module
+                                | out off package (First require 2000ms)
+                            li.b-notes__list__item.i-hidden
+                                | You can move in-package module
+                                a.b-notes__list__item__module-link(href='#module-b-module') b-module
+                                | out off package (First require 2000ms)
+                        a.b-notes__more(href='#') More...
+
+                .g-first.g-col-1.g-span-12.b-title Modules
+
+                .g-first.g-col-1.g-span-12
+                    table.b-list
+                        thead
+                            tr.b-list__head
+                                th.b-list__head__item Module name
+                                th.b-list__head__item Type
+                                th.b-list__head__item Statements
+                                th.b-list__head__item Functions
+                                th.b-list__head__item Conditions
+                                th.b-list__head__item Init time
+                                th.b-list__head__item # Required
+                                th.b-list__head__item First require
+                        tbody
+                            each moduleStats, moduleName in report.modules
+                                tr#module-b-module.b-list__line
+                                    td.b-list__line__item
+                                        if (moduleStats.coverage)
+                                            a(href='/report/#{name}/module/#{moduleName.replace(/\//g, "%2F")}') #{moduleName}
+                                        else
+                                            #{moduleName}
+
+                                        if (moduleStats.name && moduleStats.name !== moduleName)
+                                            |&nbsp;&rarr;&nbsp;
+                                            if (moduleStats.coverage)
+                                                a(href='/report/#{name}/module/#{moduleStats.name.replace(/\//g, "%2F")}') #{moduleStats.name}
+                                            else
+                                                #{moduleStats.name}
+
+                                    td.b-list__line__item=moduleStats.type
+
+                                    if (moduleStats.coverage)
+                                        if (moduleStats.coverage.lines.percentage < 50)
+                                            td.b-list__line__item.b-list__line__item_coverage_lt-50 #{moduleStats.coverage.lines.percentage.toFixed(2)}%
+
+                                        else if (moduleStats.coverage.lines.percentage < 75)
+                                            td.b-list__line__item.b-list__line__item_coverage_lt-75 #{moduleStats.coverage.lines.percentage.toFixed(2)}%
+
+                                        else if (moduleStats.coverage.lines.percentage < 100.0)
+                                            td.b-list__line__item.b-list__line__item_coverage_lt-100 #{moduleStats.coverage.lines.percentage.toFixed(2)}%
+
+                                        else
+                                            td.b-list__line__item.b-list__line__item_coverage_100 #{moduleStats.coverage.lines.percentage.toFixed(2)}%
+
+
+
+                                        if (moduleStats.coverage.functions.percentage < 50)
+                                            td.b-list__line__item.b-list__line__item_coverage_lt-50 #{moduleStats.coverage.functions.percentage.toFixed(2)}%
+
+                                        else if (moduleStats.coverage.functions.percentage < 75)
+                                            td.b-list__line__item.b-list__line__item_coverage_lt-75 #{moduleStats.coverage.functions.percentage.toFixed(2)}%
+
+                                        else if (moduleStats.coverage.functions.percentage < 100.0)
+                                            td.b-list__line__item.b-list__line__item_coverage_lt-100 #{moduleStats.coverage.functions.percentage.toFixed(2)}%
+
+                                        else
+                                            td.b-list__line__item.b-list__line__item_coverage_100 #{moduleStats.coverage.functions.percentage.toFixed(2)}%
+
+
+
+                                        if (moduleStats.coverage.conditions.percentage < 50)
+                                            td.b-list__line__item.b-list__line__item_coverage_lt-50 #{moduleStats.coverage.conditions.percentage.toFixed(2)}%
+
+                                        else if (moduleStats.coverage.conditions.percentage < 75)
+                                            td.b-list__line__item.b-list__line__item_coverage_lt-75 #{moduleStats.coverage.conditions.percentage.toFixed(2)}%
+
+                                        else if (moduleStats.coverage.conditions.percentage < 100.0)
+                                            td.b-list__line__item.b-list__line__item_coverage_lt-100 #{moduleStats.coverage.conditions.percentage.toFixed(2)}%
+
+                                        else
+                                            td.b-list__line__item.b-list__line__item_coverage_100 #{moduleStats.coverage.conditions.percentage.toFixed(2)}%
+
+                                    else
+                                        td.b-list__line__item -
+                                        td.b-list__line__item -
+                                        td.b-list__line__item -
+
+                                    if (moduleStats.name === "main")
+                                        td.b-list__line__item 0ms
+                                        td.b-list__line__item 1
+                                        td.b-list__line__item 0ms
+                                    else
+                                        td.b-list__line__item #{moduleStats.initTime === -1 ? '-' : (moduleStats.initTime||0 + 'ms')}
+                                        if (moduleStats.accessTimes && moduleStats.accessTimes.length)
+                                            td.b-list__line__item=moduleStats.accessTimes.length
+                                        else
+                                            td.b-list__line__item.b-list__line__item_state_warning 0
+
+                                        td.b-list__line__item #{moduleStats.accessTimes ? typeof moduleStats.accessTimes[0] === "number" ? moduleStats.accessTimes[0] + 'ms' : '-' : '-'}

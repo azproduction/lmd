@@ -1,7 +1,7 @@
-(function (global, main, modules, sandboxed_modules) {
+(function (global, main, modules, sandboxed_modules, coverage_options) {
     var initialized_modules = {},
         global_eval = function (code) {
-            return Function('return ' + code)();
+            return global.Function('return ' + code)();
         },
         global_noop = function () {},
         global_document = global.document,
@@ -13,6 +13,7 @@
          * @returns {*}
          */
         register_module = function (moduleName, module) {
+            stats_type(moduleName, !module ? 'global' : typeof modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
             // Predefine in case of recursive require
             var output = {exports: {}};
             initialized_modules[moduleName] = 1;
@@ -23,7 +24,13 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                module = module(sandboxed_modules[moduleName] ? local_undefined : require, output.exports, output) || output.exports;
+                module = module(
+                    sandboxed_modules[moduleName] ?
+                        {coverage_line: require.coverage_line, coverage_function: require.coverage_function, coverage_condition: require.coverage_condition} ||
+                        local_undefined : require,
+                    output.exports,
+                    output
+                ) || output.exports;
             }
             stats_initEnd(moduleName);
 
@@ -70,6 +77,7 @@
     }
 
 
+
 var race_callbacks = {},
     /**
      * Creates race.
@@ -105,8 +113,122 @@ var race_callbacks = {},
  * @name local_undefined
  * @name create_race
  * @name race_callbacks
+ * @name coverage_options
  */
 
+/**
+ * @name LineReport
+ * @type {Object}
+ *
+ * @property {Boolean}  lines        if false -> not called
+ * @property {Array[]}  conditions   list of unused conditions [[0, 2], [7, 0]]
+ * @property {String[]} functions    list of unused functions in that line
+ */
+
+/**
+ * @name TypeReport
+ * @type {Object}
+ *
+ * @property {Number} total
+ * @property {Number} covered
+ * @property {Number} percentage
+ */
+
+/**
+ * @name LmdCoverage
+ * @type {Object}
+ *
+ * @property {TypeReport}   lines
+ * @property {TypeReport}   conditions
+ * @property {TypeReport}   functions
+ *
+ * @property {Object}       report        {lineNum: LineReport}
+ */
+
+/**
+ * @name lmdStats
+ * @type {Object}
+ *
+ * @property {String}   name            module name
+ * @property {Number[]} accessTimes     module access times
+ * @property {Number}   initTime        module init time: load+eval+call
+ * @property {String[]} shortcuts       list of used shortcuts
+ *
+ * @property {String[]} lines           list of all statements
+ * @property {String[]} conditions      list of all conditions
+ * @property {String[]} functions       list of all functions
+ *
+ * @property {Object} runLines          {lineId: callTimes}
+ * @property {Object} runConditions     {conditionId: [falseTimes, trueTimes]}
+ * @property {Object} runFunctions      {functionId: callTimes}
+ *
+ * @property {LmdCoverage} coverage
+ *
+ * @example
+ *  {
+ *      name: "pewpew",
+ *      accessTimes: [0, 5, 2715],
+ *      initTime: 10,
+ *      shortcuts: ["ololo"],
+ *
+ *      lines: ["4", "5", "8"],
+ *      conditions: ["4:1", "5:2"],
+ *      functions: ["FunctionName:5:1", "FunctionName2:9:1"],
+ *
+ *      runLines: {
+ *          "4": 1
+ *          "5": 0,
+ *          "8": 14
+ *      },
+ *
+ *      runConditions: {
+ *          "4:1": [1, 0],
+ *          "5:2": [0, 0]
+ *      },
+ *
+ *      runFunctions: {
+ *          "FunctionName:5:1": 10
+ *          "FunctionName2:9:1": 0
+ *      }
+ *
+ *      coverage: {
+ *          lines: {
+ *              total: 3,
+ *              covered: 2,
+ *              percentage: 66.66667
+ *          },
+ *
+ *          conditions: {
+ *              total: 2,
+ *              covered: 0.5,
+ *              percentage: 25
+ *          },
+ *
+ *          functions: {
+ *              total: 2,
+ *              covered: 1,
+ *              percentage: 50
+ *          },
+ *
+ *          report: {
+ *              "4": {
+ *                  conditions: [[1, 0]]
+ *              },
+ *              "5": {
+ *                  lines: false,
+ *                  conditions: [[0, 0]]
+ *              },
+ *              "9": {
+ *                  functions: ["FunctionName2"]
+ *              }
+ *          }
+ *      }
+ *  }
+ */
+
+/**
+ * @type {lmdStats}
+ */
 var stats_results = {},
     stats_Date = global.Date,
     stats_startTime = +new stats_Date;
@@ -116,7 +238,8 @@ function stats_get(moduleName) {
            stats_results[moduleName] :
            stats_results[moduleName] = {
                name: moduleName,
-               accessTimes: []
+               accessTimes: [],
+               initTime: -1
            };
 }
 
@@ -132,6 +255,11 @@ function stats_initEnd(moduleName) {
 function stats_require(moduleName) {
     var stat = stats_get(moduleName);
     stat.accessTimes.push(+new stats_Date - stats_startTime);
+}
+
+function stats_type(moduleName, type) {
+    var stat = stats_get(moduleName);
+    stat.type = type;
 }
 
 function stats_shortcut(moduleName, shortcut) {
@@ -156,9 +284,233 @@ function stats_shortcut(moduleName, shortcut) {
     }
 }
 
+
+
+/**
+ * Calculate coverage total
+ *
+ * @param moduleName
+ */
+function stats_calculate_coverage(moduleName) {
+    var stats = stats_get(moduleName),
+        total,
+        covered,
+        lineId,
+        lineNum,
+        parts;
+
+    var lineReport = {};
+
+    if (!stats.lines) {
+        return;
+    }
+    stats.coverage = {};
+
+    covered = 0;
+    total = stats.lines.length;
+    for (lineId in stats.runLines) {
+        if (stats.runLines[lineId] > 0) {
+            covered++;
+        } else {
+            lineNum = lineId;
+            if (!lineReport[lineNum]) {
+                lineReport[lineNum] = {};
+            }
+            lineReport[lineNum].lines = false;
+        }
+    }
+    stats.coverage.lines = {
+        total: total,
+        covered: covered,
+        percentage: 100.0 * (total ? covered / total : 1)
+    };
+
+    covered = 0;
+    total = stats.functions.length;
+    for (lineId in stats.runFunctions) {
+        if (stats.runFunctions[lineId] > 0) {
+            covered++;
+        } else {
+            parts = lineId.split(':');
+            lineNum = parts[1];
+            if (!lineReport[lineNum]) {
+                lineReport[lineNum] = {};
+            }
+            if (!lineReport[lineNum].functions) {
+                lineReport[lineNum].functions = [];
+            }
+            lineReport[lineNum].functions.push(parts[0]);
+        }
+    }
+    stats.coverage.functions = {
+        total: total,
+        covered: covered,
+        percentage: 100.0 * (total ? covered / total : 1)
+    };
+
+    covered = 0;
+    total = stats.conditions.length;
+    for (lineId in stats.runConditions) {
+        if (stats.runConditions[lineId][1] > 0) {
+            covered += 1;
+        }
+
+        if (stats.runConditions[lineId][1] === 0) {
+
+            parts = lineId.split(':');
+            lineNum = parts[1];
+            if (!lineReport[lineNum]) {
+                lineReport[lineNum] = {};
+            }
+            if (!lineReport[lineNum].conditions) {
+                lineReport[lineNum].conditions = [];
+            }
+            lineReport[lineNum].conditions.push(stats.runConditions[lineId]);
+        }
+    }
+    stats.coverage.conditions = {
+        total: total,
+        covered: covered,
+        percentage: 100.0 * (total ? covered / total : 1)
+    };
+    stats.coverage.report = lineReport;
+}
+
+/**
+ * Line counter
+ *
+ * @private
+ */
+require.coverage_line = function (moduleName, lineId) {
+    stats_results[moduleName].runLines[lineId] += 1;
+};
+
+/**
+ * Function call counter
+ *
+ * @private
+ */
+require.coverage_function = function (moduleName, lineId) {
+    stats_results[moduleName].runFunctions[lineId] += 1;
+};
+
+/**
+ * Condition counter
+ *
+ * @private
+ */
+require.coverage_condition = function (moduleName, lineId, condition) {
+    stats_results[moduleName].runConditions[lineId][condition ? 1 : 0] += 1;
+    return condition;
+};
+
+/**
+ * Registers module
+ *
+ * @private
+ */
+function coverage_module(moduleName, lines, conditions, functions) {
+    var stats = stats_get(moduleName);
+    if (stats.lines) {
+        return;
+    }
+    stats.lines = lines;
+    stats.conditions = conditions;
+    stats.functions = functions;
+    stats.runLines = {};
+    stats.runConditions = {};
+    stats.runFunctions = {};
+    for (var i = 0, c = lines.length; i < c; i += 1) {
+        stats.runLines[lines[i]] = 0;
+    }
+
+    for (i = 0, c = conditions.length; i < c; i += 1) {
+        stats.runConditions[conditions[i]] = [0, 0];
+    }
+
+    for (i = 0, c = functions.length; i < c; i += 1) {
+        stats.runFunctions[functions[i]] = 0;
+    }
+}
+
+(function () {
+    var moduleOption;
+    for (var moduleName in coverage_options) {
+        if (coverage_options.hasOwnProperty(moduleName)) {
+            moduleOption = coverage_options[moduleName];
+            coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
+            stats_type(moduleName, 'in-package');
+        }
+    }
+})();
+
+
+
+/**
+ * Returns module statistics or all statistics
+ *
+ * @param {String} [moduleName]
+ * @return {Object}
+ */
 require.stats = function (moduleName) {
+
+    if (moduleName) {
+        stats_calculate_coverage(moduleName);
+    } else {
+        for (var moduleNameId in stats_results) {
+            stats_calculate_coverage(moduleNameId);
+        }
+        // calculate global coverage
+        var result = {
+                modules: stats_results,
+                global: {
+                    lines: {
+                        total: 0,
+                        covered: 0,
+                        percentage: 0
+                    },
+
+                    conditions: {
+                        total: 0,
+                        covered: 0,
+                        percentage: 0
+                    },
+
+                    functions: {
+                        total: 0,
+                        covered: 0,
+                        percentage: 0
+                    }
+                }
+            },
+            modulesCount = 0,
+            moduleStats;
+
+        for (var moduleName in stats_results) {
+            moduleStats = stats_results[moduleName];
+            // not a shortcut
+            if (moduleName === moduleStats.name && moduleStats.coverage) {
+                modulesCount++;
+                for (var statName in moduleStats.coverage) {
+                    if (statName !== "report") {
+                        result.global[statName].total += moduleStats.coverage[statName].total;
+                        result.global[statName].covered += moduleStats.coverage[statName].covered;
+                        result.global[statName].percentage += moduleStats.coverage[statName].percentage;
+                    }
+                }
+            }
+        }
+        for (statName in result.global) {
+            // avg percentage
+            result.global[statName].percentage /= modulesCount;
+        }
+
+        return result;
+    }
+
     return moduleName ? stats_results[moduleName] : stats_results;
 };
+
 /**
  * @name global
  * @name require
@@ -228,6 +580,83 @@ function parallel(method, items, callback) {
  * @name parallel
  */
 
+
+    /**
+     * @param code
+     * @return {Boolean} true if it is a plain LMD module
+     */
+    var async_is_plain_code = function (code) {
+        // remove comments (bad rx - I know it, but it works for that case), spaces and ;
+        code = code.replace(/\/\*.*?\*\/|\/\/.*(?=[\n\r])|\s|\;/g, '');
+
+        // simple FD/FE parser
+        if (/\(function\(|function[a-z0-9_]+\(/.test(code)) {
+            var index = 0,
+                length = code.length,
+                is_can_return = false,
+                string = false,
+                parentheses = 0,
+                braces = 0;
+
+            while (index < length) {
+                switch (code.charAt(index)) {
+                    // count braces if not in string
+                    case '{':
+                        if (!string) {
+                            is_can_return = true;
+                            braces++
+                        }
+                        break;
+                    case '}':
+                        if (!string) braces--;
+                        break;
+
+                    case '(':
+                        if (!string) parentheses++;
+                        break;
+                    case ')':
+                        if (!string) parentheses--;
+                        break;
+
+                    case '\\':
+                        if (string) index++; // skip next char in in string
+                        break;
+
+                    case "'":
+                        if (string === "'") {
+                            string = false; // close string
+                        } else if (string === false) {
+                            string = "'"; // open string
+                        }
+                        break;
+
+                    case '"':
+                        if (string === '"') {
+                            string = false; // close string
+                        } else if (string === false) {
+                            string = '"'; // open string
+                        }
+                        break;
+                }
+                index++;
+
+                if (is_can_return && !parentheses && !braces) {
+                    return index !== length;
+                }
+            }
+        }
+        return true;
+    };
+
+    var async_plain = function (module, contentTypeOrExtension) {
+        // its NOT a JSON ant its a plain code
+        if (!(/json$/).test(contentTypeOrExtension) && async_is_plain_code(module)) {
+            // its not a JSON and its a Plain LMD module - wrap it
+            module = '(function(require,exports,module){\n' + module + '\n})';
+        }
+        return module;
+    };
+
     /**
      * Load off-package LMD module
      *
@@ -280,9 +709,10 @@ function parallel(method, items, callback) {
                     callback();
                     return;
                 }
-                // check file extension not content-type
+                // check file extension - not content-type
                 if ((/js$|json$/).test(moduleName)) {
-                    module = global_eval('(' + module + ')');
+                    module = async_plain(module, moduleName);
+                    module = global_eval(module);
                 }
                 // 4. Then callback it
                 callback(register_module(moduleName, module));
@@ -299,7 +729,8 @@ function parallel(method, items, callback) {
                 if (xhr.status < 201) {
                     module = xhr.responseText;
                     if ((/script$|json$/).test(xhr.getResponseHeader('content-type'))) {
-                        module = global_eval('(' + module + ')');
+                        module = async_plain(module, xhr.getResponseHeader('content-type'));
+                        module = global_eval(module);
                     }
 
                     // 4. Then callback it
@@ -545,6 +976,9 @@ function parallel(method, items, callback) {
 
     // Cache
     require('testcase_lmd_cache');
+
+    // Coverage
+    require('testcase_lmd_coverage');
 }),{
 "module_as_json": {
     "ok": true
@@ -565,9 +999,9 @@ function parallel(method, items, callback) {
     }
 },
 "module_function_fd_sandboxed": function fd(require, exports, module) {
-    if (typeof require !== "undefined") {
+    if (typeof require === "function") {
 //#JSCOVERAGE_IF 0
-        throw 'require should be null';
+        throw 'require should not be a function';
 //#JSCOVERAGE_ENDIF
     }
 
@@ -583,9 +1017,9 @@ function parallel(method, items, callback) {
     }
 }),
 "module_function_fe_sandboxed": (function (require, exports, module) {
-    if (typeof require !== "undefined") {
+    if (typeof require === "function") {
 //#JSCOVERAGE_IF 0
-        throw 'require should be null';
+        throw 'require should not be a function';
 //#JSCOVERAGE_ENDIF
     }
 
@@ -602,9 +1036,9 @@ module.exports = function () {
 };
 }),
 "module_function_plain_sandboxed": (function (require, exports, module) { /* wrapped by builder */
-if (typeof require !== "undefined") {
+if (typeof require === "function") {
 //#JSCOVERAGE_IF 0
-    throw 'require should be null';
+    throw 'require should not be a function';
 //#JSCOVERAGE_ENDIF
 }
 
@@ -864,6 +1298,17 @@ exports.some_function = function () {
             });
         });
     });
+
+    asyncTest("require.async() plain", function () {
+        expect(3);
+
+        require.async('./modules/async/module_plain_function_async.js' + rnd, function (module_plain_function_async) {
+            ok(module_plain_function_async.some_function() === true, "should require async module-functions");
+            ok(require('./modules/async/module_plain_function_async.js' + rnd) === module_plain_function_async, "can async require plain modules, loaded async module-functions");
+
+            start();
+        });
+    });
 }),
 "testcase_lmd_loader": (function (require) {
     var test = require('test'),
@@ -916,6 +1361,58 @@ exports.some_function = function () {
                 });
             });
         });
+    });
+}),
+"testcase_lmd_coverage": (function (require) {
+    var test = require('test'),
+        asyncTest = require('asyncTest'),
+        deepEqual = require('asyncTest'),
+        start = require('start'),
+        module = require('module'),
+        ok = require('ok'),
+        expect = require('expect'),
+        $ = require('$'),
+        raises = require('raises'),
+
+        rnd = '?' + Math.random(),
+
+        ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
+
+    module('LMD Stats coverage @ ' + ENV_NAME);
+
+    test("Coverage", function () {
+        expect(6);
+
+        require("coverage_fully_covered");
+        require("coverage_not_conditions");
+        require("coverage_not_functions");
+        require("coverage_not_statements");
+        // do not call "coverage_not_covered"
+
+        var stats = require.stats(),
+            report;
+
+        report = stats.modules["coverage_fully_covered"].coverage.report;
+
+        for (var i in report) {
+            if (report.hasOwnProperty(i)) {
+                ok(false, "should be fully covered!");
+            }
+        }
+
+        report = stats.modules["coverage_not_conditions"].coverage.report;
+        ok(report[2].conditions, "coverage_not_conditions: not 1 line");
+        ok(report[3].lines === false, "coverage_not_conditions: not 2 line");
+
+        report = stats.modules["coverage_not_functions"].coverage.report;
+        ok(report[3].functions[0] === "test", "coverage_not_functions: not 2 line");
+        ok(report[4].lines === false, "coverage_not_functions: not 3 line");
+
+        report = stats.modules["coverage_not_statements"].coverage.report;
+        ok(report[11].lines === false, "coverage_not_statements: not 11 line");
+
+        report = stats.modules["coverage_not_covered"].coverage.report;
+        ok(report[1] && report[2] && report[3] && report[6] && report[7], "coverage_not_covered: not covered");
     });
 }),
 "testcase_lmd_cache": (function (require) {
@@ -975,5 +1472,79 @@ exports.some_function = function () {
 "sk_async_js": "@/modules/shortcuts/async.js",
 "sk_async_json": "@/modules/shortcuts/async.json",
 "sk_css_css": "@/modules/shortcuts/css.css",
-"sk_js_js": "@/modules/shortcuts/js.js"
-},{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true},"latest")
+"sk_js_js": "@/modules/shortcuts/js.js",
+"coverage_fully_covered": (function(require, exports, module) {
+    require.coverage_function("coverage_fully_covered", "(?):0:1");
+    require.coverage_line("coverage_fully_covered", "1");
+    var a = "123";
+    require.coverage_line("coverage_fully_covered", "2");
+    function test() {
+        require.coverage_function("coverage_fully_covered", "test:2:79");
+        require.coverage_line("coverage_fully_covered", "3");
+        return a;
+    }
+    require.coverage_line("coverage_fully_covered", "6");
+    if (require.coverage_condition("coverage_fully_covered", "if:6:118", typeof true === "boolean")) {
+        require.coverage_line("coverage_fully_covered", "7");
+        var b = test();
+    }
+}),
+"coverage_not_conditions": function df(require) {
+    require.coverage_line("coverage_not_conditions", "2");
+    if (require.coverage_condition("coverage_not_conditions", "if:2:31", typeof true === "string")) {
+        require.coverage_line("coverage_not_conditions", "3");
+        var b = 123;
+    }
+},
+"coverage_not_functions": (function(require) {
+    require.coverage_function("coverage_not_functions", "(?):1:1");
+    require.coverage_line("coverage_not_functions", "2");
+    var a = "123";
+    require.coverage_line("coverage_not_functions", "3");
+    function test() {
+        require.coverage_function("coverage_not_functions", "test:3:45");
+        require.coverage_line("coverage_not_functions", "4");
+        return a;
+    }
+    require.coverage_line("coverage_not_functions", "7");
+    if (require.coverage_condition("coverage_not_functions", "if:7:110", typeof true === "boolean")) {
+        require.coverage_line("coverage_not_functions", "8");
+        var b = a;
+    }
+}),
+"coverage_not_statements": (function(require, exports, module) {
+    require.coverage_function("coverage_not_statements", "(?):0:1");
+    require.coverage_line("coverage_not_statements", "1");
+    var a = "123", b;
+    require.coverage_line("coverage_not_statements", "4");
+    function test(a) {
+        require.coverage_function("coverage_not_statements", "test:4:87");
+        require.coverage_line("coverage_not_statements", "5");
+        return a;
+    }
+    require.coverage_line("coverage_not_statements", "8");
+    if (require.coverage_condition("coverage_not_statements", "if:8:127", typeof true === "boolean")) {
+        require.coverage_line("coverage_not_statements", "9");
+        b = test(1);
+    } else {
+        require.coverage_line("coverage_not_statements", "11");
+        b = test(2);
+    }
+}),
+"coverage_not_covered": (function(require, exports, module) {
+    require.coverage_function("coverage_not_covered", "(?):0:1");
+    require.coverage_line("coverage_not_covered", "1");
+    var a = "123";
+    require.coverage_line("coverage_not_covered", "2");
+    function test() {
+        require.coverage_function("coverage_not_covered", "test:2:88");
+        require.coverage_line("coverage_not_covered", "3");
+        return a;
+    }
+    require.coverage_line("coverage_not_covered", "6");
+    if (require.coverage_condition("coverage_not_covered", "if:6:145", typeof true === "boolean")) {
+        require.coverage_line("coverage_not_covered", "7");
+        var b = test();
+    }
+})
+},{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true},{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"]},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[]},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"]},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"]},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"]}})

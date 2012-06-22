@@ -1,0 +1,118 @@
+.b-source {
+    width: 100%;
+    margin-bottom: 100px;
+}
+
+.b-source__head {
+    background: #717bb0;
+    line-height: 25px;
+    color: #fff;
+    border-bottom: solid #505880 3px;
+}
+
+.b-source__line__item_type_call,
+.b-source__line__item_type_notes {
+    text-align: center;
+}
+
+.b-source__head__item_type_line {
+    text-align: right;
+}
+
+.b-source__head__item:first-child {
+    text-indent: 10px;
+}
+
+.b-source__line {
+    line-height: 18px;
+    font-size: 80%;
+}
+
+.b-source__line_state_warning td:nth-child(-n+3) {
+    background-color: #fe8495;
+}
+
+.b-source__line_focused_yes td:nth-child(-n+3) {
+    background-color: #333;
+    color: #fff;
+}
+
+.b-source__line_state_warning .b-source__line__item_type_line {
+    border-right: 2px solid #fe8495;
+}
+
+.b-source__line_focused_yes .b-source__line__item_type_line {
+    border-right: 2px solid #333;
+}
+
+.b-source__line_state_warning .b-source__line__item_type_line::after {
+    content: "";
+    position: absolute;
+
+    width: 0;
+    height: 0;
+    border-top: 9px solid transparent;
+    border-bottom: 9px solid transparent;
+    border-left: 9px solid #fe8495;
+    margin-left: 7px;
+}
+
+.b-source__line_focused_yes .b-source__line__item_type_line::after {
+    content: "";
+    position: absolute;
+
+    width: 0;
+    height: 0;
+    border-top: 9px solid transparent;
+    border-bottom: 9px solid transparent;
+    border-left: 9px solid #333;
+    margin-left: 7px;
+}
+
+.b-source__line__date {
+    color: #555;
+}
+
+.b-source__line__item {
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.b-source__line__item_type_code pre code {
+    padding: 0 !important;
+}
+
+.b-source__line__item_type_code {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-left: 10px;
+}
+
+.b-source__line__item_type_line {
+    text-align: right;
+    padding-right: 5px;
+    border-right: 2px solid #777;
+    cursor: pointer;
+}
+
+.b-source__line__item_coverage_lt-100 {
+    color: #509f00;
+}
+
+.b-source__line__item_coverage_lt-75 {
+    color: orange;
+}
+
+.b-source__line__item_coverage_lt-50 {
+    color: red;
+}
+
+.b-source__line__item_coverage_100 {
+    color: green;
+}
+
+@media screen and (max-width: 1024px) {
+    .b-source__head {
+        font-size: 70%;
+    }
+}

@@ -1,10 +1,10 @@
-(function /*if ($P.CACHE) {*/lmd/*}*/(global, main, modules, sandboxed_modules/*if ($P.CACHE) {*/, version/*}*/) {
+(function /*if ($P.CACHE) {*/lmd/*}*/(global, main, modules, sandboxed_modules/*if ($P.CACHE) {*/, version/*}*//*if ($P.STATS_COVERAGE) {*/, coverage_options/*}*/) {
     var initialized_modules = {},
         global_eval = function (code) {
-            return Function('return ' + code)();
+            return global.Function('return ' + code)();
         },
         /*if ($P.CSS || $P.JS || $P.ASYNC) {*/global_noop = function () {},/*}*/
-        /*if ($P.CSS || $P.JS) {*/global_document = global.document,/*}*/
+        /*if ($P.CSS || $P.JS || $P.STATS_SENDTO) {*/global_document = global.document,/*}*/
         local_undefined,
         /**
          * @param {String} moduleName module name or path to file
@@ -13,6 +13,9 @@
          * @returns {*}
          */
         register_module = function (moduleName, module) {
+            if ($P.STATS) {
+                stats_type(moduleName, !module ? 'global' : typeof modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
+            }
             // Predefine in case of recursive require
             var output = {exports: {}};
             initialized_modules[moduleName] = 1;
@@ -23,7 +26,13 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                module = module(sandboxed_modules[moduleName] ? local_undefined : require, output.exports, output) || output.exports;
+                module = module(
+                    sandboxed_modules[moduleName] ?
+                        /*if ($P.STATS_COVERAGE) {*/{coverage_line: require.coverage_line, coverage_function: require.coverage_function, coverage_condition: require.coverage_condition} ||/*}*/
+                        local_undefined : require,
+                    output.exports,
+                    output
+                ) || output.exports;
             }
             if ($P.STATS) {
                 stats_initEnd(moduleName);
@@ -81,6 +90,7 @@
         initialized_modules[moduleName] = 0;
     }
 
+/*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
 /*if ($P.RACE) include('race.js');*/
 /*if ($P.STATS) include('stats.js');*/
 /*if ($P.SHORTCUTS) include('shortcuts.js');*/

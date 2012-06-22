@@ -33,19 +33,26 @@
         "testcase_lmd_basic_features": "test_case/testcase_lmd_basic_features.js",
         "testcase_lmd_async_require": "test_case/testcase_lmd_async_require.js",
         "testcase_lmd_loader": "test_case/testcase_lmd_loader.js",
-
+        "testcase_lmd_coverage": "test_case/testcase_lmd_coverage.js",
         "testcase_lmd_cache": "test_case/testcase_lmd_cache.js",
 
         "sk_async_html": "@/modules/shortcuts/async.html",
         "sk_async_js": "@/modules/shortcuts/async.js",
         "sk_async_json": "@/modules/shortcuts/async.json",
         "sk_css_css": "@/modules/shortcuts/css.css",
-        "sk_js_js": "@/modules/shortcuts/js.js"
+        "sk_js_js": "@/modules/shortcuts/js.js",
+
+        "coverage_fully_covered": "coverage/fully_covered.js",
+        "coverage_not_conditions": "coverage/not_conditions.js",
+        "coverage_not_functions": "coverage/not_functions.js",
+        "coverage_not_statements": "coverage/not_statements.js",
+        "coverage_not_covered": "coverage/not_covered.js"
     },
     "main": "main",
     "global": "this",
 
     "async": true,
+    "async_plain": true,
     "js": true,
     "css": true,
     "race": true,
@@ -57,5 +64,12 @@
     "version": "latest",
     "parallel": true,
     "shortcuts": true,
-    "stats": true
+    "stats": true,
+    "stats_coverage": [
+        "coverage_fully_covered",
+        "coverage_not_conditions",
+        "coverage_not_functions",
+        "coverage_not_statements",
+        "coverage_not_covered"
+    ]
 }

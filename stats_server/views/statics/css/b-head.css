@@ -1,0 +1,30 @@
+.b-head {
+    padding: 15px 0;
+}
+
+.b-head__title {
+    font-size: 170%;
+    overflow: hidden;
+}
+
+.b-head__title_type_report,
+.b-head__title_type_logo,
+.b-head__title_type_module {
+    background: #eeeeee;
+    padding: 5px 12px;
+    border-radius: 10px;
+    white-space: nowrap;
+    line-height: 50px;
+}
+
+@media screen and (max-width: 1024px) {
+    .b-head__title {
+        font-size: 120%;
+    }
+
+    .b-head__title_type_report,
+    .b-head__title_type_logo,
+    .b-head__title_type_module {
+        line-height: 35px;
+    }
+}

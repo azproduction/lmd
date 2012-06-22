@@ -164,4 +164,15 @@
             });
         });
     });
+
+    asyncTest("require.async() plain", function () {
+        expect(3);
+
+        require.async('./modules/async/module_plain_function_async.js' + rnd, function (module_plain_function_async) {
+            ok(module_plain_function_async.some_function() === true, "should require async module-functions");
+            ok(require('./modules/async/module_plain_function_async.js' + rnd) === module_plain_function_async, "can async require plain modules, loaded async module-functions");
+
+            start();
+        });
+    });
 })

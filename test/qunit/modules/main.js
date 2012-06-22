@@ -12,4 +12,7 @@
 
     // Cache
     require('testcase_lmd_cache');
+
+    // Coverage
+    require('testcase_lmd_coverage');
 })

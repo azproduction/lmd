@@ -20,3 +20,28 @@ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
 CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+LMD includes as dependencies
+
+ * UglifyJS - BSD license
+ 	https://github.com/mishoo/UglifyJS
+	Copyright 2010 (c) Mihai Bazon <mihai.bazon@gmail.com>
+	Based on parse-js (http://marijn.haverbeke.nl/parse-js/).
+ * Express - MIT license
+ 	https://github.com/visionmedia/express
+ 	Copyright (c) 2009-2011 TJ Holowaychuk <tj@vision-media.ca>
+ * Jade - MIT license
+ 	https://github.com/visionmedia/jade
+ 	Copyright (c) 2009-2010 TJ Holowaychuk <tj@vision-media.ca>
+ * highlight
+    http://softwaremaniacs.org/soft/highlight/en/
+    Copyright (c) Ivan Sagalaev <maniac@softwaremaniacs.org>
+ * JsHint
+    https://github.com/jshint/jshint
+    Copyright (c) Anton Kovalyov
+
+LMD includes some sources
+
+ * node-coverage - MIT license
+    https://github.com/piuccio/node-coverage
+    Copyright (c) 2012 Fabio Crisci <fabio.crisci@gmail.com>

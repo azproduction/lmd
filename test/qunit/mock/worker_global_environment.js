@@ -11,11 +11,13 @@ var worker_global_environment = {
     eval: this.eval,
     XMLHttpRequest: this.XMLHttpRequest,
     Date: this.Date,
+    Function: this.Function,
     worker_some_global_var: true,
 
     // QUnit methods
     test: this.test,
     asyncTest: this.asyncTest,
+    deepEqual: this.deepEqual,
     start: this.start,
     module: this.module,
     ok: this.ok,

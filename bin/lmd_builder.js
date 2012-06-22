@@ -51,8 +51,14 @@ var JSHINT_GLOBALS = {
 
 var fs = require('fs'),
     parser = require("uglify-js").parser,
-    uglify = require("uglify-js").uglify/*,
-    JsHint = require('jshint').JSHINT*/;
+    uglify = require("uglify-js").uglify,
+    JsHint = require('jshint').JSHINT,
+    lmdCoverage = require(__dirname + '/../lib/coverage_apply.js'),
+    common = require(__dirname + '/../lib/lmd_common.js'),
+    tryExtend = common.tryExtend,
+    collectModules = common.collectModules;
+
+var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
 
 /**
  * LmdBuilder
@@ -116,7 +122,7 @@ var LmdBuilder = function (data) {
     }
 
     this.configDir = fs.realpathSync(this.configFile);
-    this.configDir = this.configDir.split(/\/|\\/);
+    this.configDir = this.configDir.split(CROSS_PLATFORM_PATH_SPLITTER);
     this.configDir.pop();
     this.configDir = this.configDir.join('/');
     if (this.configure()) {
@@ -133,6 +139,7 @@ LmdBuilder.prototype.template = function (data) {
     return data.lmd_js + '(' + data.global + ',' + data.lmd_main + ',' + data.lmd_modules + ',' + data.sandboxed_modules +
         // if version passed
         (data.version ? ',' + data.version : '') +
+        (data.coverage_options ? ',' + data.coverage_options : '') +
     ')';
 };
 
@@ -247,13 +254,12 @@ LmdBuilder.prototype.compress = function (code) {
 };
 
 /**
- * Wrapper for plain files
+ * Checks if code is plain module
  *
- * @param {String} code
- *
- * @returns {String} wrapped code
+ * @param code
+ * @return {Boolean}
  */
-LmdBuilder.prototype.tryWrap = function (code) {
+LmdBuilder.prototype.isPlainModule = function (code) {
     try {
         var ast = parser.parse(code);
     } catch (e) {
@@ -265,7 +271,7 @@ LmdBuilder.prototype.tryWrap = function (code) {
         ast[1] && ast[1].length === 1 &&
         ast[1][0][0] === "defun"
         ) {
-        return code;
+        return false;
     }
 
     // ["toplevel",[["stat",["function",null,["require"],[]]]]]
@@ -275,9 +281,20 @@ LmdBuilder.prototype.tryWrap = function (code) {
         ast[1][0][1] &&
         ast[1][0][1][0] === "function"
         ) {
-        return code;
+        return false;
     }
 
+    return true;
+};
+
+/**
+ * Wrapper for plain files
+ *
+ * @param {String} code
+ *
+ * @returns {String} wrapped code
+ */
+LmdBuilder.prototype.wrapPlainModule = function (code) {
     return '(function (require, exports, module) { /* wrapped by builder */\n' + code + '\n})';
 };
 
@@ -297,10 +314,11 @@ LmdBuilder.prototype.escape = function (file) {
  * @param {String}   lmd_main
  * @param {Boolean}  pack
  * @param {String[]} sandboxed_modules
+ * @param {Object}   [coverage_options]
  *
  * @returns {String}
  */
-LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, sandboxed_modules) {
+LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, sandboxed_modules, coverage_options) {
     sandboxed_modules = JSON.stringify(sandboxed_modules || {});
     var lmd_js = fs.readFileSync(LMD_JS_SRC_PATH + 'lmd.js', 'utf8'),
         result;
@@ -315,8 +333,9 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, san
         lmd_main: lmd_main,
         lmd_modules: lmd_modules,
         sandboxed_modules: sandboxed_modules,
+        coverage_options: coverage_options ? JSON.stringify(coverage_options) : false,
         // if version passed -> module will be cached
-        version: JSON.stringify(config.version) || false
+        version: config.cache ? JSON.stringify(config.version) : false
     });
 
     if (pack) {
@@ -507,165 +526,6 @@ LmdBuilder.prototype.configure = function () {
 };
 
 /**
- * Extracts file path parameters
- * 
- * @param file
- */
-LmdBuilder.prototype.extract = function (file) {
-    file = file.split(/\/|\\/);
-    return {
-        file: file.pop(),
-        path: (file.length ? file.join('/') + '/' : '')
-    };
-};
-
-/**
- * Config files deep merge
- *
- * @param {Object} left
- * @param {Object} right
- */
-LmdBuilder.prototype.deepDestructableMerge = function (left, right) {
-    for (var prop in right) {
-        if (right.hasOwnProperty(prop))  {
-            if (typeof left[prop] === "object") {
-                this.deepDestructableMerge(left[prop], right[prop]);
-            } else {
-                left[prop] = right[prop];
-            }
-        }
-    }
-    return left;
-};
-
-/**
- * Merges all config files in module's lineage
- *
- * @param config
- */
-LmdBuilder.prototype.tryExtend = function (config) {
-    config = config || {};
-    if (typeof config.extends !== "string") {
-        return config;
-    }
-    var parentConfig = this.tryExtend(JSON.parse(fs.readFileSync(this.configDir + '/' + config.extends, 'utf8')));
-
-    return this.deepDestructableMerge(parentConfig, config);
-};
-
-/**
- * @name LmdModuleStruct
- * @class
- *
- * @field {String}  name       module name
- * @field {String}  path       full path to module
- * @field {Boolean} is_lazy    is lazy module?
- * @field {Boolean} is_sandbox is module sandboxed?
- * @field {Boolean} is_greedy  module is collected using wildcard
- */
-
-/**
- * Collecting module using merged config
- *
- * @param config
- *
- * @returns {Object}
- */
-LmdBuilder.prototype.collectModules = function (config) {
-    var IS_HAS_WILD_CARD = /\*/;
-
-    var modules = {},
-        globalLazy = typeof config.lazy === "undefined" ? true : config.lazy,
-        moduleLazy = false,
-        moduleName,
-        modulePath,
-        descriptor,
-        moduleDesciptor,
-        wildcardRegex,
-        moduleData,
-        path =  config.path || '';
-
-    if (path[0] !== '/') { // non-absolute
-        path = this.configDir + '/' + path;
-    }
-
-    // grep paths
-    for (moduleName in config.modules) {
-        moduleDesciptor = config.modules[moduleName];
-        // case "moduleName": "path/to/module.js"
-        if (typeof moduleDesciptor === "string") {
-            modulePath = moduleDesciptor;
-            moduleLazy = globalLazy;
-        } else { // case "moduleName": {"path": "path/to/module.js", "lazy": false}
-            modulePath = moduleDesciptor.path;
-            moduleLazy = typeof moduleDesciptor.lazy === "undefined" ? globalLazy : moduleDesciptor.lazy;
-        }
-
-        // Override if cache flag = true
-        if (config.cache) {
-            moduleLazy = true;
-        }
-        // its a wildcard
-        // "*": "*.js" or "*_pewpew": "*.ru.json" or "ololo": "*.js"
-        if (IS_HAS_WILD_CARD.test(modulePath)) {
-            descriptor = this.extract(modulePath);
-            wildcardRegex = new RegExp("^" + descriptor.file.replace(/\*/g, "(\\w+)") + "$");
-            fs.readdirSync(path + descriptor.path).forEach(function (fileName) {
-                var match = fileName.match(wildcardRegex),
-                    newModuleName;
-
-                if (match) {
-                    match.shift();
-
-                    // Modify a module name
-                    match.forEach(function (replacement) {
-                        newModuleName = moduleName.replace('*', replacement);
-                    });
-
-                    moduleData = {
-                        name: newModuleName,
-                        path: fs.realpathSync(path + descriptor.path + fileName),
-                        is_lazy: moduleLazy,
-                        is_greedy: true,
-                        is_shortcut: false,
-                        is_sandbox: moduleDesciptor.sandbox || false
-                    };
-
-                    // wildcard have a low priority
-                    // if module was directly named it pass
-                    if (!(modules[newModuleName] && !modules[newModuleName].is_greedy)) {
-                        modules[newModuleName] = moduleData;
-                    }
-                }
-            });
-        } else if (/^@/.test(modulePath)) {
-            // shortcut
-            modules[moduleName] = {
-                name: moduleName,
-                path: modulePath,
-                is_lazy: moduleLazy,
-                is_greedy: false,
-                is_shortcut: true,
-                is_sandbox: moduleDesciptor.sandbox || false
-            };
-        } else {
-            // normal name
-            // "name": "name.js"
-            modules[moduleName] = {
-                name: moduleName,
-                path: fs.realpathSync(path + modulePath),
-                is_lazy: moduleLazy,
-                is_greedy: false,
-                is_shortcut: false,
-                is_sandbox: moduleDesciptor.sandbox || false
-            };
-        }
-    }
-
-    return modules;
-};
-
-/**
  * Collecting sandboxed modules using merged config
  *
  * @param modulesStruct
@@ -690,12 +550,12 @@ LmdBuilder.prototype.getSandboxedModules = function (modulesStruct, config) {
 LmdBuilder.prototype.fsWatch = function () {
     var self = this,
         watchedModulesCount = 0,
-        config = this.tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8'))),
+        config = tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8')), this.configDir),
         module,
         modules,
         watchBuilder = function (stat, filename) {
             if (self.isLog) {
-                filename = filename.split(/\/|\\/).pop();
+                filename = filename.split(CROSS_PLATFORM_PATH_SPLITTER).pop();
                 if (stat && filename) {
                     process.stdout.write('Change detected in \033[34m' + filename + '\033[0m at ' + stat.mtime);
                 } else if (stat) {
@@ -727,7 +587,7 @@ LmdBuilder.prototype.fsWatch = function () {
         };
 
     if (config.modules) {
-        modules = this.collectModules(config);
+        modules = collectModules(config, this.configDir);
         for (var index in modules) {
             module = modules[index];
             try {
@@ -748,6 +608,32 @@ LmdBuilder.prototype.fsWatch = function () {
 };
 
 /**
+ * Formats log message
+ *
+ * @param text
+ * @return {*}
+ */
+LmdBuilder.prototype.formatLog = function (text) {
+    return text.replace(/\*\*/g, function bold() {
+        bold.odd_even = !bold.odd_even;
+        return bold.odd_even ? '\033[32m' : '\033[0m';
+    });
+};
+
+/**
+ * Formats and prints an error
+ *
+ * @param {String} text simple markdown syntax
+ *
+ * @example
+ *     Pewpew **ololo** - ololo will be green
+ */
+LmdBuilder.prototype.error = function (text) {
+    text = this.formatLog(text);
+    console.error('  \033[31m\033[40mERROR:\033[0m ' + text);
+};
+
+/**
  * Formats and prints an warning
  *
  * @param {String} text simple markdown syntax
@@ -757,10 +643,7 @@ LmdBuilder.prototype.fsWatch = function () {
  */
 LmdBuilder.prototype.warn = function (text) {
     if (this.isWarn) {
-        text = text.replace(/\*\*/g, function bold() {
-            bold.odd_even = !bold.odd_even;
-            return bold.odd_even ? '\033[32m' : '\033[0m';
-        });
+        text = this.formatLog(text);
         console.log('  \033[31mWarning:\033[0m ' + text);
     }
 };
@@ -783,10 +666,7 @@ LmdBuilder.prototype.checkForDirectGlobalsAccess = function (moduleName, moduleC
         }
     }
 
-    if (globalsObjects.length) {
-         this.warn("Lazy module **" + moduleName + "** uses some globals directly (" + globalsObjects.join(', ') +  "). " +
-                   "Replace them with require('" + globalsObjects[0] + "') etc");
-    }
+    return globalsObjects;
 };
 
 /**
@@ -795,7 +675,7 @@ LmdBuilder.prototype.checkForDirectGlobalsAccess = function (moduleName, moduleC
  * @param [callback] {Function}
  */
 LmdBuilder.prototype.build = function (callback) {
-    var config = this.tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8'))),
+    var config = tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8')), this.configDir),
         lazy = typeof config.lazy === "undefined" ? true : config.lazy,
         mainModuleName = config.main,
         pack = lazy ? true : typeof config.pack === "undefined" ? true : config.pack,
@@ -806,6 +686,10 @@ LmdBuilder.prototype.build = function (callback) {
         lmdFile,
         isJson,
         isModule,
+        isPlainModule,
+        coverageResult,
+        globalsObjects,
+        coverageOptions = {},
         is_using_shortcuts = false,
         module,
         modules;
@@ -826,7 +710,7 @@ LmdBuilder.prototype.build = function (callback) {
     }
 
     if (config.modules) {
-        modules = this.collectModules(config);
+        modules = collectModules(config, this.configDir);
         // build modules string
         for (var index in modules) {
             module = modules[index];
@@ -849,9 +733,10 @@ LmdBuilder.prototype.build = function (callback) {
             }
 
             if (!isJson) {
+                isPlainModule = false;
                 try {
-                    moduleContent = this.tryWrap(moduleContent);
-                    isModule = true;
+                    isPlainModule = this.isPlainModule(moduleContent);
+                    isModule = true
                 } catch(e) {
                     isModule = false;
                 }
@@ -862,10 +747,34 @@ LmdBuilder.prototype.build = function (callback) {
                               'This module will be string. Please check the source.');
                 }
 
-                // #14 	Check direct access of globals in lazy modules
-                /*if (this.isWarn && isModule && module.is_lazy) {
-                    this.checkForDirectGlobalsAccess(module.path, moduleContent);
-                }*/
+                // wrap plain module
+                if (isModule && isPlainModule) {
+                    moduleContent = this.wrapPlainModule(moduleContent);
+                }
+
+                // #26 Code coverage
+                if (isModule && module.is_coverage) {
+                    coverageResult = lmdCoverage.interpret(module.name, module.path, moduleContent, isPlainModule ? 0 : 1);
+                    coverageOptions[module.name] = coverageResult.options;
+                    moduleContent = coverageResult.code;
+
+                    // Check for different require name (first argument)
+                    globalsObjects = this.checkForDirectGlobalsAccess(module.path, moduleContent);
+                    if (globalsObjects.indexOf('require') !== -1) {
+                        this.error("In module **" + module.path + "** you are using different 'require' name. " +
+                                   "You must declare first argument of your module-function as 'require' to use coverage!");
+                    }
+                }
+
+                // #14 Check direct access of globals in lazy modules
+                if (this.isWarn && isModule && module.is_lazy) {
+                    globalsObjects = this.checkForDirectGlobalsAccess(module.path, moduleContent);
+
+                    if (globalsObjects.length) {
+                         this.warn("Lazy module **" + module.path + "** uses some globals directly (" + globalsObjects.join(', ') +  "). " +
+                                   "Replace them with require('" + globalsObjects[0] + "') etc");
+                    }
+                }
 
                 if (isModule && (module.is_lazy || pack)) {
                     moduleContent = this.compress(moduleContent);
@@ -899,8 +808,16 @@ LmdBuilder.prototype.build = function (callback) {
                       'Disable that flag to optimize your package.');
         }
 
+        if (config.stats_coverage && (config.cache || config.cache_async)) {
+            this.warn('LMD will cache your modules under code coverage.');
+        }
+
+        if (config.async_plain && config.async_plainonly) {
+            this.warn('You are using both config flags `async_plain` and `async_plainonly`. Disable one to optimise your source.');
+        }
+
         sandbox = this.getSandboxedModules(modules, config);
-        lmdFile = this.render(config, lmdModules, lmdMain, pack, sandbox);
+        lmdFile = this.render(config, lmdModules, lmdMain, pack, sandbox, config.stats_coverage ? coverageOptions : void 0);
 
         if (this.outputFile) {
             fs.writeFileSync(this.outputFile, lmdFile,'utf8')

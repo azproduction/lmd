@@ -1,0 +1,16 @@
+.b-notes__section {
+    margin-bottom: 10px;
+}
+
+.b-notes__tags {
+    left: 120px;
+    line-height: 24px;
+}
+
+.b-notes__tags__item {
+
+}
+
+.b-notes__more {
+    margin-left: 10px;
+}

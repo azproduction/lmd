@@ -1,7 +1,7 @@
 function fd(require, exports, module) {
-    if (typeof require !== "undefined") {
+    if (typeof require === "function") {
 //#JSCOVERAGE_IF 0
-        throw 'require should be null';
+        throw 'require should not be a function';
 //#JSCOVERAGE_ENDIF
     }
 
