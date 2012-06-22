@@ -458,6 +458,16 @@ You may also enable `stats_sendto` flag to push your reports to the Stats Server
 require.stats.sendTo('http://localhost:8081'); // you may specify report_name too
 ```
 
+*How it work*
+ 1. LMD patches your source files with coverage functions
+ 2. User is running application and script executes coverage functions to calculate coverage
+ 3. Your source executes `require.stats.sendTo(your_lmd_stats_server_server)` and send report to the server
+ 4. Then you open Stats Server Admin interface to see reports
+
+*Note*
+ - if you are using function-modules you have to name your require as require at that moment...
+ - sandboxed module under CC will accept an object as require with coverage functions instead of undefined
+
 Stats server
 ------------
 
