@@ -473,13 +473,13 @@ Stats server provides simple coverage and usage reports
 
 *Other arguments*
 
-`-address` `-a` address for log and admin server, default=0.0.0.0
-`-port` `-p` port for log and admin server, default=8081
-`-admin-address` `-aa` address admin server, default=address
-`-admin-port` `-ap` address admin server, default=port
-`-config` `-c` your application config file
-`-log` `-l` path where stats server will store stats logs
-`-www` `-wd` www dir of your site - required for async modules
+ - `-address` `-a` address for log and admin server, default=0.0.0.0
+ - `-port` `-p` port for log and admin server, default=8081
+ - `-admin-address` `-aa` address admin server, default=address
+ - `-admin-port` `-ap` address admin server, default=port
+ - `-config` `-c` your application config file
+ - `-log` `-l` path where stats server will store stats logs
+ - `-www` `-wd` www dir of your site - required for async modules
 
 see `examples/mock_chat/README.md` for real example
 
