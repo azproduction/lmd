@@ -120,6 +120,7 @@ Config file
         // 3-party modules
         "third_party_module": {
             "path": "vendors/other_module.js",
+            "sandbox": true, // add sandbox
             "exports": {
                 "pewpew": "pewpew",
                 "ololo": "ololo",
@@ -129,7 +130,7 @@ Config file
 
         "jquery": {
             "path": "vendors/jquery.min.js",
-            "exports": "$.noConflict(true)"
+            "exports": "require('$').noConflict(true)"
         },
 
         // string template
@@ -470,7 +471,7 @@ return pewpew || ololo; // << added
 
 `"exports"` should be valid JavaScript code or object of valid JavaScript
 
-You may use more complex exports as `"exports": "$.noConflict(true)"` if you are exporting jQuery.
+You may use more complex exports as `"exports": "require('$').noConflict(true)"` if you are exporting jQuery.
 
 **Note** Try not to use complex expressions!
 
