@@ -299,6 +299,30 @@ LmdBuilder.prototype.wrapPlainModule = function (code) {
 };
 
 /**
+ * Wrapper for non-lmd modules files
+ *
+ * @param {String}        code
+ * @param {Object|String} extra_exports
+ *
+ * @returns {String} wrapped code
+ */
+LmdBuilder.prototype.wrapNonLmdModule = function (code, extra_exports) {
+    var exports = [],
+        exportCode;
+
+    if (typeof extra_exports === "object") {
+        for (var exportName in extra_exports) {
+            exportCode = extra_exports[exportName];
+            exports.push('    ' + JSON.stringify(exportName) + ': ' + exportCode);
+        }
+        code += '\n\n/* added by builder */\nreturn {\n' + exports.join(',\n') + '\n};';
+    } else {
+        code += '\n\n/* added by builder */\nreturn ' + extra_exports + ';';
+    }
+    return '(function (require) { /* wrapped by builder */\n' + code + '\n})';
+};
+
+/**
  * JSON escaper
  *
  * @param file
@@ -747,9 +771,14 @@ LmdBuilder.prototype.build = function (callback) {
                               'This module will be string. Please check the source.');
                 }
 
-                // wrap plain module
-                if (isModule && isPlainModule) {
-                    moduleContent = this.wrapPlainModule(moduleContent);
+                if (isModule) {
+                    if (module.extra_exports) {
+                        // create lmd module from non-lmd module
+                        moduleContent = this.wrapNonLmdModule(moduleContent, module.extra_exports);
+                    } else if (isPlainModule) {
+                        // wrap plain module
+                        moduleContent = this.wrapPlainModule(moduleContent);
+                    }
                 }
 
                 // #26 Code coverage

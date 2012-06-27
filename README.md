@@ -23,7 +23,8 @@ Features
 11. From version 1.6.2 LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
 12. LMD package is possible to run as Web Worker or execute as Node.js script (see Web Worker and Node.js)
 13. LMD works in all modern browsers and in older IE (see Browsers support)
-14. Ready for production - `lmd.js` is 100% covered by unit tests see `test/README.md` for details
+14. LMD can convert non-LMD modules to LMD to use jquery or any other as in-package LMD module (see LMD module form third-party modules)
+15. Ready for production - `lmd.js` is 100% covered by unit tests see `test/README.md` for details
 
 Installing
 ----------
@@ -114,6 +115,21 @@ Config file
             "sandbox": true,    // module is sandboxed - can't require
             "lazy": false,      // overloading of global lazy flag, for the purpose of load optimizing
                                 // dont work with global cache flag
+        },
+
+        // 3-party modules
+        "third_party_module": {
+            "path": "vendors/other_module.js",
+            "exports": {
+                "pewpew": "pewpew",
+                "ololo": "ololo",
+                "someVariable": "someVariable"
+            }
+        },
+
+        "jquery": {
+            "path": "vendors/jquery.min.js",
+            "exports": "$.noConflict(true)"
         },
 
         // string template
@@ -392,6 +408,72 @@ require.js("jquery", function () {
 });
 ```
 
+LMD module form third-party modules
+-----------------------------------
+
+If you are using jquery as in-package module or any other module without exports. LMD can easily convert it to LMD format.
+You may add `"exports"` to your module descriptor to notify LMD that this module should be converted to LMD format.
+The design of non-lmd2lmd patching is close to require.js shim
+
+**Example**
+
+You have one 3-party module and you have to include it to the LMD-package.
+```javascript
+function pewpew () {
+
+}
+
+function ololo() {
+
+}
+
+var someVariable = "string";
+```
+
+It easy, just add `"exports"` to your module descriptor:
+```
+"third_party_module_b": {
+    "path": "vendors/other_module.js",
+    "exports": {
+        "pewpew": "pewpew",
+        "ololo": "ololo",
+        "someVariable": "someVariable"
+    } // return ALL THE SUFF!!!
+}
+```
+
+Or return just one
+```
+"third_party_module_b": {
+    "path": "vendors/other_module.js",
+    "exports": "pewpew || ololo" // or var name "pewpew"
+}
+```
+
+LMD will transform you code to this format
+
+```javascript
+(function (require) { // << added
+function pewpew () {
+
+}
+
+function ololo() {
+
+}
+
+var someVariable = "string";
+
+return pewpew || ololo; // << added
+}) // << added
+```
+
+`"exports"` should be valid JavaScript code or object of valid JavaScript
+
+You may use more complex exports as `"exports": "$.noConflict(true)"` if you are exporting jQuery.
+
+**Note** Try not to use complex expressions!
+
 Application statistics. Require, load, eval, call statistics. Flag: `stats`
 ---------------------------------------------------
 
@@ -591,6 +673,7 @@ Major versions changelog
   - `require.stats()` shows modules usage and code coverage. Flags `stats`, `stats_coverage`, `stats_sendto`
   - in-package Code coverage. Flag `stats_coverage`
   - Stats server
+  - Auto making LMD module from non-lmd module (see LMD module form third-party modules)
 
 Licence
 -------

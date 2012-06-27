@@ -95,4 +95,17 @@
            json.ok === true &&
            json === require('module_as_json'), "require() should follow shortcuts: require in-package module by shortcut");
     });
+
+    test("require() third party", function () {
+        expect(2);
+
+        var module = require('third_party_module_a'); // mock jquery
+        ok(typeof module === "function", 'require() can load plain 3-party non-lmd modules, 1 exports');
+
+        module = require('third_party_module_b'); // other plain module
+        ok(typeof module === "object" &&
+           typeof module.pewpew === "function" &&
+           typeof module.ololo === "function" &&
+           module.someVariable === "string", "require() can load plain 3-party non-lmd modules, N exports");
+    });
 })

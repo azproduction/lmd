@@ -49,7 +49,21 @@
         "coverage_not_conditions": "coverage/not_conditions.js",
         "coverage_not_functions": "coverage/not_functions.js",
         "coverage_not_statements": "coverage/not_statements.js",
-        "coverage_not_covered": "coverage/not_covered.js"
+        "coverage_not_covered": "coverage/not_covered.js",
+
+        "third_party_module_a": {
+            "path": "vendors/jquery_mock.js",
+            "exports": "window.uQuery"
+        },
+
+        "third_party_module_b": {
+            "path": "vendors/other_module.js",
+            "exports": {
+                "pewpew": "pewpew",
+                "ololo": "ololo",
+                "someVariable": "someVariable"
+            }
+        }
     },
     "main": "main",
     "global": "this",

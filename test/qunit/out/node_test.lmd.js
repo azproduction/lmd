@@ -1143,6 +1143,19 @@ exports.some_function = function () {
            json.ok === true &&
            json === require('module_as_json'), "require() should follow shortcuts: require in-package module by shortcut");
     });
+
+    test("require() third party", function () {
+        expect(2);
+
+        var module = require('third_party_module_a'); // mock jquery
+        ok(typeof module === "function", 'require() can load plain 3-party non-lmd modules, 1 exports');
+
+        module = require('third_party_module_b'); // other plain module
+        ok(typeof module === "object" &&
+           typeof module.pewpew === "function" &&
+           typeof module.ololo === "function" &&
+           module.someVariable === "string", "require() can load plain 3-party non-lmd modules, N exports");
+    });
 }),
 "testcase_lmd_async_require": (function (require) {
     var test = require('test'),
@@ -1560,5 +1573,66 @@ exports.some_function = function () {
         require.coverage_line("coverage_not_covered", "7");
         var b = test();
     }
+}),
+"third_party_module_a": (function (require) { /* wrapped by builder */
+/*!
+ * uQuery JavaScript Library v1.7.2
+ * http://jquery.com/
+ *
+ * Copyright 2011, John Resig
+ * Dual licensed under the MIT or GPL Version 2 licenses.
+ * http://jquery.org/license
+ *
+ * Includes Sizzle.js
+ * http://sizzlejs.com/
+ * Copyright 2011, The Dojo Foundation
+ * Released under the MIT, BSD, and GPL Licenses.
+ *
+ * Date: Wed Mar 21 12:46:34 2012 -0700
+ */
+(function( window, undefined ) {
+
+// crop
+
+var uQuery = (function() {
+
+    var uQuery = function () {
+        // crop
+    };
+
+    // crop
+
+    return uQuery;
+})();
+
+// crop
+
+// Expose jQuery to the global object
+window.uQuery = uQuery;
+
+// crop
+
+})( window );
+
+/* added by builder */
+return window.uQuery;
+}),
+"third_party_module_b": (function (require) { /* wrapped by builder */
+function pewpew () {
+
+}
+
+function ololo() {
+
+}
+
+var someVariable = "string";
+
+/* added by builder */
+return {
+    "pewpew": pewpew,
+    "ololo": ololo,
+    "someVariable": someVariable
+};
 })
 },{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true},{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"]},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[]},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"]},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"]},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"]}})
