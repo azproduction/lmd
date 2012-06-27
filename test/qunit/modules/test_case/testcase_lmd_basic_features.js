@@ -83,4 +83,16 @@
         ok(typeof string === "string", "string module should be an string");
         ok(string === require('module_as_string'), "require of string module should return the same instance");
     });
+
+    test("require() shortcuts", function () {
+        expect(2);
+
+        var dateObject = require('sk_to_global_object');
+        ok(dateObject.toString().replace(/\s|\n/g,'') === "functionDate(){[nativecode]}", "require() should follow shortcuts: require global by shortcut");
+
+        var json = require('sk_to_module_as_json');
+        ok(typeof json === "object" &&
+           json.ok === true &&
+           json === require('module_as_json'), "require() should follow shortcuts: require in-package module by shortcut");
+    });
 })

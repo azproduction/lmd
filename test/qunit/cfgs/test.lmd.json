@@ -42,6 +42,9 @@
         "sk_css_css": "@/modules/shortcuts/css.css",
         "sk_js_js": "@/modules/shortcuts/js.js",
 
+        "sk_to_global_object": "@Date",
+        "sk_to_module_as_json": "@module_as_json",
+
         "coverage_fully_covered": "coverage/fully_covered.js",
         "coverage_not_conditions": "coverage/not_conditions.js",
         "coverage_not_functions": "coverage/not_functions.js",

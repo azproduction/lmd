@@ -55,8 +55,8 @@
             if (is_shortcut(moduleName, module)) {
                 // assign shortcut name for module
                 stats_shortcut(module, moduleName);
-                // return as is w/ checking globals
-                return modules[module.replace('@', '')];
+                moduleName = module.replace('@', '');
+                module = modules[moduleName];
             }
 
             stats_require(moduleName);
@@ -1131,6 +1131,18 @@ exports.some_function = function () {
         ok(typeof string === "string", "string module should be an string");
         ok(string === require('module_as_string'), "require of string module should return the same instance");
     });
+
+    test("require() shortcuts", function () {
+        expect(2);
+
+        var dateObject = require('sk_to_global_object');
+        ok(dateObject.toString().replace(/\s|\n/g,'') === "functionDate(){[nativecode]}", "require() should follow shortcuts: require global by shortcut");
+
+        var json = require('sk_to_module_as_json');
+        ok(typeof json === "object" &&
+           json.ok === true &&
+           json === require('module_as_json'), "require() should follow shortcuts: require in-package module by shortcut");
+    });
 }),
 "testcase_lmd_async_require": (function (require) {
     var test = require('test'),
@@ -1473,6 +1485,8 @@ exports.some_function = function () {
 "sk_async_json": "@/modules/shortcuts/async.json",
 "sk_css_css": "@/modules/shortcuts/css.css",
 "sk_js_js": "@/modules/shortcuts/js.js",
+"sk_to_global_object": "@Date",
+"sk_to_module_as_json": "@module_as_json",
 "coverage_fully_covered": (function(require, exports, module) {
     require.coverage_function("coverage_fully_covered", "(?):0:1");
     require.coverage_line("coverage_fully_covered", "1");

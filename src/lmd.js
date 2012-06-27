@@ -64,8 +64,8 @@
                         // assign shortcut name for module
                         stats_shortcut(module, moduleName);
                     }
-                    // return as is w/ checking globals
-                    return modules[module.replace('@', '')];
+                    moduleName = module.replace('@', '');
+                    module = modules[moduleName];
                 }
             }
 
