@@ -7,7 +7,7 @@ they are required. LMD is "Yet Another Loader" with all loader features: js, css
 - it can initialize modules when they are required,
 - it tiny and flexible (minimal only 288bytes!),
 - you can write your [modules as Node.js](#lmd-modules) without define or require wrappers
-- but you can use all [other modules]((#lmd-module-form-third-party-modules)), and more...
+- but you can use all [other modules](#lmd-module-form-third-party-modules)), and more...
 
 Features
 --------
