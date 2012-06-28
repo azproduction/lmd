@@ -310,7 +310,7 @@ function module(require, exports, module) {
 })
 ```
 
-See [example/basic/modules/main.js](blob/master/examples/basic/modules/main.js#L24) for real life example
+See [example/basic/modules/main.js](/azproduction/lmd/blob/master/examples/basic/modules/main.js#L24) for real life example
 
 Local Storage cache. Flags: `cache`, `cache_async`, Property: `version`
 -------------------------------------------------------
@@ -337,8 +337,8 @@ in default mode - without dumping modules
  - `data-version` - content in localStorage must match this version
  - `data-src` - fallback if version do not match or no localStorage or error or no content
 
-See [examples/basic/cfgs/index.prodoction.lmd.json](blob/master/examples/basic/cfgs/index.prodoction.lmd.json)
-and [examples/basic/index.html](blob/master/examples/basic/index.html) for details
+See [examples/basic/cfgs/index.prodoction.lmd.json](/azproduction/lmd/blob/master/examples/basic/cfgs/index.prodoction.lmd.json)
+and [examples/basic/index.html](/azproduction/lmd/blob/master/examples/basic/index.html) for details
 
 **Note**: `version` property from config and from `data-version` attribute must match to use code from localStorage!
 Yep! Each time you have to change config file and your html file!
@@ -378,8 +378,8 @@ flags. `require.css()` in node or worker environment acts like `require()`
  - `require.js()` in Node acts like Node.js `GLOBALS.require()` and returns `module.exports` object from node module
  - `require.css()` in both environments acts like LMD `require()`
 
-Run tests or see [examples/basic/modules/main.js](blob/master/examples/basic/modules/main.js#L60) and
-[examples/basic/modules/workerDepA.js](blob/master/examples/basic/modules/workerDepA.js) for details
+Run tests or see [examples/basic/modules/main.js](/azproduction/lmd/blob/master/examples/basic/modules/main.js#L60) and
+[examples/basic/modules/workerDepA.js](/azproduction/lmd/blob/master/examples/basic/modules/workerDepA.js) for details
 
 Browsers support. Flag: `ie`
 ----------------------------
@@ -571,7 +571,7 @@ Code coverage. Flag: `stats`, `stats_coverage`, `stats_sendto`
 -------------------------------------------------------------
 
 Add `stats_coverage` flag to your config file or use list of module names to cover only them. Rebuild your package.
-Now you can see coverage report in `require.stats()` object. See [src/plugin/stats.js#L46](blob/master/src/plugin/stats.js#L46) for more information.
+Now you can see coverage report in `require.stats()` object. See [src/plugin/stats.js#L46](/azproduction/lmd/blob/master/src/plugin/stats.js#L46) for more information.
 
 You may also enable `stats_sendto` flag to push your reports to the Stats Server.
 
