@@ -53,7 +53,13 @@
 
         "third_party_module_a": {
             "path": "vendors/jquery_mock.js",
-            "exports": "window.uQuery"
+            "exports": "window.uQuery",
+            "require": "third_party_module_a_dep"
+        },
+
+        "third_party_module_a_dep": {
+            "path": "vendors/jquery_dep.js",
+            "exports": "window.uQuery_dep"
         },
 
         "third_party_module_b": {
@@ -62,6 +68,10 @@
                 "pewpew": "pewpew",
                 "ololo": "ololo",
                 "someVariable": "someVariable"
+            },
+            "require": {
+                "Function": "Function",
+                "Date": "Date"
             }
         }
     },

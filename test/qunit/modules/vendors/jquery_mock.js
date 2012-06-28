@@ -15,6 +15,9 @@
  */
 (function( window, undefined ) {
 
+// run some dep
+window.uQuery_dep();
+
 // crop
 
 var uQuery = (function() {

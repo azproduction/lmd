@@ -413,7 +413,7 @@ LMD module form third-party modules
 -----------------------------------
 
 If you are using jquery as in-package module or any other module without exports. LMD can easily convert it to LMD format.
-You may add `"exports"` to your module descriptor to notify LMD that this module should be converted to LMD format.
+You may add `"exports"` and/or `"require"` to your module descriptor to notify LMD that this module should be converted to LMD format.
 The design of non-lmd2lmd patching is close to require.js shim
 
 **Example**
@@ -431,7 +431,7 @@ function ololo() {
 var someVariable = "string";
 ```
 
-It easy, just add `"exports"` to your module descriptor:
+It easy, just add `"exports"` to your module descriptor, add "require" to start module deps:
 ```
 "third_party_module_b": {
     "path": "vendors/other_module.js",
@@ -447,7 +447,13 @@ Or return just one
 ```
 "third_party_module_b": {
     "path": "vendors/other_module.js",
-    "exports": "pewpew || ololo" // or var name "pewpew"
+    "exports": "pewpew || ololo", // or var name "pewpew"
+
+    // Modules may have some deps
+    "require": {
+        "third_party_module_b": "third_party_module_b-dep",
+        "someGlobal": "Function"
+    }
 }
 ```
 
@@ -455,6 +461,9 @@ LMD will transform you code to this format
 
 ```javascript
 (function (require) { // << added
+var third_party_module_b = require("third_party_module_b-dep"),
+    someGlobal = require("Function");
+
 function pewpew () {
 
 }
@@ -674,7 +683,7 @@ Major versions changelog
   - `require.stats()` shows modules usage and code coverage. Flags `stats`, `stats_coverage`, `stats_sendto`
   - in-package Code coverage. Flag `stats_coverage`
   - Stats server
-  - Auto making LMD module from non-lmd module (see LMD module form third-party modules)
+  - LMD module from non-lmd module (see LMD module form third-party modules)
 
 Licence
 -------

@@ -301,24 +301,52 @@ LmdBuilder.prototype.wrapPlainModule = function (code) {
 /**
  * Wrapper for non-lmd modules files
  *
- * @param {String}        code
- * @param {Object|String} extra_exports
+ * @param {String}               code
+ * @param {Object|String}        extra_exports
+ * @param {Object|String|String} extra_exports
  *
  * @returns {String} wrapped code
  */
-LmdBuilder.prototype.wrapNonLmdModule = function (code, extra_exports) {
+LmdBuilder.prototype.wrapNonLmdModule = function (code, extra_exports, extra_require) {
     var exports = [],
+        requires = [],
         exportCode;
 
+    // add exports
+    // extra_exports = {name: code, name: code}
     if (typeof extra_exports === "object") {
         for (var exportName in extra_exports) {
             exportCode = extra_exports[exportName];
             exports.push('    ' + JSON.stringify(exportName) + ': ' + exportCode);
         }
         code += '\n\n/* added by builder */\nreturn {\n' + exports.join(',\n') + '\n};';
-    } else {
+    } else if (extra_exports) {
+        // extra_exports = string
         code += '\n\n/* added by builder */\nreturn ' + extra_exports + ';';
     }
+
+    // add require
+    if (typeof extra_require === "object") {
+        // extra_require = [name, name, name]
+        if (extra_require instanceof Array) {
+            for (var i = 0, c = extra_require.length, moduleName; i < c; i++) {
+                moduleName = extra_require[i];
+                requires.push('require(' + JSON.stringify(moduleName) + ');');
+            }
+            code = '/* added by builder */\n' + requires.join('\n') + '\n\n' + code;
+        } else {
+            // extra_require = {name: name, name: name}
+            for (var localName in extra_require) {
+                moduleName = extra_require[localName];
+                requires.push(localName + ' = require(' + JSON.stringify(moduleName) + ')');
+            }
+            code = '/* added by builder */\nvar ' + requires.join(',\n    ') + ';\n\n' + code;
+        }
+    } else if (extra_require) {
+        // extra_require = string
+        code = '/* added by builder */\nrequire(' + JSON.stringify(extra_require) + ');\n\n' + code;
+    }
+
     return '(function (require) { /* wrapped by builder */\n' + code + '\n})';
 };
 
@@ -581,11 +609,11 @@ LmdBuilder.prototype.fsWatch = function () {
             if (self.isLog) {
                 filename = filename.split(CROSS_PLATFORM_PATH_SPLITTER).pop();
                 if (stat && filename) {
-                    process.stdout.write('Change detected in \033[34m' + filename + '\033[0m at ' + stat.mtime);
+                    process.stdout.write('\033[40mlmd\033[0m\tChange detected in \033[34m' + filename + '\033[0m at ' + stat.mtime);
                 } else if (stat) {
-                    process.stdout.write('Change detected at ' + stat.mtime);
+                    process.stdout.write('\033[40mlmd\033[0m\tChange detected at ' + stat.mtime);
                 } else {
-                    process.stdout.write('Change detected');
+                    process.stdout.write('\033[40mlmd\033[0m\tChange detected');
                 }
                 process.stdout.write(' \033[32mRebuilding...\033[0m');
                 self.build(function () {
@@ -626,7 +654,7 @@ LmdBuilder.prototype.fsWatch = function () {
         }
 
         if (this.isLog) {
-            console.log('Now watching \033[37m%d\033[0m module files. Ctrl+C to stop', watchedModulesCount);
+            console.log('\033[40mlmd\033[0m\tNow watching \033[37m%d\033[0m module files. Ctrl+C to stop', watchedModulesCount);
         }
     }
 };
@@ -654,7 +682,7 @@ LmdBuilder.prototype.formatLog = function (text) {
  */
 LmdBuilder.prototype.error = function (text) {
     text = this.formatLog(text);
-    console.error('  \033[31m\033[40mERROR:\033[0m ' + text);
+    console.error('\033[40mlmd\033[0m\t\033[31m\033[40mERROR:\033[0m ' + text);
 };
 
 /**
@@ -668,7 +696,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text) {
     if (this.isWarn) {
         text = this.formatLog(text);
-        console.log('  \033[31mWarning:\033[0m ' + text);
+        console.log('\033[40mlmd\033[0m\t\033[31mWarning:\033[0m ' + text);
     }
 };
 
@@ -772,9 +800,13 @@ LmdBuilder.prototype.build = function (callback) {
                 }
 
                 if (isModule) {
-                    if (module.extra_exports) {
+                    if (module.is_third_party) {
                         // create lmd module from non-lmd module
-                        moduleContent = this.wrapNonLmdModule(moduleContent, module.extra_exports);
+                        moduleContent = this.wrapNonLmdModule(moduleContent, module.extra_exports, module.extra_require);
+                        if (module.extra_require && module.is_sandbox) {
+                            this.error('Your module "**' + module.path + '**" have to require() some deps, but it sandboxed. ' +
+                                      'Remove sandbox flag to allow module require().');
+                        }
                     } else if (isPlainModule) {
                         // wrap plain module
                         moduleContent = this.wrapPlainModule(moduleContent);

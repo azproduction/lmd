@@ -1575,6 +1575,9 @@ exports.some_function = function () {
     }
 }),
 "third_party_module_a": (function (require) { /* wrapped by builder */
+/* added by builder */
+require("third_party_module_a_dep");
+
 /*!
  * uQuery JavaScript Library v1.7.2
  * http://jquery.com/
@@ -1591,6 +1594,9 @@ exports.some_function = function () {
  * Date: Wed Mar 21 12:46:34 2012 -0700
  */
 (function( window, undefined ) {
+
+// run some dep
+window.uQuery_dep();
 
 // crop
 
@@ -1617,7 +1623,24 @@ window.uQuery = uQuery;
 /* added by builder */
 return window.uQuery;
 }),
+"third_party_module_a_dep": (function (require) { /* wrapped by builder */
+window.uQuery_dep = function () {
+    return true;
+};
+
+/* added by builder */
+return window.uQuery_dep;
+}),
 "third_party_module_b": (function (require) { /* wrapped by builder */
+/* added by builder */
+var Function = require("Function"),
+    Date = require("Date");
+
+// deps: Date, Function
+
+new Date();
+new Function('return true');
+
 function pewpew () {
 
 }
