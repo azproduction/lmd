@@ -4,27 +4,36 @@ LMD: Lazy Module Declaration
 Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without
 touching any part of DOM. LMD is inspired by AMD and provides similar module interface. It evals module only when
 they are required. LMD is "Yet Another Loader" with all loader features: js, css, parallel... Why LMD?
-- it can initialize modules when they are required, it tiny and flexible (minimal only 288bytes and up to 1.5kb
-all-in-one), you can write your modules as Node.js without define or require wrappers, and more...
+- it can initialize modules when they are required,
+- it tiny and flexible (minimal only 288bytes!),
+- you can write your [modules as Node.js](#lmd-modules) without define or require wrappers
+- but you can use all [other modules]((#lmd-module-form-third-party-modules)), and more...
 
 Features
 --------
 
 1. Modules are similar to AMD: there is a require, but no define
 2. LMD does not create globals
-3. LMD is standalone, tiny and flexible (minimal only 288bytes! and up to 1.5Kb all-in-one)
+3. LMD is standalone, tiny and flexible (minimal only 288bytes!)
 4. Each function-module can be initialized/evaled on demand (`lazy: true`)
 5. LMD module is as easy to debug as normal JavaScript file
-6. Build system compresses JavaScript files using UglifyJs (or any other)
-7. LMD module can define object via return or module.exports/exports as CommonJS Module
-8. Module can be wrapped automatically in builder so you can write your modules as node.js modules (see Usage and Asynchronous module require)
-9. Starting from version 1.5.2 LMD can require off-package modules `"async": true` (see Asynchronous module require)
-10. From version 1.6.0 LMD can cache all in-package modules in localStorage `"cache": true` (see Local Storage cache)
+6. Build system compresses JavaScript files using UglifyJs
+7. LMD module can define object via `return` or `module.exports` or `exports` as CommonJS Module
+8. Module can be wrapped automatically in builder so you can write your modules as node.js modules (see [Use](#use)
+and [Asynchronous module require](#asynchronous-module-require-flags-async-race-cache_async-async_plain-async_plainonly))
+9. Starting from version 1.5.2 LMD can require off-package modules `"async": true`
+(see [Asynchronous module require](#asynchronous-module-require-flags-async-race-cache_async-async_plain-async_plainonly))
+10. From version 1.6.0 LMD can cache all in-package modules in localStorage `"cache": true`
+(see [Local Storage cache](#local-storage-cache-flags-cache-cache_async-property-version))
 11. From version 1.6.2 LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
-12. LMD package is possible to run as Web Worker or execute as Node.js script (see Web Worker and Node.js)
-13. LMD works in all modern browsers and in older IE (see Browsers support)
-14. LMD can convert non-LMD modules to LMD to use jquery or any other as in-package LMD module (see LMD module form third-party modules)
-15. Ready for production - `lmd.js` is 100% covered by unit tests see `test/README.md` for details
+12. LMD package is possible to run as Web Worker or execute as Node.js script
+(see [Web Worker and Node.js](#web-worker-and-nodejs-flags-node-worker))
+13. LMD works in all modern browsers and in older IE
+(see [Browsers support](#browsers-support-flag-ie))
+14. LMD can convert non-LMD modules to LMD to use jquery or any other as in-package LMD module
+(see [LMD module form third-party modules](#lmd-module-form-third-party-modules))
+15. LMD can protect your code from 3-party modules (see [Modules sandbox](#modules-sandbox))
+16. Ready for production - `lmd.js` is 100% covered by unit tests see [test/README.md](tree/master/test) for details
 
 Installing
 ----------
@@ -248,7 +257,7 @@ You must work online using HTTP server for correct headers, if you work offline 
 then `Content-type` header will be INVALID so all modules will be strings.
 
 **Notice**
- - See "Web Worker and Node.js" if your package will run as worker or node script
+ - See "[Web Worker and Node.js](#web-worker-and-nodejs-flags-node-worker)" if your package will run as worker or node script
  - If you use `file:` protocol then all modules will be strings
  - LMD loader uses simple RegExp `/script$|json$/` with `Content-type` to determine the kind of content
 and eval it (if json or javascript) or return as string
@@ -258,7 +267,7 @@ and eval it (if json or javascript) or return as string
  - If you are performing parallel loading of the same resource add `race: true` (Disabled by default)
    flag to prevent duplication of requests.
  - You can set both flags `cache` and `cache_async` to true to enable localStorage cache for `require.async()`
-   (see Local Storage cache)
+   (see [Local Storage cache](#local-storage-cache-flags-cache-cache_async-property-version))
  - You can require plain off-package modules by declaring one of flags `async_plain` or `async_plainonly`
 
 ```javascript
@@ -301,7 +310,7 @@ function module(require, exports, module) {
 })
 ```
 
-See `example/modules/main.js` near `async_template.html` for real life example
+See [example/basic/modules/main.js](blob/master/examples/basic/modules/main.js#L24) for real life example
 
 Local Storage cache. Flags: `cache`, `cache_async`, Property: `version`
 -------------------------------------------------------
@@ -328,7 +337,8 @@ in default mode - without dumping modules
  - `data-version` - content in localStorage must match this version
  - `data-src` - fallback if version do not match or no localStorage or error or no content
 
-See `example/cfgs/index.prodoction.lmd.json` and `example/index.html` for details
+See [examples/basic/cfgs/index.prodoction.lmd.json](blob/master/examples/basic/cfgs/index.prodoction.lmd.json)
+and [examples/basic/index.html](blob/master/examples/basic/index.html) for details
 
 **Note**: `version` property from config and from `data-version` attribute must match to use code from localStorage!
 Yep! Each time you have to change config file and your html file!
@@ -339,7 +349,7 @@ Loading CSS and JavaScript files. Flags: `js`, `css`, `race`
 You can enable flags `css: true` and `js: true` to use css and js loader as all loaders do. (Disabled by default)
 
 **Notice**
- - See "Web Worker and Node.js" if your package will run as worker or node script
+ - See "[Web Worker and Node.js](#web-worker-and-nodejs-flags-node-worker)" if your package will run as worker or node script
  - If you are performing parallel loading of the same resource add `race: true` (Disabled by default)
    flag to prevent duplication of requests.
 
@@ -368,7 +378,8 @@ flags. `require.css()` in node or worker environment acts like `require()`
  - `require.js()` in Node acts like Node.js `GLOBALS.require()` and returns `module.exports` object from node module
  - `require.css()` in both environments acts like LMD `require()`
 
-Run tests or see `example/modules/main.js` near `workerDepA` and `example/modules/workerDepA.js` for details
+Run tests or see [examples/basic/modules/main.js](blob/master/examples/basic/modules/main.js#L60) and
+[examples/basic/modules/workerDepA.js](blob/master/examples/basic/modules/workerDepA.js) for details
 
 Browsers support. Flag: `ie`
 ----------------------------
@@ -432,7 +443,7 @@ var someVariable = "string";
 ```
 
 It easy, just add `"exports"` to your module descriptor, add "require" to start module deps:
-```
+```javascript
 "third_party_module_b": {
     "path": "vendors/other_module.js",
     "exports": {
@@ -444,7 +455,7 @@ It easy, just add `"exports"` to your module descriptor, add "require" to start 
 ```
 
 Or return just one
-```
+```javascript
 "third_party_module_b": {
     "path": "vendors/other_module.js",
     "exports": "pewpew || ololo", // or var name "pewpew"
@@ -483,6 +494,24 @@ return pewpew || ololo; // << added
 You may use more complex exports as `"exports": "require('$').noConflict(true)"` if you are exporting jQuery.
 
 **Note** Try not to use complex expressions!
+
+Modules sandbox
+---------------
+
+If you are using some untrusted 3-party modules or your modules cant `require()` by design you can apply sandbox on that
+module by adding `"sandbox": true` to your module declaration. Now this module can't require and use require sub-functions.
+`undefined` or `Object` (if module under Code Coverage) will passed as require. But it can still export all module stuff.
+
+```javascript
+"third_party_module_b": {
+    "path": "vendors/other_module.js",
+    "sandbox": true,
+    "exports": {
+        "pewpew": "pewpew",
+        "ololo": "ololo",
+        "someVariable": "someVariable"
+    }
+}
 
 Application statistics. Require, load, eval, call statistics. Flag: `stats`
 ---------------------------------------------------
@@ -542,7 +571,7 @@ Code coverage. Flag: `stats`, `stats_coverage`, `stats_sendto`
 -------------------------------------------------------------
 
 Add `stats_coverage` flag to your config file or use list of module names to cover only them. Rebuild your package.
-Now you can see coverage report in `require.stats()` object. See `src/plugin/stats.js:46` for more information.
+Now you can see coverage report in `require.stats()` object. See [src/plugin/stats.js#L46](blob/master/src/plugin/stats.js#L46) for more information.
 
 You may also enable `stats_sendto` flag to push your reports to the Stats Server.
 
@@ -584,7 +613,7 @@ Stats server provides simple coverage and usage reports
  - `-log` `-l` path where stats server will store stats logs
  - `-www` `-wd` www dir of your site - required for async modules
 
-see `examples/mock_chat/README.md` for real example
+see [examples/mock_chat](tree/master/examples/mock_chat) for real example
 
 Watch mode
 ----------
@@ -618,7 +647,7 @@ new style `lmd [-m mode] -c config [-o output] [-l]`
 Running tests
 -------------
 
-see test/README.md for details
+see [test](tree/master/test) for details
 
 Major versions changelog
 ---------
@@ -641,7 +670,7 @@ Major versions changelog
 
 **v1.4.x**
 
-  - Config extends (now config can extend common config file) see example/cfgs/*
+  - Config extends (now config can extend common config file) see [examples/basic/cfgs](tree/master/examples/basic/cfgs)
   - Headless module without function wrapper like Node.js module
   - Possible to specify LMD.js version for build - `lmd_min` (old one) or `lmd_tiny`
   - Per module lazy flag `"Module": {"path": "Module.js", "lazy": false}`
@@ -651,14 +680,14 @@ Major versions changelog
 
 **v1.5.x**
 
-  - Watch mode see "Watch mode" in this README
-  - New version of argv params see "LMD CLI" in this README
+  - Watch mode see "[Watch mode](#watch-mode)" in this README
+  - New version of argv params see "[LMD CLI](#lmd-cli)" in this README
   - String module
   - LMD async - loader of off-package modules see "Asynchronous module require" in this README
 
 **v1.6.x**
 
-  - Local Storage cache - config flag `cache: true` see "Local Storage cache" in this README
+  - Local Storage cache - config flag `cache: true` see "[Local Storage cache](#local-storage-cache-flags-cache-cache_async-property-version)" in this README
   - argv flag `-v`/`-version` is deprecated - use config flag `async: true` for `lmd_async.js` or false for `lmd_tiny.js` (default)
   - Created development version of example app without cache and production with cache=on
   - LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
@@ -683,7 +712,7 @@ Major versions changelog
   - `require.stats()` shows modules usage and code coverage. Flags `stats`, `stats_coverage`, `stats_sendto`
   - in-package Code coverage. Flag `stats_coverage`
   - Stats server
-  - LMD module from non-lmd module (see LMD module form third-party modules)
+  - LMD module from non-lmd module (see [LMD module form third-party modules](#lmd-module-form-third-party-modules))
 
 Licence
 -------
