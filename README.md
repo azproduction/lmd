@@ -33,7 +33,8 @@ and [Asynchronous module require](#asynchronous-module-require-flags-async-race-
 14. LMD can convert non-LMD modules to LMD to use jquery or any other as in-package LMD module
 (see [LMD module form third-party modules](#lmd-module-form-third-party-modules))
 15. LMD can protect your code from 3-party modules (see [Modules sandbox](#modules-sandbox))
-16. Ready for production - `lmd.js` is 100% covered by unit tests see [test/README.md](tree/master/test) for details
+16. Code Coverage? - Easy! (see [Code coverage](#code-coverage-flag-stats-stats_coverage-stats_sendto))
+17. Ready for production - `lmd.js` is 100% covered by unit tests see [test/README.md](tree/master/test) for details
 
 Installing
 ----------
