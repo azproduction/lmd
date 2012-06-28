@@ -512,6 +512,7 @@ module by adding `"sandbox": true` to your module declaration. Now this module c
         "someVariable": "someVariable"
     }
 }
+```
 
 Application statistics. Require, load, eval, call statistics. Flag: `stats`
 ---------------------------------------------------
