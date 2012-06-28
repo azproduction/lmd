@@ -34,7 +34,7 @@ and [Asynchronous module require](#asynchronous-module-require-flags-async-race-
 (see [LMD module form third-party modules](#lmd-module-form-third-party-modules))
 15. LMD can protect your code from 3-party modules (see [Modules sandbox](#modules-sandbox))
 16. Code Coverage? - Easy! (see [Code coverage](#code-coverage-flag-stats-stats_coverage-stats_sendto))
-17. Ready for production - `lmd.js` is 100% covered by unit tests see [test/README.md](tree/master/test) for details
+17. Ready for production - `lmd.js` is 100% covered by unit tests see [test/README.md](/azproduction/lmd/tree/master/test) for details
 
 Installing
 ----------
@@ -615,7 +615,7 @@ Stats server provides simple coverage and usage reports
  - `-log` `-l` path where stats server will store stats logs
  - `-www` `-wd` www dir of your site - required for async modules
 
-see [examples/mock_chat](tree/master/examples/mock_chat) for real example
+see [examples/mock_chat](/azproduction/lmd/tree/master/examples/mock_chat) for real example
 
 Watch mode
 ----------
@@ -649,7 +649,7 @@ new style `lmd [-m mode] -c config [-o output] [-l]`
 Running tests
 -------------
 
-see [test](tree/master/test) for details
+see [test](/azproduction/lmd/tree/master/test) for details
 
 Major versions changelog
 ---------
@@ -672,7 +672,7 @@ Major versions changelog
 
 **v1.4.x**
 
-  - Config extends (now config can extend common config file) see [examples/basic/cfgs](tree/master/examples/basic/cfgs)
+  - Config extends (now config can extend common config file) see [examples/basic/cfgs](/azproduction/lmd/tree/master/examples/basic/cfgs)
   - Headless module without function wrapper like Node.js module
   - Possible to specify LMD.js version for build - `lmd_min` (old one) or `lmd_tiny`
   - Per module lazy flag `"Module": {"path": "Module.js", "lazy": false}`
