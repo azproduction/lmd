@@ -455,7 +455,7 @@ It easy, just add `"exports"` to your module descriptor, add "require" to start 
 }
 ```
 
-Or return just one
+Or return just one exports, and some deps
 ```javascript
 "third_party_module_b": {
     "path": "vendors/other_module.js",
@@ -469,12 +469,12 @@ Or return just one
 }
 ```
 
-LMD will transform you code to this format
+LMD will make a LMD module from you code (while building LMD-package)
 
 ```javascript
 (function (require) { // << added
-var third_party_module_b = require("third_party_module_b-dep"),
-    someGlobal = require("Function");
+var third_party_module_b = require("third_party_module_b-dep"), // << added
+    someGlobal = require("Function"); // << added
 
 function pewpew () {
 
