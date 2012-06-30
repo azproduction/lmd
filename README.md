@@ -29,7 +29,7 @@ and [Asynchronous module require](#asynchronous-module-require-flags-async-race-
 12. LMD package is possible to run as Web Worker or execute as Node.js script
 (see [Web Worker and Node.js](#web-worker-and-nodejs-flags-node-worker))
 13. LMD works in all modern browsers and in older IE
-(see [Browsers support](#browsers-support-flag-ie))
+(see [Browsers support](#browsers-support-flags-ie-opera_mobile))
 14. LMD can convert non-LMD modules to LMD to use jquery or any other as in-package LMD module
 (see [LMD module form third-party modules](#lmd-module-form-third-party-modules))
 15. LMD can protect your code from 3-party modules (see [Modules sandbox](#modules-sandbox))
@@ -152,31 +152,42 @@ Config file
         "abstract_name": "@/path/to/real-file.js"
     },
     "main": "main",         // a main module - content of that module will be called on start (no reason to eval)
-    "lazy": false,          // if true - all modules will be evaled on demand [default=true]
-    "pack": false,          // if true - module will be packed using uglifyjs [default=true]
     "global": "this",       // name of global object, passed to the lmd [default="this"]
 
+    // # Modules output format
+    "lazy": false,          // if true - all modules will be evaled on demand [default=false]
+    "pack": false,          // if true - module will be packed using uglifyjs [default=true]
+
+    // # Off-package LMD module loader
     "async": true,          // if modules uses off-package module set this to true [default=false]
     "async_plain": true,    // enables async require of both plain and function-modules [default=false]
     "async_plainonly":true, // if you are using only plain modules enable that flag instead of async_plain [default=false]
 
+    // # Cache
     "cache": true,          // store all application lmd itself + all modules in localStorage
                             // this flag will force all modules to be lazy [default=false]
     "cache_async": true,    // depend on cache flag, enables localStorage cache for require.async() [default=false]
 
+    // # Non-LMD modules loader
     "js": true,             // if you are going to load non LMD modules set this flag to true [default=false]
     "css": true,            // enables css-loader feature `require.css` [default=false]
 
+    // # Environment optimization
     "worker": true,         // set true if LMD package will run as worker [default=false]
     "node": true,           // set true if LMD package will run as node.js script [default=false]
     "ie": true,             // set false if script will run only in modern browsers [default=true]
+    "opera_mobile": true,   // set true if LMD package will run in Opera Mobile [default=false]
+
+    // # Loaders features
     "race": true,           // set true if you are performing parallel loading of the same resource [default=false]
     "parallel": true,       // enables parallel loading [default=false]
                             // - if you are using parallel loading you are doing something wrong...
                             // - resources will be executed in **load order**! And passed to callback in list order
 
+    // # Modules types
     "shortcuts": true,      // enables shortcuts in LMD package [default=false]
 
+    // # Stats and Code coverage
     "stats": true,          // enables require.stats() function - every module require, load, eval, call statistics [default=false]
     "stats_coverage": true, // enables code coverage for all in-package modules, you can use list of module names
                             // to cover only modules in that list [default=false]
@@ -382,8 +393,8 @@ flags. `require.css()` in node or worker environment acts like `require()`
 Run tests or see [examples/basic/modules/main.js](/azproduction/lmd/blob/master/examples/basic/modules/main.js#L60) and
 [examples/basic/modules/workerDepA.js](/azproduction/lmd/blob/master/examples/basic/modules/workerDepA.js) for details
 
-Browsers support. Flag: `ie`
-----------------------------
+Browsers support. Flags: `ie`, `opera_mobile`
+--------------------------------------------
 
 LMD works in all modern browsers and in older IE. If LMD package will run only in modern browsers turn off `ie: false`
 config flag to optimise lmd source for modern browsers (removes few IE hacks)
@@ -715,6 +726,8 @@ Major versions changelog
   - in-package Code coverage. Flag `stats_coverage`
   - Stats server
   - LMD module from non-lmd module (see [LMD module form third-party modules](#lmd-module-form-third-party-modules))
+  - `config.lazy=false` by default now
+  - Local Storage cache in Opera Mobile is disabled (OM cant Function#toString...)
 
 Licence
 -------

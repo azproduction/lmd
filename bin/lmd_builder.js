@@ -728,7 +728,7 @@ LmdBuilder.prototype.checkForDirectGlobalsAccess = function (moduleName, moduleC
  */
 LmdBuilder.prototype.build = function (callback) {
     var config = tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8')), this.configDir),
-        lazy = typeof config.lazy === "undefined" ? true : config.lazy,
+        lazy = config.lazy || false,
         mainModuleName = config.main,
         pack = lazy ? true : typeof config.pack === "undefined" ? true : config.pack,
         moduleContent,

@@ -9,7 +9,7 @@
 
     // If possible to dump and version passed (fallback mode)
     // then dump application source
-    if (global.localStorage && version) {
+    if (global.localStorage && version/*if ($P.OPERA_MOBILE) {*/ && /_/.test(function(_){}) /*}*/) {
         (function () {
             try {
                 global.localStorage['lmd'] = global.JSON.stringify({

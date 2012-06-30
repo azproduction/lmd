@@ -6,6 +6,7 @@
     "node": ["$P.WORKER || $P.NODE", "$P.NODE"],
     "worker": ["$P.WORKER || $P.NODE"],
     "ie": ["$P.IE"],
+    "opera_mobile": ["$P.OPERA_MOBILE"],
     "race": ["$P.RACE"],
     "cache_async": ["$P.CACHE_ASYNC"],
     "parallel": ["$P.PARALLEL"],
