@@ -632,7 +632,7 @@ Result js file will contain all module deps:
 }
 ```
 
-See [test/qunit/cfgs/test.lmd.json](/azproduction/lmd/test/qunit/cfgs/test.lmd.json) for config example
+See [test/qunit/cfgs/test.lmd.json](/azproduction/lmd/tree/master/test/qunit/cfgs/test.lmd.json) for config example
 
 **Note:**
  - LMD will warn if some config declares exists module name
