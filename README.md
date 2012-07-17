@@ -40,9 +40,9 @@ and [Asynchronous module require](#asynchronous-module-require))
 
 ## LMD Modules types
 
-**1\.1\. Module - functions**
+### Module - functions
 
-*main.js - module as function declaration*
+#### Module as function declaration
 
 ```javascript
 function main(require) {
@@ -60,7 +60,7 @@ function main(require) {
 }
 ```
 
-*depA.js - module as function expression*
+#### Module as function expression
 
 ```javascript
 (function (require/*, exports, module*/) {
@@ -71,7 +71,7 @@ function main(require) {
 })
 ```
 
-*depB.js - module as plain code like Node.js*
+#### Module as plain code like Node.js
 
 ```javascript
 // @globals require module exports
@@ -86,9 +86,9 @@ module.exports = function(message) {
  - plain module will be wrapped by builder `(function (require, exports, module) {\n%code%\n})`
  - you can require plain off-package modules by declaring one of flags `async_plain` or `async_plainonly`
 
-**1\.2\. Module - objects (for config, i18n and other resources)**
+### Module - objects
 
-*i18n.ru.json*
+For config, i18n and other resources
 
 ```javascript
 {
@@ -96,7 +96,9 @@ module.exports = function(message) {
 }
 ```
 
-**1\.3\. Module - string (for templates)**
+### Module - string
+
+For templates
 
 ```html
 <i class="b-template">${content}</i>
@@ -104,7 +106,7 @@ module.exports = function(message) {
 
 ## LMD Config file
 
-**index.production.lmd.json**
+**Full version**
 
 ```javascript
 {
@@ -205,31 +207,22 @@ module.exports = function(message) {
 }
 ```
 
-**index.development.lmd.json**
+**Minimal**
 
 ```javascript
 {
-    "path": "../modules/",
+    "root": "../modules/",
     "modules": {
-        "depB": {              // extended module descriptor
-            "path": "depB.js",
-            "sandbox": true    // module is sandboxed
-        },
-        "*": "*.js",           // use wildcards or specify regex string to grep 
-        "i18n": "i18n.ru.json" // similar files (no dir wildcards supported by now)
-    },
-    "main": "main",
-    "lazy": false,
-    "pack": false,
-    "async": true,
-    "js": true,
-    "css": true
+        "*": "*.js" // use wildcards or specify regex string to grep
+    }
 }
 ```
 
-You can extend config file with another using `"extends": "path/to/file.lmd.json"` parameter
+**Note**
+ - You can extend config file with another using `"extends": "path/to/file.lmd.json"` parameter
+ - You can also specify module depends by adding `"depends"` options see [Modules depends](#modules-depends)
 
-## Build
+## Build LMD package
 
 `lmd examples/basic/cfgs/index.development.lmd.json examples/basic/out/index.development.lmd.js` or `node ./lmd/bin/lmd.js ... `
 
@@ -237,7 +230,9 @@ Or print to `STDOUT`
 
 `lmd example/cfgs/index.development.lmd.json`
 
-## Use
+See [LMD CLI](#lmd-cli)
+
+LMD will assemble your modules and LMD source itself into one file. This file is monolith, but it more than debugable!
 
 **index.development.lmd.js**
 
