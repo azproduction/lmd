@@ -1,11 +1,18 @@
 {
+    "root": "../modules/",
+
     "extends": "./test.lmd.json",
+
     "modules": {
-        "testcase_lmd_async_require": "test_case/testcase_lmd_async_require.node.js",
-        "testcase_lmd_loader": "test_case/testcase_lmd_loader.node.js"
+        "testcase_lmd_async_require": "test_case/testcase_lmd_async_require/testcase_lmd_async_require.node.js",
+        "testcase_lmd_loader": "test_case/testcase_lmd_loader/testcase_lmd_loader.node.js"
     },
+
     "global": "node_global_environment",
-    "node": true,
+    "depends": true,
+
     "cache": false,
-    "cache_async": false
+    "cache_async": false,
+
+    "node": true
 }

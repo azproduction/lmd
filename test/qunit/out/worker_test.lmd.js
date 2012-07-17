@@ -961,19 +961,104 @@ function parallel(method, items, callback) {
     // Coverage
     require('testcase_lmd_coverage');
 }),{
+"coverage_fully_covered": (function(require, exports, module) {
+    require.coverage_function("coverage_fully_covered", "(?):0:1");
+    require.coverage_line("coverage_fully_covered", "1");
+    var a = "123";
+    require.coverage_line("coverage_fully_covered", "2");
+    function test() {
+        require.coverage_function("coverage_fully_covered", "test:2:79");
+        require.coverage_line("coverage_fully_covered", "3");
+        return a;
+    }
+    require.coverage_line("coverage_fully_covered", "6");
+    if (require.coverage_condition("coverage_fully_covered", "if:6:118", typeof true === "boolean")) {
+        require.coverage_line("coverage_fully_covered", "7");
+        var b = test();
+    }
+}),
+"coverage_not_conditions": function df(require) {
+    require.coverage_line("coverage_not_conditions", "2");
+    if (require.coverage_condition("coverage_not_conditions", "if:2:31", typeof true === "string")) {
+        require.coverage_line("coverage_not_conditions", "3");
+        var b = 123;
+    }
+},
+"coverage_not_functions": (function(require) {
+    require.coverage_function("coverage_not_functions", "(?):1:1");
+    require.coverage_line("coverage_not_functions", "2");
+    var a = "123";
+    require.coverage_line("coverage_not_functions", "3");
+    function test() {
+        require.coverage_function("coverage_not_functions", "test:3:45");
+        require.coverage_line("coverage_not_functions", "4");
+        return a;
+    }
+    require.coverage_line("coverage_not_functions", "7");
+    if (require.coverage_condition("coverage_not_functions", "if:7:110", typeof true === "boolean")) {
+        require.coverage_line("coverage_not_functions", "8");
+        var b = a;
+    }
+}),
+"coverage_not_statements": (function(require, exports, module) {
+    require.coverage_function("coverage_not_statements", "(?):0:1");
+    require.coverage_line("coverage_not_statements", "1");
+    var a = "123", b;
+    require.coverage_line("coverage_not_statements", "4");
+    function test(a) {
+        require.coverage_function("coverage_not_statements", "test:4:87");
+        require.coverage_line("coverage_not_statements", "5");
+        return a;
+    }
+    require.coverage_line("coverage_not_statements", "8");
+    if (require.coverage_condition("coverage_not_statements", "if:8:127", typeof true === "boolean")) {
+        require.coverage_line("coverage_not_statements", "9");
+        b = test(1);
+    } else {
+        require.coverage_line("coverage_not_statements", "11");
+        b = test(2);
+    }
+}),
+"coverage_not_covered": (function(require, exports, module) {
+    require.coverage_function("coverage_not_covered", "(?):0:1");
+    require.coverage_line("coverage_not_covered", "1");
+    var a = "123";
+    require.coverage_line("coverage_not_covered", "2");
+    function test() {
+        require.coverage_function("coverage_not_covered", "test:2:88");
+        require.coverage_line("coverage_not_covered", "3");
+        return a;
+    }
+    require.coverage_line("coverage_not_covered", "6");
+    if (require.coverage_condition("coverage_not_covered", "if:6:145", typeof true === "boolean")) {
+        require.coverage_line("coverage_not_covered", "7");
+        var b = test();
+    }
+}),
+"module_function_fd2": function fd2(require, exports, module) {
+    require('ok')(true, "fd2 should be called once");
+
+    return function () {
+        return true;
+    }
+},
+"sk_async_html": "@/modules/shortcuts/async.html",
+"sk_async_js": "@/modules/shortcuts/async.js",
+"sk_async_json": "@/modules/shortcuts/async.json",
+"third_party_module_a_dep": (function (require) { /* wrapped by builder */
+window.uQuery_dep = function () {
+    return true;
+};
+
+/* added by builder */
+return window.uQuery_dep;
+}),
 "module_as_json": {
     "ok": true
 },
 "module_as_string": "<div class=\"b-template\">${pewpew}</div>",
 "module_function_fd": function fd(require, exports, module) {
     require('ok')(true, "fd should be called once");
-
-    return function () {
-        return true;
-    }
-},
-"module_function_fd2": function fd2(require, exports, module) {
-    require('ok')(true, "fd2 should be called once");
 
     return function () {
         return true;
@@ -1025,6 +1110,84 @@ if (typeof require === "function") {
 
 exports.some_function = function () {
     return true;
+};
+}),
+"sk_to_global_object": "@Date",
+"sk_to_module_as_json": "@module_as_json",
+"third_party_module_a": (function (require) { /* wrapped by builder */
+/* added by builder */
+require("third_party_module_a_dep");
+
+/*!
+ * uQuery JavaScript Library v1.7.2
+ * http://jquery.com/
+ *
+ * Copyright 2011, John Resig
+ * Dual licensed under the MIT or GPL Version 2 licenses.
+ * http://jquery.org/license
+ *
+ * Includes Sizzle.js
+ * http://sizzlejs.com/
+ * Copyright 2011, The Dojo Foundation
+ * Released under the MIT, BSD, and GPL Licenses.
+ *
+ * Date: Wed Mar 21 12:46:34 2012 -0700
+ */
+(function( window, undefined ) {
+
+// run some dep
+window.uQuery_dep();
+
+// crop
+
+var uQuery = (function() {
+
+    var uQuery = function () {
+        // crop
+    };
+
+    // crop
+
+    return uQuery;
+})();
+
+// crop
+
+// Expose jQuery to the global object
+window.uQuery = uQuery;
+
+// crop
+
+})( window );
+
+/* added by builder */
+return window.uQuery;
+}),
+"third_party_module_b": (function (require) { /* wrapped by builder */
+/* added by builder */
+var Function = require("Function"),
+    Date = require("Date");
+
+// deps: Date, Function
+
+new Date();
+new Function('return true');
+
+function pewpew () {
+
+}
+
+function ololo() {
+
+}
+
+var someVariable = "string";
+
+/* added by builder */
+return {
+    "pewpew": pewpew,
+    "ololo": ololo,
+    "someVariable": someVariable
 };
 }),
 "testcase_lmd_basic_features": (function (require) {
@@ -1497,169 +1660,6 @@ exports.some_function = function () {
         });
     });
 }),
-"sk_async_html": "@/modules/shortcuts/async.html",
-"sk_async_js": "@/modules/shortcuts/async.js",
-"sk_async_json": "@/modules/shortcuts/async.json",
 "sk_css_css": "@/modules/shortcuts/css.css",
-"sk_js_js": "@/modules/shortcuts/js.js",
-"sk_to_global_object": "@Date",
-"sk_to_module_as_json": "@module_as_json",
-"coverage_fully_covered": (function(require, exports, module) {
-    require.coverage_function("coverage_fully_covered", "(?):0:1");
-    require.coverage_line("coverage_fully_covered", "1");
-    var a = "123";
-    require.coverage_line("coverage_fully_covered", "2");
-    function test() {
-        require.coverage_function("coverage_fully_covered", "test:2:79");
-        require.coverage_line("coverage_fully_covered", "3");
-        return a;
-    }
-    require.coverage_line("coverage_fully_covered", "6");
-    if (require.coverage_condition("coverage_fully_covered", "if:6:118", typeof true === "boolean")) {
-        require.coverage_line("coverage_fully_covered", "7");
-        var b = test();
-    }
-}),
-"coverage_not_conditions": function df(require) {
-    require.coverage_line("coverage_not_conditions", "2");
-    if (require.coverage_condition("coverage_not_conditions", "if:2:31", typeof true === "string")) {
-        require.coverage_line("coverage_not_conditions", "3");
-        var b = 123;
-    }
-},
-"coverage_not_functions": (function(require) {
-    require.coverage_function("coverage_not_functions", "(?):1:1");
-    require.coverage_line("coverage_not_functions", "2");
-    var a = "123";
-    require.coverage_line("coverage_not_functions", "3");
-    function test() {
-        require.coverage_function("coverage_not_functions", "test:3:45");
-        require.coverage_line("coverage_not_functions", "4");
-        return a;
-    }
-    require.coverage_line("coverage_not_functions", "7");
-    if (require.coverage_condition("coverage_not_functions", "if:7:110", typeof true === "boolean")) {
-        require.coverage_line("coverage_not_functions", "8");
-        var b = a;
-    }
-}),
-"coverage_not_statements": (function(require, exports, module) {
-    require.coverage_function("coverage_not_statements", "(?):0:1");
-    require.coverage_line("coverage_not_statements", "1");
-    var a = "123", b;
-    require.coverage_line("coverage_not_statements", "4");
-    function test(a) {
-        require.coverage_function("coverage_not_statements", "test:4:87");
-        require.coverage_line("coverage_not_statements", "5");
-        return a;
-    }
-    require.coverage_line("coverage_not_statements", "8");
-    if (require.coverage_condition("coverage_not_statements", "if:8:127", typeof true === "boolean")) {
-        require.coverage_line("coverage_not_statements", "9");
-        b = test(1);
-    } else {
-        require.coverage_line("coverage_not_statements", "11");
-        b = test(2);
-    }
-}),
-"coverage_not_covered": (function(require, exports, module) {
-    require.coverage_function("coverage_not_covered", "(?):0:1");
-    require.coverage_line("coverage_not_covered", "1");
-    var a = "123";
-    require.coverage_line("coverage_not_covered", "2");
-    function test() {
-        require.coverage_function("coverage_not_covered", "test:2:88");
-        require.coverage_line("coverage_not_covered", "3");
-        return a;
-    }
-    require.coverage_line("coverage_not_covered", "6");
-    if (require.coverage_condition("coverage_not_covered", "if:6:145", typeof true === "boolean")) {
-        require.coverage_line("coverage_not_covered", "7");
-        var b = test();
-    }
-}),
-"third_party_module_a": (function (require) { /* wrapped by builder */
-/* added by builder */
-require("third_party_module_a_dep");
-
-/*!
- * uQuery JavaScript Library v1.7.2
- * http://jquery.com/
- *
- * Copyright 2011, John Resig
- * Dual licensed under the MIT or GPL Version 2 licenses.
- * http://jquery.org/license
- *
- * Includes Sizzle.js
- * http://sizzlejs.com/
- * Copyright 2011, The Dojo Foundation
- * Released under the MIT, BSD, and GPL Licenses.
- *
- * Date: Wed Mar 21 12:46:34 2012 -0700
- */
-(function( window, undefined ) {
-
-// run some dep
-window.uQuery_dep();
-
-// crop
-
-var uQuery = (function() {
-
-    var uQuery = function () {
-        // crop
-    };
-
-    // crop
-
-    return uQuery;
-})();
-
-// crop
-
-// Expose jQuery to the global object
-window.uQuery = uQuery;
-
-// crop
-
-})( window );
-
-/* added by builder */
-return window.uQuery;
-}),
-"third_party_module_a_dep": (function (require) { /* wrapped by builder */
-window.uQuery_dep = function () {
-    return true;
-};
-
-/* added by builder */
-return window.uQuery_dep;
-}),
-"third_party_module_b": (function (require) { /* wrapped by builder */
-/* added by builder */
-var Function = require("Function"),
-    Date = require("Date");
-
-// deps: Date, Function
-
-new Date();
-new Function('return true');
-
-function pewpew () {
-
-}
-
-function ololo() {
-
-}
-
-var someVariable = "string";
-
-/* added by builder */
-return {
-    "pewpew": pewpew,
-    "ololo": ololo,
-    "someVariable": someVariable
-};
-})
+"sk_js_js": "@/modules/shortcuts/js.js"
 },{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true},{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"]},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[]},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"]},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"]},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"]}})

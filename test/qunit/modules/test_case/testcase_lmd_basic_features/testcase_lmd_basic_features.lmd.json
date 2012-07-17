@@ -1,0 +1,58 @@
+{
+    "root": "../../",
+
+    "modules": {
+        "module_as_json": "module_as_json.json",
+        "module_as_string": "module_as_string.html",
+
+        "module_function_fd": "module_function_fd.js",
+        "module_function_fd_sandboxed": {
+            "path": "module_function_fd_sandboxed.js",
+            "sandbox": true
+        },
+
+        "module_function_fe": "module_function_fe.js",
+        "module_function_fe_sandboxed": {
+            "path": "module_function_fe_sandboxed.js",
+            "sandbox": true
+        },
+
+        "module_function_lazy": {
+            "path": "module_function_lazy.js",
+            "lazy": true
+        },
+
+        "module_function_plain": "module_function_plain.js",
+        "module_function_plain_sandboxed": {
+            "path": "module_function_plain_sandboxed.js",
+            "sandbox": true
+        },
+
+        "sk_to_global_object": "@Date",
+        "sk_to_module_as_json": "@module_as_json",
+
+        "third_party_module_a": {
+            "path": "vendors/jquery_mock.js",
+
+            "exports": "window.uQuery",
+            "require": "third_party_module_a_dep"
+        },
+
+        "third_party_module_b": {
+            "path": "vendors/other_module.js",
+
+            "exports": {
+                "pewpew": "pewpew",
+                "ololo": "ololo",
+                "someVariable": "someVariable"
+            },
+            "require": {
+                "Function": "Function",
+                "Date": "Date"
+            }
+        }
+    },
+    "depends": true,
+
+    "shortcuts": true
+}

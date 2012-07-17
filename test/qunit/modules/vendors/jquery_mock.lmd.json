@@ -1,0 +1,10 @@
+{
+    "root": "./",
+
+    "modules": {
+        "third_party_module_a_dep": {
+            "path": "jquery_dep.js",
+            "exports": "window.uQuery_dep"
+        }
+    }
+}

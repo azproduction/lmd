@@ -1,0 +1,20 @@
+{
+    "root": "../../",
+
+    "modules": {
+        "coverage_fully_covered": "coverage/fully_covered.js",
+        "coverage_not_conditions": "coverage/not_conditions.js",
+        "coverage_not_functions": "coverage/not_functions.js",
+        "coverage_not_statements": "coverage/not_statements.js",
+        "coverage_not_covered": "coverage/not_covered.js"
+    },
+
+    "stats": true,
+    "stats_coverage": [
+        "coverage_fully_covered",
+        "coverage_not_conditions",
+        "coverage_not_functions",
+        "coverage_not_statements",
+        "coverage_not_covered"
+    ]
+}

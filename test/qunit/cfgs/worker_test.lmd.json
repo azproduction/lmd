@@ -1,10 +1,17 @@
 {
+    "root": "../modules/",
+
     "extends": "./test.lmd.json",
+
     "modules": {
-        "testcase_lmd_loader": "test_case/testcase_lmd_loader.worker.js"
+        "testcase_lmd_loader": "test_case/testcase_lmd_loader/testcase_lmd_loader.worker.js"
     },
+
     "global": "worker_global_environment",
-    "worker": true,
+    "depends": true,
+
     "cache": false,
-    "cache_async": false
+    "cache_async": false,
+
+    "worker": true
 }

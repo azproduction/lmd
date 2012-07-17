@@ -1,0 +1,11 @@
+{
+    "root": "../../",
+
+    "modules": {
+        "sk_css_css": "@/modules/shortcuts/css.css",
+        "sk_js_js": "@/modules/shortcuts/js.js"
+    },
+
+    "js": true,
+    "css": true
+}

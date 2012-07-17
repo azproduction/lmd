@@ -1,0 +1,19 @@
+{
+    "root": "../../",
+
+    "modules": {
+        "module_function_fd2": "module_function_fd2.js",
+
+        "sk_async_html": "@/modules/shortcuts/async.html",
+        "sk_async_js": "@/modules/shortcuts/async.js",
+        "sk_async_json": "@/modules/shortcuts/async.json"
+    },
+
+   "async": true,
+   "async_plain": true,
+
+   "race": true,
+   "parallel": true,
+
+   "shortcuts": true
+}

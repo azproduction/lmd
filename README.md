@@ -114,6 +114,8 @@ Config file
 ```javascript
 {
     "path": "../modules/", // if starts with "/" it is absolute path else path will be relative to the config file
+    "root": "../modules/", // alias to path
+
     "modules": {
         // basic module descriptor -- only path
         "main": "main.js",     // "module_pseudonym": "module_file"
@@ -143,6 +145,12 @@ Config file
             "exports": "require('$').noConflict(true)"
         },
 
+        "module_with_depends": {
+            "path": "vendors/jquery.min.js",
+            "depends": "*.lmd.json" // With mask -> vendors/jquery.min.lmd.json
+                                    // Or direct config name jquery.lmd.json
+        },
+
         // string template
         "template": "templates/template.html"
         
@@ -153,6 +161,12 @@ Config file
     },
     "main": "main",         // a main module - content of that module will be called on start (no reason to eval)
     "global": "this",       // name of global object, passed to the lmd [default="this"]
+
+    // # Depends
+    "depends": true,        // module depends mask [default=false]
+                            // Can be true value or mask string. Default mask for true is '*.lmd.json'
+                            // For each module in config lmd builder will use mask to find config with module depends
+                            // eg: module_name.js + *.lmd.json lmd will looking for module_name.lmd.json etc
 
     // # Modules output format
     "lazy": false,          // if true - all modules will be evaled on demand [default=false]
@@ -526,6 +540,105 @@ module by adding `"sandbox": true` to your module declaration. Now this module c
 }
 ```
 
+Modules depends. Property/Flag: `depends`
+-----------------------------------------
+
+Modules may have dependencies that you can put in a separate file. This file has the same format as any lmd.json file.
+Each file is an independent configuration file. You can specify a list of required features and modules.
+Each file can have only one config file with dependencies. All dependant configs may also have depends.
+
+In other words, each configuration defines a subtree of the file system and the features that it needs to work.
+The main config file assembles all subtrees and list of features into one big tree and features list.
+
+**Example**
+
+*FS Tree*
+
+```
+cfgs/
+    index.lmd.json           | Main config
+modules/                     |
+    some_module/             |
+        some_module_deps.js  |
+    main.js                  |
+    some_module.lmd.json     | Depends config of some_module.js
+    some_module.js           |
+    some_other_module.js     |
+```
+
+*index.lmd.json*
+
+```javascript
+{
+    "root": "../modules/", // or "path":
+
+    "modules": {
+        "main": "modules/main.js",
+        "some_module": "modules/some_module.js",
+        "some_other_module": "modules/some_other_module.js"
+    },
+
+    "depends": true // or mask "*.lmd.json",
+
+    "cache": false
+}
+```
+
+You may also use per module depends:
+
+```javascript
+{
+    "some_module": {
+        "path": "modules/some_module.js",
+        "depends": "some_module.lmd.json"
+    }
+}
+```
+
+*modules/some_module.lmd.json*
+
+```javascript
+{
+    "root": "./some_module/", // or "path":
+
+    "modules": {
+        "some_module_deps": "some_module_deps.js"
+    },
+
+    "js": true,
+    "async": true,
+
+    "cache": true
+}
+```
+
+`$ lmd index.lmd.json index.js`
+
+Result js file will contain all module deps:
+
+```javascript
+{
+    "modules": {
+        "main": "modules/main.js",
+        "some_module": "modules/some_module.js",
+        "some_other_module": "modules/some_other_module.js"
+        "some_module_deps": "some_module_deps.js"
+    },
+
+    "js": true,    // from some_module.lmd.json
+    "async": true,
+
+    "cache": false // overwritten by master config index.lmd.json
+}
+```
+
+See [test/qunit/cfgs/test.lmd.json](/azproduction/lmd/test/qunit/cfgs/test.lmd.json) for config example
+
+**Note:**
+ - LMD will warn if some config declares exists module name
+ - "main" module from each depends module will be excluded
+ - master config may overwrite flags by setting `"flag": false`
+
 Application statistics. Require, load, eval, call statistics. Flag: `stats`
 ---------------------------------------------------
 
@@ -728,6 +841,8 @@ Major versions changelog
   - LMD module from non-lmd module (see [LMD module form third-party modules](#lmd-module-form-third-party-modules))
   - `config.lazy=false` by default now
   - Local Storage cache in Opera Mobile is disabled (OM cant Function#toString...)
+  - `root` alias to `path`
+  - Module depends
 
 Licence
 -------

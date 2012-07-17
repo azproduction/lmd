@@ -55,8 +55,7 @@ var fs = require('fs'),
     JsHint = require('jshint').JSHINT,
     lmdCoverage = require(__dirname + '/../lib/coverage_apply.js'),
     common = require(__dirname + '/../lib/lmd_common.js'),
-    tryExtend = common.tryExtend,
-    collectModules = common.collectModules;
+    assembleLmdConfig = common.assembleLmdConfig;
 
 var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
 
@@ -123,6 +122,7 @@ var LmdBuilder = function (data) {
 
     this.configDir = fs.realpathSync(this.configFile);
     this.configDir = this.configDir.split(CROSS_PLATFORM_PATH_SPLITTER);
+    this.flagToOptionNameMap = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_flags.json'));
     this.configDir.pop();
     this.configDir = this.configDir.join('/');
     if (this.configure()) {
@@ -409,8 +409,6 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
     var optionNames,
         flagName;
 
-    var flagToOptionNameMap = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_flags.json'));
-
     /**
      * Applies or removes block from lmd_js
      *
@@ -510,8 +508,8 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
     };
 
     // Add plugins
-    for (flagName in flagToOptionNameMap) {
-        optionNames = flagToOptionNameMap[flagName];
+    for (flagName in this.flagToOptionNameMap) {
+        optionNames = this.flagToOptionNameMap[flagName];
 
         optionNames.forEach(function (optionName) {
             /*if ($P.STATS) include('stats.js');*/
@@ -532,8 +530,8 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
     }
 
     // Apply IF statements
-    for (flagName in flagToOptionNameMap) {
-        optionNames = flagToOptionNameMap[flagName];
+    for (flagName in this.flagToOptionNameMap) {
+        optionNames = this.flagToOptionNameMap[flagName];
 
         // first are inline
         optionNames.forEach(function (optionName) {
@@ -548,8 +546,8 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
     }
 
     // Wipe IF statements
-    for (flagName in flagToOptionNameMap) {
-        optionNames = flagToOptionNameMap[flagName];
+    for (flagName in this.flagToOptionNameMap) {
+        optionNames = this.flagToOptionNameMap[flagName];
 
         // first are inline
         optionNames.forEach(function (optionName) {
@@ -602,8 +600,13 @@ LmdBuilder.prototype.getSandboxedModules = function (modulesStruct, config) {
 LmdBuilder.prototype.fsWatch = function () {
     var self = this,
         watchedModulesCount = 0,
-        config = tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8')), this.configDir),
-        module,
+        config = assembleLmdConfig(this.configFile, Object.keys(this.flagToOptionNameMap));
+
+    for (var i = 0, c = config.errors.length; i < c; i++) {
+        this.warn(config.errors[i]);
+    }
+
+    var module,
         modules,
         watchBuilder = function (stat, filename) {
             if (self.isLog) {
@@ -639,7 +642,7 @@ LmdBuilder.prototype.fsWatch = function () {
         };
 
     if (config.modules) {
-        modules = collectModules(config, this.configDir);
+        modules = config.modules;
         for (var index in modules) {
             module = modules[index];
             try {
@@ -682,7 +685,7 @@ LmdBuilder.prototype.formatLog = function (text) {
  */
 LmdBuilder.prototype.error = function (text) {
     text = this.formatLog(text);
-    console.error('\033[40mlmd\033[0m\t\033[31m\033[40mERROR:\033[0m ' + text);
+    console.error('\033[40mlmd\033[0m \033[31m\033[40mERROR:\033[0m ' + text);
 };
 
 /**
@@ -696,7 +699,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text) {
     if (this.isWarn) {
         text = this.formatLog(text);
-        console.log('\033[40mlmd\033[0m\t\033[31mWarning:\033[0m ' + text);
+        console.log('\033[40mlmd\033[0m \033[31mWarning:\033[0m ' + text);
     }
 };
 
@@ -727,8 +730,13 @@ LmdBuilder.prototype.checkForDirectGlobalsAccess = function (moduleName, moduleC
  * @param [callback] {Function}
  */
 LmdBuilder.prototype.build = function (callback) {
-    var config = tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8')), this.configDir),
-        lazy = config.lazy || false,
+    var config = assembleLmdConfig(this.configFile, Object.keys(this.flagToOptionNameMap));
+
+    for (var i = 0, c = config.errors.length; i < c; i++) {
+        this.warn(config.errors[i]);
+    }
+
+    var lazy = config.lazy || false,
         mainModuleName = config.main,
         pack = lazy ? true : typeof config.pack === "undefined" ? true : config.pack,
         moduleContent,
@@ -762,7 +770,7 @@ LmdBuilder.prototype.build = function (callback) {
     }
 
     if (config.modules) {
-        modules = collectModules(config, this.configDir);
+        modules = config.modules;
         // build modules string
         for (var index in modules) {
             module = modules[index];
