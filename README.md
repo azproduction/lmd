@@ -1,5 +1,4 @@
-LMD: Lazy Module Declaration
-==============================================
+# LMD: Lazy Module Declaration
 
 Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without
 touching any part of DOM. LMD is inspired by AMD and provides similar module interface. It evals module only when
@@ -9,8 +8,7 @@ they are required. LMD is "Yet Another Loader" with all loader features: js, css
 - you can write your [modules as Node.js](#lmd-modules) without define or require wrappers
 - but you can use all [other modules](#lmd-module-form-third-party-modules)), and more...
 
-Features
---------
+## Features
 
 1. Modules are similar to AMD: there is a require, but no define
 2. LMD does not create globals
@@ -20,29 +18,27 @@ Features
 6. Build system compresses JavaScript files using UglifyJs
 7. LMD module can define object via `return` or `module.exports` or `exports` as CommonJS Module
 8. Module can be wrapped automatically in builder so you can write your modules as node.js modules (see [Use](#use)
-and [Asynchronous module require](#asynchronous-module-require-flags-async-race-cache_async-async_plain-async_plainonly))
+and [Asynchronous module require](#asynchronous-module-require))
 9. Starting from version 1.5.2 LMD can require off-package modules `"async": true`
-(see [Asynchronous module require](#asynchronous-module-require-flags-async-race-cache_async-async_plain-async_plainonly))
+(see [Asynchronous module require](#asynchronous-module-require))
 10. From version 1.6.0 LMD can cache all in-package modules in localStorage `"cache": true`
-(see [Local Storage cache](#local-storage-cache-flags-cache-cache_async-property-version))
+(see [Local Storage cache](#local-storage-cache))
 11. From version 1.6.2 LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
 12. LMD package is possible to run as Web Worker or execute as Node.js script
-(see [Web Worker and Node.js](#web-worker-and-nodejs-flags-node-worker))
+(see [Web Worker and Node.js](#web-worker-and-nodejs))
 13. LMD works in all modern browsers and in older IE
-(see [Browsers support](#browsers-support-flags-ie-opera_mobile))
+(see [Browsers support](#browsers-support))
 14. LMD can convert non-LMD modules to LMD to use jquery or any other as in-package LMD module
 (see [LMD module form third-party modules](#lmd-module-form-third-party-modules))
 15. LMD can protect your code from 3-party modules (see [Modules sandbox](#modules-sandbox))
-16. Code Coverage? - Easy! (see [Code coverage](#code-coverage-flag-stats-stats_coverage-stats_sendto))
+16. Code Coverage? - Easy! (see [Code coverage](#code-coverage))
 17. Ready for production - `lmd.js` is 100% covered by unit tests see [test/README.md](/azproduction/lmd/tree/master/test) for details
 
-Installing
-----------
+## Installing
 
 `npm install lmd` or global `npm install lmd -g`
 
-LMD Modules
------------
+## LMD Modules types
 
 **1\.1\. Module - functions**
 
@@ -106,8 +102,7 @@ module.exports = function(message) {
 <i class="b-template">${content}</i>
 ```
 
-Config file
------------
+## LMD Config file
 
 **index.production.lmd.json**
 
@@ -234,8 +229,7 @@ Config file
 
 You can extend config file with another using `"extends": "path/to/file.lmd.json"` parameter
 
-Build
------
+## Build
 
 `lmd examples/basic/cfgs/index.development.lmd.json examples/basic/out/index.development.lmd.js` or `node ./lmd/bin/lmd.js ... `
 
@@ -243,8 +237,7 @@ Or print to `STDOUT`
 
 `lmd example/cfgs/index.development.lmd.json`
 
-Use
----
+## Use
 
 **index.development.lmd.js**
 
@@ -271,8 +264,11 @@ Use
 (function(b){var c=b("depA");c("ololo")})
 ```
 
-Asynchronous module require. Flags: `async`, `race`, `cache_async`, `async_plain`, `async_plainonly`
-------------------------------------------
+## Features/Plugins
+
+### Asynchronous module require
+
+ - Flags: `async`, `race`, `cache_async`, `async_plain`, `async_plainonly`
 
 You can build async LMD package.  (Disabled by default)
 
@@ -283,7 +279,7 @@ You must work online using HTTP server for correct headers, if you work offline 
 then `Content-type` header will be INVALID so all modules will be strings.
 
 **Notice**
- - See "[Web Worker and Node.js](#web-worker-and-nodejs-flags-node-worker)" if your package will run as worker or node script
+ - See "[Web Worker and Node.js](#web-worker-and-nodejs)" if your package will run as worker or node script
  - If you use `file:` protocol then all modules will be strings
  - LMD loader uses simple RegExp `/script$|json$/` with `Content-type` to determine the kind of content
 and eval it (if json or javascript) or return as string
@@ -293,7 +289,7 @@ and eval it (if json or javascript) or return as string
  - If you are performing parallel loading of the same resource add `race: true` (Disabled by default)
    flag to prevent duplication of requests.
  - You can set both flags `cache` and `cache_async` to true to enable localStorage cache for `require.async()`
-   (see [Local Storage cache](#local-storage-cache-flags-cache-cache_async-property-version))
+   (see [Local Storage cache](#local-storage-cache))
  - You can require plain off-package modules by declaring one of flags `async_plain` or `async_plainonly`
 
 ```javascript
@@ -338,8 +334,9 @@ function module(require, exports, module) {
 
 See [example/basic/modules/main.js](/azproduction/lmd/blob/master/examples/basic/modules/main.js#L24) for real life example
 
-Local Storage cache. Flags: `cache`, `cache_async`, Property: `version`
--------------------------------------------------------
+### Local Storage cache
+
+ - Flags: `cache`, `cache_async`, Property: `version`
 
 You can store all your in-package modules and lmd itself in localStorage. (Disabled by default)
 
@@ -369,13 +366,14 @@ and [examples/basic/index.html](/azproduction/lmd/blob/master/examples/basic/ind
 **Note**: `version` property from config and from `data-version` attribute must match to use code from localStorage!
 Yep! Each time you have to change config file and your html file!
 
-Loading CSS and JavaScript files. Flags: `js`, `css`, `race`
-----------------------------------------------------
+### Loading CSS and JavaScript files
+
+ - Flags: `js`, `css`, `race`
 
 You can enable flags `css: true` and `js: true` to use css and js loader as all loaders do. (Disabled by default)
 
 **Notice**
- - See "[Web Worker and Node.js](#web-worker-and-nodejs-flags-node-worker)" if your package will run as worker or node script
+ - See "[Web Worker and Node.js](#web-worker-and-nodejs)" if your package will run as worker or node script
  - If you are performing parallel loading of the same resource add `race: true` (Disabled by default)
    flag to prevent duplication of requests.
 
@@ -391,8 +389,9 @@ require.css('./css/b-template.css', function (linkTag) {
 })
 ```
 
-Web Worker and Node.js. Flags: `node`, `worker`
------------------------------------------------
+### Web Worker and Node.js
+
+ - Flags: `node`, `worker`
 
 You can use LMD in-package modules (`require()`) in worker and run it as node script without any config changes.
 But if you are going to use `require.async()` or `require.js()` you should add `worker: true` or/and `node: true` config
@@ -407,16 +406,18 @@ flags. `require.css()` in node or worker environment acts like `require()`
 Run tests or see [examples/basic/modules/main.js](/azproduction/lmd/blob/master/examples/basic/modules/main.js#L60) and
 [examples/basic/modules/workerDepA.js](/azproduction/lmd/blob/master/examples/basic/modules/workerDepA.js) for details
 
-Browsers support. Flags: `ie`, `opera_mobile`
---------------------------------------------
+### Browsers support
+
+ - Flags: `ie`, `opera_mobile`
 
 LMD works in all modern browsers and in older IE. If LMD package will run only in modern browsers turn off `ie: false`
 config flag to optimise lmd source for modern browsers (removes few IE hacks)
 
 Tested on Opera 11.63, Chrome 17, Safari 5, IE 6+, Firefox 12, iOS Safari 5, to be updated...
 
-Shortcuts. Flag `shortcuts`
----------------------------
+### Shortcuts
+
+ - Flag `shortcuts`
 
 You can define flag `shortcuts: true` to enable shortcuts in LMD package. Then you can use short names instead of full paths.
 Symbol `@` indicates that module content is shortcut.
@@ -446,8 +447,11 @@ require.js("jquery", function () {
 });
 ```
 
-LMD module form third-party modules
------------------------------------
+## Module features
+
+### LMD module form third-party modules
+
+ - Module parameters: exports, require
 
 If you are using jquery as in-package module or any other module without exports. LMD can easily convert it to LMD format.
 You may add `"exports"` and/or `"require"` to your module descriptor to notify LMD that this module should be converted to LMD format.
@@ -521,8 +525,9 @@ You may use more complex exports as `"exports": "require('$').noConflict(true)"`
 
 **Note** Try not to use complex expressions!
 
-Modules sandbox
----------------
+### Modules sandbox
+
+ - Module parameters: sandbox
 
 If you are using some untrusted 3-party modules or your modules cant `require()` by design you can apply sandbox on that
 module by adding `"sandbox": true` to your module declaration. Now this module can't require and use require sub-functions.
@@ -540,8 +545,10 @@ module by adding `"sandbox": true` to your module declaration. Now this module c
 }
 ```
 
-Modules depends. Property/Flag: `depends`
------------------------------------------
+### Modules depends
+
+ - Module Property/Flag: `depends`
+ - Property/Flag: `depends`
 
 Modules may have dependencies that you can put in a separate file. This file has the same format as any lmd.json file.
 Each file is an independent configuration file. You can specify a list of required features and modules.
@@ -639,8 +646,11 @@ See [test/qunit/cfgs/test.lmd.json](/azproduction/lmd/tree/master/test/qunit/cfg
  - "main" module from each depends module will be excluded
  - master config may overwrite flags by setting `"flag": false`
 
-Application statistics. Require, load, eval, call statistics. Flag: `stats`
----------------------------------------------------
+## LMD Statistics and Code Coverage
+
+### Application statistics. Require, load, eval, call statistics
+
+ - Flag: `stats`
 
 You can dump your application/package statistics to analise numbers: load+eval+call time and requires count
 
@@ -693,8 +703,9 @@ $.post('/lmd-stats', JSON.stringify(stats));
 require.stats.sendTo('http://localhost:8081'); // you may specify report_name too
 ```
 
-Code coverage. Flag: `stats`, `stats_coverage`, `stats_sendto`
--------------------------------------------------------------
+### Code coverage
+
+ - Flag: `stats`, `stats_coverage`, `stats_sendto`
 
 Add `stats_coverage` flag to your config file or use list of module names to cover only them. Rebuild your package.
 Now you can see coverage report in `require.stats()` object. See [src/plugin/stats.js#L46](/azproduction/lmd/blob/master/src/plugin/stats.js#L46) for more information.
@@ -716,8 +727,7 @@ require.stats.sendTo('http://localhost:8081'); // you may specify report_name to
  - sandboxed module under CC will accept an object as require with coverage functions instead of undefined
  - LMD cannot apply code coverage on async modules now (in future versions only)
 
-Stats server
-------------
+### Stats server
 
 Stats server provides simple coverage and usage reports
 
@@ -741,8 +751,7 @@ Stats server provides simple coverage and usage reports
 
 see [examples/mock_chat](/azproduction/lmd/tree/master/examples/mock_chat) for real example
 
-Watch mode
-----------
+## Watch mode
 
 During development its not very convenient to rebuild the LMD-package each time. You can run LMD package in watch mode
 and LMD builder can rebuild your package automatically.
@@ -755,8 +764,7 @@ new style `lmd -m watch -c config.lmd.json -o output.js -l` the `-l` flag for ve
 
 or new style with long names `lmd -mode watch -config config.lmd.json -output output.js -log`
 
-LMD CLI
---------------
+## LMD CLI
 
 old style `lmd [mode] config [output]`
 
@@ -770,13 +778,11 @@ new style `lmd [-m mode] -c config [-o output] [-l]`
  - `-l` `-log` print work log - default false
  - `-no-w` `-no-warn` disable warnings
 
-Running tests
--------------
+## Running tests
 
 see [test](/azproduction/lmd/tree/master/test) for details
 
-Major versions changelog
----------
+## Major versions changelog
 
 **v1.1.x**
 
@@ -813,7 +819,7 @@ Major versions changelog
 
 **v1.6.x**
 
-  - Local Storage cache - config flag `cache: true` see "[Local Storage cache](#local-storage-cache-flags-cache-cache_async-property-version)" in this README
+  - Local Storage cache - config flag `cache: true` see "[Local Storage cache](#local-storage-cache)" in this README
   - argv flag `-v`/`-version` is deprecated - use config flag `async: true` for `lmd_async.js` or false for `lmd_tiny.js` (default)
   - Created development version of example app without cache and production with cache=on
   - LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
@@ -844,8 +850,7 @@ Major versions changelog
   - `root` alias to `path`
   - Module depends
 
-Licence
--------
+## Licence
 
 (The MIT License)
 
