@@ -83,6 +83,7 @@ module.exports = function(message) {
 ```
 
 **Note**:
+
  - plain module will be wrapped by builder `(function (require, exports, module) {\n%code%\n})`
  - you can require plain off-package modules by declaring one of flags `async_plain` or `async_plainonly`
 
@@ -224,6 +225,7 @@ For templates
 ```
 
 **Note**
+
  - You can extend config file with another using `"extends": "path/to/file.lmd.json"` parameter
  - You can also specify module depends by adding `"depends"` options see [Modules depends](#modules-depends)
 
@@ -279,6 +281,7 @@ You must work online using HTTP server for correct headers, if you work offline 
 then `Content-type` header will be INVALID so all modules will be strings.
 
 **Notice**
+
  - See "[Web Worker and Node.js](#web-worker-and-nodejs)" if your package will run as worker or node script
  - If you use `file:` protocol then all modules will be strings
  - LMD loader uses simple RegExp `/script$|json$/` with `Content-type` to determine the kind of content
@@ -372,7 +375,8 @@ Yep! Each time you have to change config file and your html file!
 
 You can enable flags `css: true` and `js: true` to use css and js loader as all loaders do. (Disabled by default)
 
-**Notice**
+**Note**
+
  - See "[Web Worker and Node.js](#web-worker-and-nodejs)" if your package will run as worker or node script
  - If you are performing parallel loading of the same resource add `race: true` (Disabled by default)
    flag to prevent duplication of requests.
@@ -642,6 +646,7 @@ Result js file will contain all module deps:
 See [test/qunit/cfgs/test.lmd.json](/azproduction/lmd/tree/master/test/qunit/cfgs/test.lmd.json) for config example
 
 **Note:**
+
  - LMD will warn if some config declares exists module name
  - "main" module from each depends module will be excluded
  - master config may overwrite flags by setting `"flag": false`
@@ -842,6 +847,7 @@ see [test](/azproduction/lmd/tree/master/test) for details
   - replaced old preprocessor with readable one
 
 **v1.7.x**
+
   - **Note** in sandboxed module require can be an object (`{coverage_line, coverage_function, coverage_condition}`) if sandboxed module is under code coverage
   - `require.async()` can load plain modules flags `async_plain`, `async_plainonly`
   - `require.stats()` shows modules usage and code coverage. Flags `stats`, `stats_coverage`, `stats_sendto`
