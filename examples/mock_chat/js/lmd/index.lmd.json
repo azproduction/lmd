@@ -5,8 +5,8 @@
         "b-roster": "b-roster.js",
         "undefined": "utils.js",
         "b-unused-module": "b-unused-module.js",
-        "b-dialog": "@js/lmd/modules/b-dialog.min.js",
-        "b-talk": "@js/lmd/modules/b-talk.min.js"
+        "b-dialog": "@js/lmd/modules/b-dialog.js",
+        "b-talk": "@js/lmd/modules/b-talk.js"
     },
     "main": "main",
     "global": "this",
@@ -19,5 +19,6 @@
 
     "stats": true,
     "stats_coverage": true,
+    "stats_coverage_async": false,
     "stats_sendto": true
 }

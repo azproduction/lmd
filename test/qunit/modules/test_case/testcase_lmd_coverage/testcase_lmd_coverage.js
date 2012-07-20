@@ -49,4 +49,27 @@
         report = stats.modules["coverage_not_covered"].coverage.report;
         ok(report[1] && report[2] && report[3] && report[6] && report[7], "coverage_not_covered: not covered");
     });
+
+    asyncTest("Coverage - Async: stats_coverage_async", function () {
+        expect(2);
+
+        require.async(['coverage_fully_covered_async', 'coverage_not_functions_async'], function () {
+            var stats = require.stats(),
+                report;
+
+            report = stats.modules["coverage_fully_covered_async"].coverage.report;
+
+            for (var i in report) {
+                if (report.hasOwnProperty(i)) {
+                    ok(false, "should be fully covered!");
+                }
+            }
+
+            report = stats.modules["coverage_not_functions_async"].coverage.report;
+            ok(report[3].functions[0] === "test", "coverage_not_functions: not 2 line");
+            ok(report[4].lines === false, "coverage_not_functions: not 3 line");
+
+            start();
+        });
+    });
 })

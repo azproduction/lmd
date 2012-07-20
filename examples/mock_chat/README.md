@@ -28,3 +28,6 @@ Run stats server
  5. Open stats server admin interface `http://localhost:8081` and see the results
  6. Click roster item again (to resend stats report) and refresh report to see updated results
 
+You may also enable code coverage for async modules by adding "stats_coverage_async" flag to `js/lmd/index.lmd.json` file.
+Warning "stats_coverage_async" flag is extreme lag source!
+

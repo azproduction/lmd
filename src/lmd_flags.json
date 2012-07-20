@@ -13,6 +13,7 @@
     "shortcuts": ["$P.SHORTCUTS"],
     "stats": ["$P.STATS"],
     "stats_coverage": ["$P.STATS_COVERAGE"],
+    "stats_coverage_async": ["$P.STATS_COVERAGE_ASYNC"],
     "stats_sendto": ["$P.STATS_SENDTO", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
     "async_plain": ["$P.ASYNC_PLAIN", "$P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY"],
     "async_plainonly": ["$P.ASYNC_PLAINONLY", "$P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY"]

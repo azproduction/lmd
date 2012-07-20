@@ -202,6 +202,11 @@ For templates
     "stats": true,          // enables require.stats() function - every module require, load, eval, call statistics [default=false]
     "stats_coverage": true, // enables code coverage for all in-package modules, you can use list of module names
                             // to cover only modules in that list [default=false]
+    "stats_coverage_async": true, // enables code coverage for all off-package function-modules [default=false]
+                                  // for that option you can NOT use list of off-package module names
+                                  // this options is VERY HEAVY +50Kb sources
+                                  // each async LMD module will be parsed and patched on the client
+                                  // it may take A LOT of time
     "stats_sendto": true    // enables require.stats.sendTo(host[, reportName]) function
                             // it POSTs stats&coverage report to specified stats server
 }
@@ -700,12 +705,14 @@ require.stats.sendTo('http://localhost:8081'); // you may specify report_name to
 
 ### Code coverage
 
- - Flag: `stats`, `stats_coverage`, `stats_sendto`
+ - Flag: `stats`, `stats_coverage`, `stats_sendto`, `stats_coverage_async`
 
 Add `stats_coverage` flag to your config file or use list of module names to cover only them. Rebuild your package.
 Now you can see coverage report in `require.stats()` object. See [src/plugin/stats.js#L46](/azproduction/lmd/blob/master/src/plugin/stats.js#L46) for more information.
 
-You may also enable `stats_sendto` flag to push your reports to the Stats Server.
+You can enable `stats_sendto` flag to push your reports to the Stats Server.
+You may also enable `stats_coverage_async` to profile all your async modules without processing them on server. All async modules
+will be parsed and processed on client.
 
 ```javascript
 require.stats.sendTo('http://localhost:8081'); // you may specify report_name too
@@ -721,6 +728,7 @@ require.stats.sendTo('http://localhost:8081'); // you may specify report_name to
  - if you are using function-modules you have to name your require as require at that moment...
  - sandboxed module under CC will accept an object as require with coverage functions instead of undefined
  - LMD cannot apply code coverage on async modules now (in future versions only)
+ - `stats_coverage_async` is VERLY LARGE `plugin` +50Bb and it may take a LOT of time to parse and patch your sources
 
 ### Stats server
 
@@ -844,6 +852,7 @@ see [test](/azproduction/lmd/tree/master/test) for details
   - Local Storage cache in Opera Mobile is disabled (OM cant Function#toString...)
   - `root` alias to `path`
   - Module depends
+  - off-package Code coverage. Flag `stats_coverage_async`
 
 ## Licence
 

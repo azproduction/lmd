@@ -93,6 +93,7 @@
 /*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
 /*if ($P.RACE) include('race.js');*/
 /*if ($P.STATS) include('stats.js');*/
+/*if ($P.STATS_COVERAGE_ASYNC) include('stats_coverage_async.js');*/
 /*if ($P.SHORTCUTS) include('shortcuts.js');*/
 /*if ($P.PARALLEL) include('parallel.js');*/
 /*if ($P.CACHE_ASYNC) include('cache_async.js');*/

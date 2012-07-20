@@ -16,8 +16,8 @@ function Roster(element) {
 
         // they are both shortcuts
         require.async(['b-dialog', 'b-talk'], function (Dialog) {
-            require.stats.sendTo('http://localhost:8081');
             new Dialog(element);
+            require.stats.sendTo('http://localhost:8081');
         });
     }, false);
 }

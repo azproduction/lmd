@@ -513,19 +513,26 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
 
         optionNames.forEach(function (optionName) {
             /*if ($P.STATS) include('stats.js');*/
-            var includePattern = new RegExp('\\/\\*\\if \\(' + optionName.replace(/\$/g, '\\$') + '\\)\\s+include\\(\'([a-z-_\\.]+)\'\\);?\\s*\\*\\/', ''),
+            var includePattern = new RegExp('\\/\\*\\if \\(' + optionName.replace(/\$/g, '\\$') + '\\)\\s+include\\(\'([a-z-\\/_\\.]+)\'\\);?\\s*\\*\\/', ''),
                 patchContent = '',
                 match;
 
             // Add plugin
-            if (config[flagName]) {
-                // apply: remove left & right side
-                match = lmd_js.match(includePattern);
-                if (match && match[1]) {
-                    patchContent = fs.readFileSync(LMD_JS_SRC_PATH + 'plugin/' + match[1]);
+            while (true) {
+                if (config[flagName]) {
+                    // apply: remove left & right side
+
+                    match = lmd_js.match(includePattern);
+                    if (match && match[1]) {
+                        patchContent = fs.readFileSync(LMD_JS_SRC_PATH + 'plugin/' + match[1]);
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
                 }
+                lmd_js = lmd_js.replace(includePattern, patchContent);
             }
-            lmd_js = lmd_js.replace(includePattern, patchContent);
         });
     }
 
@@ -883,6 +890,14 @@ LmdBuilder.prototype.build = function (callback) {
 
         if (config.async_plain && config.async_plainonly) {
             this.warn('You are using both config flags `async_plain` and `async_plainonly`. Disable one to optimise your source.');
+        }
+
+        if (!config.stats_coverage && config.stats_coverage_async) {
+            this.warn('You are using `stats_coverage_async` without `stats_coverage`. Enable `stats_coverage` flag.');
+        }
+
+        if (!config.async && config.stats_coverage_async) {
+            this.warn('You are using `stats_coverage_async` but not using `async`. Disable `stats_coverage_async` flag.');
         }
 
         sandbox = this.getSandboxedModules(modules, config);

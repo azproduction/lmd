@@ -7,8 +7,10 @@
 var fs = require('fs'),
     express = require("express"),
     common = require(__dirname + '/../lib/lmd_common.js'),
-    tryExtend = common.tryExtend,
-    collectModules = common.collectModules;
+    /*tryExtend = common.tryExtend,
+    collectModules = common.collectModules,*/
+    assembleLmdConfig = common.assembleLmdConfig,
+    flagToOptionNameMap = JSON.parse(fs.readFileSync('../../src/lmd_flags.json'));
 
 var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
 
@@ -61,9 +63,9 @@ function LmdStatsServer(data) {
     this.configDir.pop();
     this.configDir = this.configDir.join('/');
 
-    this.config = tryExtend(JSON.parse(fs.readFileSync(this.configFile, 'utf8')), this.configDir);
+    this.config = assembleLmdConfig(this.configFile, Object.keys(flagToOptionNameMap));
 
-    this.modules = collectModules(this.config, this.configDir);
+    this.modules = this.config.modules;
 
     this.app = express.createServer();
 

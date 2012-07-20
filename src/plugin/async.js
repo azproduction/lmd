@@ -162,8 +162,22 @@
                     }
                     // check file extension - not content-type
                     if ((/js$|json$/).test(moduleName)) {
-                        if ($P.ASYNC_PLAIN) {
+                        if ($P.STATS_COVERAGE_ASYNC) {
+                            var isPlainModule = false;
+                            if ($P.ASYNC_PLAIN) {
+                                isPlainModule = async_is_plain_code(module);
+                            }
+                            if ($P.ASYNC_PLAINONLY) {
+                                isPlainModule = true;
+                            }
+                        }
+                        if ($P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY) {
                             module = async_plain(module, moduleName);
+                        }
+                        if ($P.STATS_COVERAGE_ASYNC) {
+                            if (!(/json$/).test(moduleName)) {
+                                module = coverage_apply(moduleName, moduleName, module, isPlainModule);
+                            }
                         }
                         module = global_eval(module);
                     }
@@ -181,13 +195,25 @@
             if (xhr.readyState == 4) {
                 // 3. Check for correct status 200 or 0 - OK?
                 if (xhr.status < 201) {
+                    var contentType = xhr.getResponseHeader('content-type');
                     module = xhr.responseText;
-                    if ((/script$|json$/).test(xhr.getResponseHeader('content-type'))) {
-                        if ($P.ASYNC_PLAINONLY) {
-
+                    if ((/script$|json$/).test(contentType)) {
+                        if ($P.STATS_COVERAGE_ASYNC) {
+                            var isPlainModule = false;
+                            if ($P.ASYNC_PLAIN) {
+                                isPlainModule = async_is_plain_code(module);
+                            }
+                            if ($P.ASYNC_PLAINONLY) {
+                                isPlainModule = true;
+                            }
                         }
-                        if ($P.ASYNC_PLAIN) {
-                            module = async_plain(module, xhr.getResponseHeader('content-type'));
+                        if ($P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY) {
+                            module = async_plain(module, contentType);
+                        }
+                        if ($P.STATS_COVERAGE_ASYNC) {
+                            if (!(/json$/).test(contentType)) {
+                                module = coverage_apply(moduleName, moduleName, module, isPlainModule);
+                            }
                         }
                         module = global_eval(module);
                     }

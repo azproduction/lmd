@@ -110,12 +110,12 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
             fileName = lmdModules[moduleName].path;
         } else {
             // www_path -> path
-            fileName = wwwDir + moduleName;
+            fileName = wwwDir + '/' + moduleName;
         }
 
         // shortcut -> path
         if (fileName.charAt(0) === '@') {
-            fileName = wwwDir + fileName.replace('@', '');
+            fileName = wwwDir + '/' + fileName.replace('@', '');
         }
 
         return fs.readFileSync(fileName, 'utf8');

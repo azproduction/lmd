@@ -8,7 +8,7 @@ function Dialog(element) {
     element.appendChild(div);
     this.textAreaElement = $('.js-text', div);
 
-    require.async('js/lmd/modules/b-talk.min.js', function(Talk) {
+    require.async('b-talk', function(Talk) {
         self.talk = new Talk($('.js-talk', div));
         self.talk.addItem('Test Test Test Test', 'Hello! Hello! Hello! Hello! Hello!');
         self.talk.addItem('Test Test Test Test', 'Hello! Hello! Hello! Hello!');
