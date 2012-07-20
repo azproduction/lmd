@@ -729,8 +729,8 @@ require.stats.sendTo('http://localhost:8081'); // you may specify report_name to
  3. Your source executes `require.stats.sendTo(your_lmd_stats_server_server)` and send report to the server
  4. Then you open Stats Server Admin interface to see reports
 
-*Note*
- - if you are using function-modules you have to name your require as require at that moment...
+**Note**
+
  - sandboxed module under CC will accept an object as require with coverage functions instead of undefined
  - LMD cannot apply code coverage on async modules now (in future versions only)
  - `stats_coverage_async` is VERLY LARGE `plugin` +50Bb and it may take a LOT of time to parse and patch your sources
