@@ -535,7 +535,7 @@ You may use more complex exports as `"exports": "require('$').noConflict(true)"`
 
 If you are using some untrusted 3-party modules or your modules cant `require()` by design you can apply sandbox on that
 module by adding `"sandbox": true` to your module declaration. Now this module can't require and use require sub-functions.
-`undefined` or `Object` (if module under Code Coverage) will passed as require. But it can still export all module stuff.
+`undefined` or `Object` (if module under Code Coverage) will passed as require. Sandboxed module can export all module stuff.
 
 ```javascript
 "third_party_module_b": {
@@ -555,8 +555,8 @@ module by adding `"sandbox": true` to your module declaration. Now this module c
  - Property/Flag: `depends`
 
 Modules may have dependencies that you can put in a separate file. This file has the same format as any lmd.json file.
-Each file is an independent configuration file. You can specify a list of required features and modules.
-Each file can have only one config file with dependencies. All dependant configs may also have depends.
+In that file can specify a list of required features and modules.
+Each module can have only one config file with dependencies. All dependant configs may also have depends.
 
 In other words, each configuration defines a subtree of the file system and the features that it needs to work.
 The main config file assembles all subtrees and list of features into one big tree and features list.
@@ -732,7 +732,6 @@ require.stats.sendTo('http://localhost:8081'); // you may specify report_name to
 **Note**
 
  - sandboxed module under CC will accept an object as require with coverage functions instead of undefined
- - LMD cannot apply code coverage on async modules now (in future versions only)
  - `stats_coverage_async` is VERLY LARGE `plugin` +50Bb and it may take a LOT of time to parse and patch your sources
 
 ### Stats server
