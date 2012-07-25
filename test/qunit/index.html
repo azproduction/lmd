@@ -1,19 +1,38 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="vendors/qunit.css" type="text/css" media="screen" />
-    </head>
-    <body>
-        <h1 id="qunit-header">LMD test</h1>
-        <h2 id="qunit-banner"></h2>
-        <div id="qunit-testrunner-toolbar"></div>
-        <h2 id="qunit-userAgent"></h2>
-        <ol id="qunit-tests"></ol>
-        <div id="qunit-fixture"></div>
+	    <meta charset="UTF-8">
+        <link rel="stylesheet" href="vendors/qunit/qunit/qunit.css">
 
         <!--QUnit-->
-        <script src="vendors/jquery-latest.js"></script>
-        <script src="vendors/qunit.js"></script>
+        <script src="vendors/qunit/qunit/qunit.js"></script>
+        <script>
+            (function () {
+                var log = !this.console ? function () {} : function (a) {
+                    console.log(a);
+                };
+
+                QUnit.config.reorder = false;
+
+                QUnit.moduleStart(function (data) {
+                    log('# ' + data.name);
+                });
+
+                QUnit.testStart(function (data) {
+                    log('  - ' + data.name);
+                });
+
+                QUnit.done(function (data) {
+                    log('Tests completed in ' + data.runtime + ' milliseconds. ' + data.passed + ' tests of ' + data.total + ' passed, ' + data.failed + ' failed.');
+                });
+
+                QUnit.log(function (data) {
+                    if (!data.result) {
+                        log('    Assertion failed: ' + data.message);
+                    }
+                });
+            })();
+        </script>
 
         <!--Mock-->
         <script src="mock/node_global_environment.js"></script>
@@ -23,5 +42,13 @@
         <script src="out/test.lmd.js"></script>
         <script src="out/worker_test.lmd.js"></script>
         <script src="out/node_test.lmd.js"></script>
+    </head>
+    <body>
+        <h1 id="qunit-header">LMD test</h1>
+        <h2 id="qunit-banner"></h2>
+        <div id="qunit-testrunner-toolbar"></div>
+        <h2 id="qunit-userAgent"></h2>
+        <ol id="qunit-tests"></ol>
+        <div id="qunit-fixture"></div>
     </body>
 </html>

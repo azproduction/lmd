@@ -6,11 +6,23 @@
         ok = require('ok'),
         expect = require('expect'),
         $ = require('$'),
+        document = require('document'),
         raises = require('raises'),
 
         rnd = '?' + Math.random(),
 
         ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
+
+    function getComputedStyle(element, rule) {
+    	if(document.defaultView && document.defaultView.getComputedStyle){
+    		return document.defaultView.getComputedStyle(element, "").getPropertyValue(rule);
+    	}
+
+        rule = rule.replace(/\-(\w)/g, function (strMatch, p1){
+            return p1.toUpperCase();
+        });
+        return element.currentStyle[rule];
+    }
 
     module('LMD loader @ ' + ENV_NAME);
 
@@ -26,9 +38,9 @@
             ok(require('./modules/loader/non_lmd_module.js' + rnd) === script_tag, "should cache script tag on success");
 
             // some external
-            require.js('http://8.8.8.8:8/jquery.js' + rnd, function (script_tag) {
+            require.js('http://yandex.ru/jquery.js' + rnd, function (script_tag) {
                 ok(typeof script_tag === "undefined", "should return undefined on error in 3 seconds");
-                ok(typeof require('http://8.8.8.8:8/jquery.js' + rnd) === "undefined", "should not cache errorous modules");
+                ok(typeof require('http://yandex.ru/jquery.js' + rnd) === "undefined", "should not cache errorous modules");
                 require.js('module_as_string', function (module_as_string) {
                     require.async('module_as_string', function (module_as_string_expected) {
                         ok(module_as_string === module_as_string_expected, 'require.js() acts like require.async() if in-package/declared module passed');
@@ -83,7 +95,7 @@
             ok(typeof link_tag === "object" &&
                 link_tag.nodeName.toUpperCase() === "LINK", "should return link tag on success");
 
-            ok($('#qunit-fixture').css('visibility') === "hidden", "css should be applied");
+            ok(getComputedStyle(document.getElementById('qunit-fixture'), 'visibility') === "hidden", "css should be applied");
 
             ok(require('./modules/loader/some_css.css' + rnd) === link_tag, "should cache link tag on success");
 
