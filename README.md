@@ -1,3 +1,5 @@
+[![Build Status](https://secure.travis-ci.org/azproduction/lmd.png?branch=master)](http://travis-ci.org/azproduction/lmd)
+
 # LMD: Lazy Module Declaration
 
 Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without
@@ -858,6 +860,7 @@ see [test](/azproduction/lmd/tree/master/test) for details
   - `root` alias to `path`
   - Module depends
   - off-package Code coverage. Flag `stats_coverage_async`
+  - Phantom JS and Travis CI integration
 
 ## Licence
 
