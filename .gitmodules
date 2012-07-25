@@ -1,0 +1,12 @@
+[submodule "vendors/qunit"]
+	path = test/qunit/vendors/qunit
+	url = git://github.com/jquery/qunit.git
+[submodule "vendors/qunit-logging"]
+	path = test/qunit/vendors/qunit-logging
+	url = git://github.com/keithamus/qunit-logging
+[submodule "test/qunit/vendors/qunit"]
+	path = test/qunit/vendors/qunit
+	url = git://github.com/jquery/qunit.git
+[submodule "test/qunit/vendors/qunit-logging"]
+	path = test/qunit/vendors/qunit-logging
+	url = git://github.com/keithamus/qunit-logging
