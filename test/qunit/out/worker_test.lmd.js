@@ -5311,7 +5311,6 @@ return {
         expect(6);
 
         require.async('./modules/async/module_function_async.js' + rnd, function (module_function_async) {
-            console.log(module_function_async);
 
             ok(module_function_async.some_function() === true, "should require async module-functions");
             ok(require('./modules/async/module_function_async.js' + rnd) === module_function_async, "can sync require, loaded async module-functions");
