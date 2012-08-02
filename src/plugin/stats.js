@@ -46,25 +46,29 @@
  * @name lmdStats
  * @type {Object}
  *
- * @property {String}   name            module name
- * @property {Number[]} accessTimes     module access times
- * @property {Number}   initTime        module init time: load+eval+call
- * @property {String[]} shortcuts       list of used shortcuts
+ * @property {String}       name            module name
+ * @property {Object}       moduleAccessTimes  module access times {byModuleName: accessTimes}
+ * @property {Number[]}     accessTimes     access times
+ * @property {Number}       initTime        module init time: load+eval+call
+ * @property {String[]}     shortcuts       list of used shortcuts
  *
- * @property {String[]} lines           list of all statements
- * @property {String[]} conditions      list of all conditions
- * @property {String[]} functions       list of all functions
+ * @property {String[]}     lines           list of all statements
+ * @property {String[]}     conditions      list of all conditions
+ * @property {String[]}     functions       list of all functions
  *
- * @property {Object} runLines          {lineId: callTimes}
- * @property {Object} runConditions     {conditionId: [falseTimes, trueTimes]}
- * @property {Object} runFunctions      {functionId: callTimes}
+ * @property {Object}       runLines          {lineId: callTimes}
+ * @property {Object}       runConditions     {conditionId: [falseTimes, trueTimes]}
+ * @property {Object}       runFunctions      {functionId: callTimes}
  *
  * @property {LmdCoverage} coverage
  *
  * @example
  *  {
  *      name: "pewpew",
- *      accessTimes: [0, 5, 2715],
+ *      accessTimes: [{
+ *          time: 0,
+ *          byModule: "main"
+ *      }],
  *      initTime: 10,
  *      shortcuts: ["ololo"],
  *
@@ -136,6 +140,7 @@ function stats_get(moduleName) {
            stats_results[moduleName] = {
                name: moduleName,
                accessTimes: [],
+               moduleAccessTimes: {},
                initTime: -1
            };
 }
@@ -152,6 +157,58 @@ function stats_initEnd(moduleName) {
 function stats_require(moduleName) {
     var stat = stats_get(moduleName);
     stat.accessTimes.push(+new stats_Date - stats_startTime);
+}
+
+function stats_require_module(moduleName, byModuleName) {
+    var stat = stats_get(moduleName);
+
+    if (!stat.moduleAccessTimes[byModuleName]) {
+        stat.moduleAccessTimes[byModuleName] = [];
+    }
+    stat.moduleAccessTimes[byModuleName].push(+new stats_Date - stats_startTime);
+}
+
+function stats_wrap_require_method(method, thisObject, byModuleName) {
+    return function (moduleNames) {
+        if (Object.prototype.toString.call(moduleNames) !== "[object Array]") {
+            moduleNames = [moduleNames];
+        }
+
+        for (var i = 0, c = moduleNames.length, moduleName, moduleContent; i < c; i++) {
+            moduleName = moduleNames[i];
+            if ($P.SHORTCUTS) {
+                moduleContent = modules[moduleName];
+                if (is_shortcut(moduleName, moduleContent)) {
+                    moduleName = moduleContent.replace('@', '');
+                }
+            }
+            stats_require_module(moduleName, byModuleName);
+        }
+
+        return method.apply(thisObject, arguments);
+    }
+}
+
+function stats_wrap_require(require, byModuleName) {
+    var wrappedRequire = stats_wrap_require_method(require, this, byModuleName);
+
+    for (var name in require) {
+        wrappedRequire[name] = require[name];
+    }
+
+    if ($P.ASYNC) {
+        wrappedRequire.async = stats_wrap_require_method(require.async, this, byModuleName);
+    }
+
+    if ($P.CSS) {
+        wrappedRequire.css = stats_wrap_require_method(require.css, this, byModuleName);
+    }
+
+    if ($P.JS) {
+        wrappedRequire.js = stats_wrap_require_method(require.js, this, byModuleName);
+    }
+
+    return wrappedRequire;
 }
 
 function stats_type(moduleName, type) {

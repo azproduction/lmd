@@ -86,15 +86,20 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
 			if (err) {
 				res.send(500);
 			} else {
-                var code = getCode(moduleName),
-                    lines = code.split('\n');
+                var module_report = report.modules[moduleName];
+
+                if (module_report.type !== "global") {
+                    var code = getCode(moduleName),
+                        lines = code.split('\n');
+                }
 
                 res.render("file", {
                     name: req.params.report,
                     module: moduleName,
-                    report: report.modules[moduleName],
+                    report: module_report,
+                    full_report: report,
                     code: code,
-                    lines: lines.length,
+                    lines: lines && lines.length,
                     options: {
                         highlight: 'idea'
                     }
@@ -142,9 +147,39 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
 		if (err) {
 			res.send(500);
 		} else {
+            var imports = [],
+                rawImports = {};
+
+            for (var moduleName in report.modules) {
+                var moduleStats = report.modules[moduleName];
+                if (moduleStats.name === moduleName) {
+                    if (!rawImports[moduleName]) {
+                        rawImports[moduleName] = {
+                            "name": moduleName,
+                            "size": 0,
+                            "imports": []
+                        };
+                        imports.push(rawImports[moduleName]);
+                    }
+                    for (var ownerModuleName in moduleStats.moduleAccessTimes) {
+                        if (!rawImports[ownerModuleName]) {
+                            rawImports[ownerModuleName] = {
+                                "name": ownerModuleName,
+                                "size": 0,
+                                "imports": []
+                            };
+                            imports.push(rawImports[ownerModuleName]);
+                        }
+                        rawImports[ownerModuleName].size++;
+                        rawImports[ownerModuleName].imports.push(moduleName);
+                    }
+                }
+            }
+
             res.render("report", {
                 name : name || req.params.report,
-                report : report
+                report : report,
+                imports_report_data: JSON.stringify(imports)
             });
 		}
 	};
