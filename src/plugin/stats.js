@@ -1,4 +1,14 @@
 /**
+ * Package usage statistics
+ *
+ * @see /README.md near "Application statistics. Require, load, eval, call statistics" for details
+ *
+ * Flag "stats"
+ *
+ * This plugin provides require.stats() function and bunch of private functions
+ */
+
+/**
  * @name global
  * @name require
  * @name initialized_modules
@@ -52,6 +62,8 @@
  * @property {Number}       initTime        module init time: load+eval+call
  * @property {String[]}     shortcuts       list of used shortcuts
  *
+ * @property {String}       type            module type: global, in-package, off-package
+ *
  * @property {String[]}     lines           list of all statements
  * @property {String[]}     conditions      list of all conditions
  * @property {String[]}     functions       list of all functions
@@ -65,7 +77,9 @@
  * @example
  *  {
  *      name: "pewpew",
- *      accessTimes: [{
+ *      type: "in-package",
+ *      accessTimes: [0],
+ *      moduleAccessTimes: [{
  *          time: 0,
  *          byModule: "main"
  *      }],

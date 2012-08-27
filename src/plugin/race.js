@@ -1,3 +1,11 @@
+/**
+ * This plugin prevents from duplicate resource loading
+ *
+ * Flag "race"
+ *
+ * This plugin provides private "race_callbacks" function
+ */
+
 if ($P.CSS || $P.JS || $P.ASYNC) {
     var race_callbacks = {},
         /**

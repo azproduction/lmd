@@ -265,7 +265,7 @@ $(function () {
     function updateNodes(name, value) {
         return function (d) {
             if (value) this.parentNode.appendChild(this);
-            svg.select("node-" + d[name].key).classed(name, value);
+            svg.select("#node-" + d[name].key).classed(name, value);
         };
     }
 
@@ -295,5 +295,13 @@ $(function () {
 
     $source.on('click', '.b-source__line__item_type_line', function () {
         window.location.hash = '#L' + $(this).text();
+    });
+});
+$(function () {
+    var $el = $('.b-suggestions');
+    $el.find('.js-suggestions-more').click(function () {
+        $el.find('.i-hidden').removeClass('i-hidden');
+        $(this).remove();
+        return false;
     });
 });

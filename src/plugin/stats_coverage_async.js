@@ -1,4 +1,14 @@
 /**
+ * Coverage for off-package LMD modules
+ *
+ * Flag "stats_coverage_async"
+ *
+ * This plugin provides a bunch of private functions
+ *
+ * This plugin is HUGE - it includes all UglifyJs code
+ */
+
+/**
  * @name global
  * @name require
  * @name initialized_modules

@@ -335,6 +335,10 @@
 
 }
 
+.b-timeline__line {
+    line-height: 30px;
+}
+
 .b-timeline__line:nth-child(even) {
     background-color: #f9f9f9;
 }

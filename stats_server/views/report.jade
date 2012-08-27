@@ -68,6 +68,22 @@ html
                         else
                             .b-summary__item__percentage.b-summary__item__percentage_coverage_100 #{report.global.conditions.percentage.toFixed(2)}%
 
+                if (suggestions && suggestions.length)
+                    .g-first.g-col-1.g-span-12.b-title Suggestions
+
+                    .g-first.g-col-1.g-span-12.b-suggestions
+                        - var has_more = false
+                        ol.js-suggestions-list
+                            each suggestion, index in suggestions
+                                if (index < 6)
+                                    li #{suggestion}
+                                else
+                                    - has_more = true
+                                    li.i-hidden #{suggestion}
+
+                        if (has_more)
+                            a.js-suggestions-more(href="#") More...
+
                 .g-first.g-col-1.g-span-12.b-title Modules
 
                 .g-first.g-col-1.g-span-12

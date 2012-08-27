@@ -1,4 +1,13 @@
 /**
+ * Async loader of off-package LMD modules (special LMD format file)
+ *
+ * @see /README.md near "LMD Modules types" for details
+ *
+ * Flag "async"
+ *
+ * This plugin provides require.async() function
+ */
+/**
  * @name global
  * @name require
  * @name initialized_modules

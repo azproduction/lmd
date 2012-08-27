@@ -1,4 +1,14 @@
 /**
+ * Coverage for off-package LMD modules
+ *
+ * Flag "stats_sendto"
+ *
+ * This plugin provides sendTo private function and require.stats.sendTo() public function
+ *
+ * This plugin depends on stats
+ */
+
+/**
  * @name global
  * @name require
  * @name initialized_modules
