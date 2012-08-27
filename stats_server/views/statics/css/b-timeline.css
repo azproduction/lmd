@@ -1,0 +1,45 @@
+.b-timeline {
+
+}
+
+.b-timeline__line {
+    line-height: 30px;
+}
+
+.b-timeline__line:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.b-timeline__name {
+    white-space: nowrap;
+}
+
+.b-timeline__count {
+    text-align: center;
+}
+
+
+.b-timeline__wrapper {
+    clear: both;
+    width: 90%;
+}
+
+.b-timeline__item {
+    height: 20px;
+    overflow: visible;
+    width: 0;
+    border-left: solid 1px blue;
+
+    cursor: pointer;
+
+    line-height: 20px;
+    color: #555;
+    font-size: 80%;
+    text-indent: 5px;
+
+    white-space: nowrap;
+}
+
+.b-timeline__more {
+    text-align: center;
+}

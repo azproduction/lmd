@@ -1,3 +1,19 @@
+/**
+ * This file is not part of lmd.js.
+ *
+ * This is localStorage loader with script fallback.
+ *
+ * @see /README.md near "Local Storage cache" for more info
+ * @see live example /lmd/examples/mock_chat/index_cache.html near "lmd-initializer"
+ *
+ * How it works:
+ *
+ *   - if browser not support localStorage - it loads fallback script
+ *   - if support localStorage and cache exists
+ *     - and version is not expired - it start application from cache
+ *     - version expired - it wipes cache and it loads fallback script
+ *   - if no cache - it loads fallback script
+ */
 (function (global, document, scriptId, prefix, getAttribute, removeItem) {
     var globalEval = global.eval,
         scriptElement = document.getElementById(scriptId),

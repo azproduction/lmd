@@ -1,4 +1,14 @@
 /**
+ * Coverage for off-package LMD modules
+ *
+ * Flag "stats_sendto"
+ *
+ * This plugin provides sendTo private function and require.stats.sendTo() public function
+ *
+ * This plugin depends on stats
+ */
+
+/**
  * @name global
  * @name require
  * @name initialized_modules
@@ -100,7 +110,7 @@ var sendTo = function () {
         }();
 
     return function (host, method, data, reportName) {
-        var JSON = require('JSON')/*if ($P.IE) {*/ || {stringify: stringify}/*}*/;
+        var JSON = global.JSON/*if ($P.IE) {*/ || {stringify: stringify}/*}*/;
 
         // Add the iframe with a unique name
         var iframe = global_document.createElement("iframe"),
@@ -118,6 +128,7 @@ var sendTo = function () {
         form.target = uniqueString;
         form.action = host + "/" + method + '/' + (reportName || runId).replace(/\/|\\|\./g, '_');
         form.method = "POST";
+        form.setAttribute('accept-charset', 'utf-8');
 
         // repeat for each parameter
         var input = global_document.createElement("input");

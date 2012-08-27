@@ -1,0 +1,45 @@
+.b-require-graph {
+    margin-bottom: 2em;
+    font-size: 12px;
+}
+
+.b-require-graph path.arc {
+    cursor: move;
+    fill: #fff;
+}
+
+.b-require-graph .node {
+
+}
+
+.b-require-graph .node:hover {
+    fill: #1f77b4;
+}
+
+.b-require-graph .link {
+    fill: none;
+    stroke: #ddd;
+    pointer-events: none;
+}
+
+.b-require-graph .link.source,
+.b-require-graph .link.target {
+    stroke-opacity: 1;
+    stroke-width: 2px;
+}
+
+.b-require-graph .node.target {
+    fill: #d62728 !important;
+}
+
+.b-require-graph .link.source {
+    stroke: #d62728;
+}
+
+.b-require-graph .node.source {
+    fill: #2ca02c;
+}
+
+.b-require-graph .link.target {
+    stroke: #2ca02c;
+}
