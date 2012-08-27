@@ -1,4 +1,12 @@
 /**
+ * This plugin enables shortcuts
+ *
+ * Flag "shortcuts"
+ *
+ * This plugin provides private "is_shortcut" function
+ */
+
+/**
  * @name global
  * @name require
  * @name initialized_modules

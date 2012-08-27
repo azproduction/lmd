@@ -1,4 +1,12 @@
 /**
+ * Parallel resource loader
+ *
+ * Flag "parallel"
+ *
+ * This plugin provides private "parallel" function
+ */
+
+/**
  * @name global
  * @name require
  * @name initialized_modules

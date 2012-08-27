@@ -1,4 +1,9 @@
 /**
+ * This plugin dumps modules content to localStorage
+ *
+ * Flag "cache"
+ */
+/**
  * @name global
  * @name lmd
  * @name sandboxed_modules

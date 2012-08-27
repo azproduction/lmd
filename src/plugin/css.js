@@ -1,4 +1,11 @@
 /**
+ * Async loader of css files
+ *
+ * Flag "css"
+ *
+ * This plugin provides require.css() function
+ */
+/**
  * @name global
  * @name require
  * @name initialized_modules

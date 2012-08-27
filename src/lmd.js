@@ -29,7 +29,7 @@
                 module = module(
                     sandboxed_modules[moduleName] ?
                         /*if ($P.STATS_COVERAGE) {*/{coverage_line: require.coverage_line, coverage_function: require.coverage_function, coverage_condition: require.coverage_condition} ||/*}*/
-                        local_undefined : require,
+                        local_undefined : /*if ($P.STATS) {*/stats_wrap_require(require, moduleName) ||/*}*/require,
                     output.exports,
                     output
                 ) || output.exports;
@@ -101,5 +101,5 @@
 /*if ($P.JS) include('js.js');*/
 /*if ($P.CSS) include('css.js');*/
 /*if ($P.CACHE) include('cache.js');*/
-    main(require, output.exports, output);
+    main(/*if ($P.STATS) {*/stats_wrap_require(require, "main") ||/*}*/require, output.exports, output);
 })

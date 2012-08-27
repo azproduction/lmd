@@ -23,6 +23,7 @@
  */
 
 var fs = require("fs"),
+    util = require("util"),
     express = require('express');
 
 exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
@@ -86,15 +87,20 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
 			if (err) {
 				res.send(500);
 			} else {
-                var code = getCode(moduleName),
-                    lines = code.split('\n');
+                var module_report = report.modules[moduleName];
+
+                if (module_report.type !== "global") {
+                    var code = getCode(moduleName),
+                        lines = code.split('\n');
+                }
 
                 res.render("file", {
                     name: req.params.report,
                     module: moduleName,
-                    report: report.modules[moduleName],
+                    report: module_report,
+                    full_report: report,
                     code: code,
-                    lines: lines.length,
+                    lines: lines && lines.length,
                     options: {
                         highlight: 'idea'
                     }
@@ -136,18 +142,126 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
 				}
 			}
 		});
-	};
+	}
+
+    function getSuggestions(report) {
+        var moduleReport,
+            byModuleReport,
+            lmdModuleOptions,
+            realModuleName,
+            realByModuleName,
+            suggestions = [];
+
+        for (var moduleName in report.modules) {
+            moduleReport = report.modules[moduleName];
+            lmdModuleOptions = lmdConfig.modules[moduleName];
+            realModuleName = moduleReport.shortcuts && moduleReport.shortcuts.length ? moduleReport.shortcuts.join(', ') : moduleName;
+
+            // config exists and module is not a shortcut
+            if (moduleReport && moduleName === moduleReport.name && moduleName !== "main") {
+                // #1 If module lazy and it is requires on start add Suggestion
+                if (lmdModuleOptions &&
+                    lmdModuleOptions.is_lazy &&
+                    moduleReport.accessTimes &&
+                    moduleReport.accessTimes.length &&
+                    moduleReport.accessTimes[0] < 1000) {
+
+                    suggestions.push(util.format(
+                        'Module "%s" is lazy, but it accessed at application start (%d ms) you can make it not lazy to reduce a bit startup latency',
+                        realModuleName, moduleReport.accessTimes[0]
+                    ));
+                }
+
+                // #4 If module starts after 5000ms and not lazy - suggest to make it lazy
+                if (lmdModuleOptions &&
+                    !lmdModuleOptions.is_lazy &&
+                    moduleReport.accessTimes &&
+                    moduleReport.accessTimes.length &&
+                    moduleReport.accessTimes[0] > 5000) {
+
+                    suggestions.push(util.format(
+                        'Module "%s" is not lazy, but it runs lazily in your application (%d ms) you can make it lazy to reduce a bit startup latency',
+                        realModuleName, moduleReport.accessTimes[0]
+                    ));
+                }
+
+                // #2 If some module includes other module more than 2 times
+                if (moduleReport.moduleAccessTimes) {
+                    for (var byModuleName in moduleReport.moduleAccessTimes) {
+                        byModuleReport = report.modules[byModuleName];
+                        realByModuleName = byModuleReport.shortcuts && byModuleReport.shortcuts.length ? byModuleReport.shortcuts.join(', ') : byModuleName;
+
+                        if (moduleReport.moduleAccessTimes[byModuleName].length > 1) {
+                            suggestions.push(util.format(
+                                'Module "%s" is required by module "%s" %d times',
+                                realModuleName, realByModuleName, moduleReport.moduleAccessTimes[byModuleName].length
+                            ));
+                        }
+                    }
+                }
+
+                // #3 Suggest to create shortcuts instead of using urls
+                if (moduleReport.type === "off-package" && moduleReport.shortcuts && moduleReport.shortcuts.length === 0) {
+                    suggestions.push(util.format(
+                        'You can give shortcut name to your off-package module "%s" like "some_name": "@%s"',
+                        realModuleName, realModuleName
+                    ));
+                }
+
+                // #5 Mark unused module (Module in not used?)
+                if (lmdModuleOptions && moduleReport.accessTimes && moduleReport.accessTimes.length === 0) {
+                    suggestions.push(util.format(
+                        'Module "%s" is not used. You can make it off-package to reduce file size',
+                        realModuleName
+                    ));
+                }
+            }
+        }
+
+        return suggestions;
+    }
 
 	function sendReport(req, res, err, report, name) {
 		if (err) {
 			res.send(500);
 		} else {
+            var imports = [],
+                rawImports = {};
+
+            for (var moduleName in report.modules) {
+                var moduleStats = report.modules[moduleName];
+                if (moduleStats.name === moduleName) {
+                    if (!rawImports[moduleName]) {
+                        rawImports[moduleName] = {
+                            "name": moduleName,
+                            "size": 0,
+                            "imports": []
+                        };
+                        imports.push(rawImports[moduleName]);
+                    }
+                    for (var ownerModuleName in moduleStats.moduleAccessTimes) {
+                        if (!rawImports[ownerModuleName]) {
+                            rawImports[ownerModuleName] = {
+                                "name": ownerModuleName,
+                                "size": 0,
+                                "imports": []
+                            };
+                            imports.push(rawImports[ownerModuleName]);
+                        }
+                        rawImports[ownerModuleName].size++;
+                        rawImports[ownerModuleName].imports.push(moduleName);
+                    }
+                }
+            }
+
             res.render("report", {
                 name : name || req.params.report,
-                report : report
+                report : report,
+                imports_report_data: JSON.stringify(imports),
+                suggestions: getSuggestions(report)
             });
 		}
-	};
+	}
 
 	function readMultipleReports (reports, callback) {
 		var howMany = reports.length;

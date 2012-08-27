@@ -1,4 +1,12 @@
 /**
+ * Async loader of js files (NOT LMD modules): jQuery, d3.js etc
+ *
+ * Flag "js"
+ *
+ * This plugin provides require.js() function
+ */
+
+/**
  * @name global
  * @name require
  * @name initialized_modules
