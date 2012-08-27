@@ -859,6 +859,7 @@ see [test](/azproduction/lmd/tree/master/test) for details
   - Module depends
   - off-package Code coverage. Flag `stats_coverage_async`
   - Phantom JS and Travis CI integration
+  - Improved Stats Server: require timeline, require graph
 
 ## Licence
 
