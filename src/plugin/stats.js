@@ -184,15 +184,18 @@ function stats_require_module(moduleName, byModuleName) {
 
 function stats_wrap_require_method(method, thisObject, byModuleName) {
     return function (moduleName) {
-        var moduleNames;
+        var moduleNames = [];
         if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
             moduleNames = [moduleName];
+        } else {
+            moduleNames = moduleName;
         }
 
         for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
             moduleNamesItem = moduleNames[i];
             module = modules[moduleNamesItem];
-            var replacement = lmd_on('stats:before-require-count', moduleNamesItem, module);
+
+            var replacement = lmd_trigger('stats:before-require-count', moduleNamesItem, module);
             if (replacement) {
                 moduleNamesItem = replacement[0];
             }
@@ -263,7 +266,6 @@ require.stats = function (moduleName) {
     if (replacement && replacement[1]) {
         return replacement[1];
     }
-
     return moduleName ? stats_results[moduleName] : stats_results;
 };
 

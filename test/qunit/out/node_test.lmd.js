@@ -13,7 +13,7 @@
          * @returns {*}
          */
         register_module = function (moduleName, module) {
-            stats_type(moduleName, !module ? 'global' : typeof modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
+            lmd_trigger('lmd-register:before-register', moduleName, module);
             // Predefine in case of recursive require
             var output = {exports: {}};
             initialized_modules[moduleName] = 1;
@@ -24,17 +24,46 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                module = module(
+                var module_require = lmd_trigger(
                     sandboxed_modules[moduleName] ?
-                        {coverage_line: require.coverage_line, coverage_function: require.coverage_function, coverage_condition: require.coverage_condition} ||
-                        local_undefined : stats_wrap_require(require, moduleName) ||require,
-                    output.exports,
-                    output
-                ) || output.exports;
-            }
-            stats_initEnd(moduleName);
+                        'lmd-register:call-sandboxed-module' :
+                        'lmd-register:call-module',
+                    moduleName,
+                    require
+                )[1];
 
+                module = module(module_require, output.exports, output) || output.exports;
+            }
+
+            lmd_trigger('lmd-register:after-register', moduleName, module);
             return modules[moduleName] = module;
+        },
+        /**
+         * List of All lmd Events
+         */
+        lmd_events = {},
+        /**
+         * LMD event trigger function
+         */
+        lmd_trigger = function (event, data, data2) {
+            var list = lmd_events[event],
+                result;
+
+            if (list) {
+                for (var i = 0, c = list.length; i < c; i++) {
+                    result = list[i](event, data, data2) || result;
+                }
+            }
+            return result || [data, data2];
+        },
+        /**
+         * LMD event register function
+         */
+        lmd_on = function (event, callback) {
+            if (!lmd_events[event]) {
+                lmd_events[event] = [];
+            }
+            lmd_events[event].push(callback);
         },
         /**
          * @param {String} moduleName module name or path to file
@@ -46,22 +75,16 @@
 
             // Already inited - return as is
             if (initialized_modules[moduleName] && module) {
-                stats_require(moduleName);
+                lmd_trigger('lmd-require:from-cache', moduleName);
                 return module;
             }
 
-            // Do not init shortcut as module!
-            // return shortcut as is
-            if (is_shortcut(moduleName, module)) {
-                // assign shortcut name for module
-                stats_shortcut(module, moduleName);
-                moduleName = module.replace('@', '');
-                module = modules[moduleName];
+            var replacement = lmd_trigger('lmd-require:first-init', moduleName, module);
+            if (replacement) {
+                moduleName = replacement[0];
+                module = replacement[1];
             }
 
-            stats_require(moduleName);
-            
-            stats_initStart(moduleName);
             // Lazy LMD module not a string
             if (typeof module === "string" && module.indexOf('(function(') === 0) {
                 module = global_eval(module);
@@ -76,7 +99,6 @@
         initialized_modules[moduleName] = 0;
     }
 
-/*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
 /**
  * This plugin prevents from duplicate resource loading
  *
@@ -294,22 +316,24 @@ function stats_require_module(moduleName, byModuleName) {
 }
 
 function stats_wrap_require_method(method, thisObject, byModuleName) {
-    return function (moduleNames) {
-        if (Object.prototype.toString.call(moduleNames) !== "[object Array]") {
-            moduleNames = [moduleNames];
+    return function (moduleName) {
+        var moduleNames = [];
+        if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
+            moduleNames = [moduleName];
+        } else {
+            moduleNames = moduleName;
         }
 
-        for (var i = 0, c = moduleNames.length, moduleName, moduleContent; i < c; i++) {
-            moduleName = moduleNames[i];
+        for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
+            moduleNamesItem = moduleNames[i];
+            module = modules[moduleNamesItem];
 
-            moduleContent = modules[moduleName];
-            if (is_shortcut(moduleName, moduleContent)) {
-                moduleName = moduleContent.replace('@', '');
+            var replacement = lmd_trigger('stats:before-require-count', moduleNamesItem, module);
+            if (replacement) {
+                moduleNamesItem = replacement[0];
             }
-
-            stats_require_module(moduleName, byModuleName);
+            stats_require_module(moduleNamesItem, byModuleName);
         }
-
         return method.apply(thisObject, arguments);
     }
 }
@@ -321,17 +345,17 @@ function stats_wrap_require(require, byModuleName) {
         wrappedRequire[name] = require[name];
     }
 
+    if (require.async) {
+        wrappedRequire.async = stats_wrap_require_method(require.async, this, byModuleName);
+    }
 
-    wrappedRequire.async = stats_wrap_require_method(require.async, this, byModuleName);
+    if (require.css) {
+        wrappedRequire.css = stats_wrap_require_method(require.css, this, byModuleName);
+    }
 
-
-
-    wrappedRequire.css = stats_wrap_require_method(require.css, this, byModuleName);
-
-
-
-    wrappedRequire.js = stats_wrap_require_method(require.js, this, byModuleName);
-
+    if (require.js) {
+        wrappedRequire.js = stats_wrap_require_method(require.js, this, byModuleName);
+    }
 
     return wrappedRequire;
 }
@@ -363,6 +387,62 @@ function stats_shortcut(moduleName, shortcut) {
     }
 }
 
+/**
+ * Returns module statistics or all statistics
+ *
+ * @param {String} [moduleName]
+ * @return {Object}
+ */
+require.stats = function (moduleName) {
+    var replacement = lmd_trigger('stats:before-return-stats', moduleName, stats_results);
+
+    if (replacement && replacement[1]) {
+        return replacement[1];
+    }
+    return moduleName ? stats_results[moduleName] : stats_results;
+};
+
+lmd_on('lmd-register:call-module', function (event, moduleName, require) {
+    return [moduleName, stats_wrap_require(require, moduleName)];
+});
+
+lmd_on('lmd-register:after-register', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
+lmd_on('lmd-register:before-register', function (event, moduleName, module) {
+    stats_type(moduleName, !module ? 'global' : typeof modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
+});
+
+lmd_on('lmd-require:from-cache', function (event, moduleName) {
+    stats_require(moduleName);
+});
+
+lmd_on('lmd-require:first-init', function (event, moduleName, module) {
+    stats_require(moduleName);
+    stats_initStart(moduleName);
+});
+
+lmd_on('shortcuts:before-resolve', function (event, moduleName, module) {
+    // assign shortcut name for module
+    stats_shortcut(module, moduleName);
+});
+/*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
+/**
+ * @name global
+ * @name require
+ * @name initialized_modules
+ * @name modules
+ * @name global_eval
+ * @name register_module
+ * @name global_document
+ * @name global_noop
+ * @name local_undefined
+ * @name create_race
+ * @name race_callbacks
+ * @name coverage_options
+ * @name coverage_module
+ */
 
 
 /**
@@ -422,9 +502,9 @@ function stats_calculate_coverage(moduleName) {
         }
     }
     stats.coverage.functions = {
-        total: total,
-        covered: covered,
-        percentage: 100.0 * (total ? covered / total : 1)
+        total:total,
+        covered:covered,
+        percentage:100.0 * (total ? covered / total : 1)
     };
 
     covered = 0;
@@ -448,9 +528,9 @@ function stats_calculate_coverage(moduleName) {
         }
     }
     stats.coverage.conditions = {
-        total: total,
-        covered: covered,
-        percentage: 100.0 * (total ? covered / total : 1)
+        total:total,
+        covered:covered,
+        percentage:100.0 * (total ? covered / total : 1)
     };
     stats.coverage.report = lineReport;
 }
@@ -523,18 +603,19 @@ function coverage_module(moduleName, lines, conditions, functions) {
     }
 })();
 
+lmd_on('lmd-register:call-sandboxed-module', function (event, moduleName, require) {
+    return [moduleName, {
+        coverage_line: require.coverage_line,
+        coverage_function: require.coverage_function,
+        coverage_condition: require.coverage_condition
+    }];
+});
 
-
-/**
- * Returns module statistics or all statistics
- *
- * @param {String} [moduleName]
- * @return {Object}
- */
-require.stats = function (moduleName) {
-
+lmd_on('stats:before-return-stats', function (event, moduleName, stats_results) {
     if (moduleName) {
+        console.log('stats_calculate_coverage(moduleName);');
         stats_calculate_coverage(moduleName);
+        return [];
     } else {
         for (var moduleNameId in stats_results) {
             stats_calculate_coverage(moduleNameId);
@@ -584,12 +665,9 @@ require.stats = function (moduleName) {
             result.global[statName].percentage /= modulesCount;
         }
 
-        return result;
+        return [moduleName, result];
     }
-
-    return moduleName ? stats_results[moduleName] : stats_results;
-};
-
+});
 /**
  * Coverage for off-package LMD modules
  *
@@ -4605,6 +4683,26 @@ function is_shortcut(moduleName, moduleContent) {
            typeof moduleContent === "string" &&
            moduleContent.charAt(0) == '@';
 }
+
+lmd_on('lmd-require:first-init', function (event, moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        lmd_trigger('shortcuts:before-resolve', moduleName, module);
+
+        moduleName = module.replace('@', '');
+        module = modules[moduleName];
+
+        return [moduleName, module];
+    }
+});
+
+lmd_on('stats:before-require-count', function (event, moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        moduleName = module.replace('@', '');
+        module = modules[moduleName];
+
+        return [moduleName, module];
+    }
+});
 /**
  * Parallel resource loader
  *
@@ -5079,7 +5177,7 @@ function parallel(method, items, callback) {
 //#JSCOVERAGE_ENDIF
     };
 /*if ($P.CACHE) include('cache.js');*/
-    main(stats_wrap_require(require, "main") ||require, output.exports, output);
+    main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
 })(node_global_environment,(function (require) {
     // common for BOM Node and Worker Envs
     require('testcase_lmd_basic_features');

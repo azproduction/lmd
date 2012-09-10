@@ -183,7 +183,9 @@ lmd_on('lmd-register:call-sandboxed-module', function (event, moduleName, requir
 
 lmd_on('stats:before-return-stats', function (event, moduleName, stats_results) {
     if (moduleName) {
+        console.log('stats_calculate_coverage(moduleName);');
         stats_calculate_coverage(moduleName);
+        return [];
     } else {
         for (var moduleNameId in stats_results) {
             stats_calculate_coverage(moduleNameId);

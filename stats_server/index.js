@@ -67,7 +67,8 @@ function LmdStatsServer(data) {
 
     this.modules = this.config.modules;
 
-    this.app = express.createServer();
+    // 2.0 -> 3.0 migration
+    this.app = typeof express === "function" ? express() : express.createServer();
 
     if (this.isSameAdresses) {
         this.adminApp = this.app;
@@ -75,7 +76,8 @@ function LmdStatsServer(data) {
         console.log('Admin and log server are on ' + this.address + ':' + this.port);
     } else {
         this.app.use(express.bodyParser());
-        this.adminApp = express.createServer();
+        // 2.0 -> 3.0 migration
+        this.adminApp = typeof express === "function" ? express() : express.createServer();
         this.adminApp.use(express.bodyParser());
         this.adminApp.listen(this.adminPort, this.adminAddress);
         console.log('Admin server is on ' + this.adminAddress + ':' + this.adminPort);

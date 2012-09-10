@@ -13,7 +13,7 @@
          * @returns {*}
          */
         register_module = function (moduleName, module) {
-            stats_type(moduleName, !module ? 'global' : typeof modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
+            lmd_trigger('lmd-register:before-register', moduleName, module);
             // Predefine in case of recursive require
             var output = {exports: {}};
             initialized_modules[moduleName] = 1;
@@ -24,17 +24,46 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                module = module(
+                var module_require = lmd_trigger(
                     sandboxed_modules[moduleName] ?
-                        {coverage_line: require.coverage_line, coverage_function: require.coverage_function, coverage_condition: require.coverage_condition} ||
-                        local_undefined : stats_wrap_require(require, moduleName) ||require,
-                    output.exports,
-                    output
-                ) || output.exports;
-            }
-            stats_initEnd(moduleName);
+                        'lmd-register:call-sandboxed-module' :
+                        'lmd-register:call-module',
+                    moduleName,
+                    require
+                )[1];
 
+                module = module(module_require, output.exports, output) || output.exports;
+            }
+
+            lmd_trigger('lmd-register:after-register', moduleName, module);
             return modules[moduleName] = module;
+        },
+        /**
+         * List of All lmd Events
+         */
+        lmd_events = {},
+        /**
+         * LMD event trigger function
+         */
+        lmd_trigger = function (event, data, data2) {
+            var list = lmd_events[event],
+                result;
+
+            if (list) {
+                for (var i = 0, c = list.length; i < c; i++) {
+                    result = list[i](event, data, data2) || result;
+                }
+            }
+            return result || [data, data2];
+        },
+        /**
+         * LMD event register function
+         */
+        lmd_on = function (event, callback) {
+            if (!lmd_events[event]) {
+                lmd_events[event] = [];
+            }
+            lmd_events[event].push(callback);
         },
         /**
          * @param {String} moduleName module name or path to file
@@ -46,22 +75,16 @@
 
             // Already inited - return as is
             if (initialized_modules[moduleName] && module) {
-                stats_require(moduleName);
+                lmd_trigger('lmd-require:from-cache', moduleName);
                 return module;
             }
 
-            // Do not init shortcut as module!
-            // return shortcut as is
-            if (is_shortcut(moduleName, module)) {
-                // assign shortcut name for module
-                stats_shortcut(module, moduleName);
-                moduleName = module.replace('@', '');
-                module = modules[moduleName];
+            var replacement = lmd_trigger('lmd-require:first-init', moduleName, module);
+            if (replacement) {
+                moduleName = replacement[0];
+                module = replacement[1];
             }
 
-            stats_require(moduleName);
-            
-            stats_initStart(moduleName);
             // Lazy LMD module not a string
             if (typeof module === "string" && module.indexOf('(function(') === 0) {
                 module = global_eval(module);
@@ -76,7 +99,6 @@
         initialized_modules[moduleName] = 0;
     }
 
-/*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
 /**
  * This plugin prevents from duplicate resource loading
  *
@@ -294,22 +316,24 @@ function stats_require_module(moduleName, byModuleName) {
 }
 
 function stats_wrap_require_method(method, thisObject, byModuleName) {
-    return function (moduleNames) {
-        if (Object.prototype.toString.call(moduleNames) !== "[object Array]") {
-            moduleNames = [moduleNames];
+    return function (moduleName) {
+        var moduleNames = [];
+        if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
+            moduleNames = [moduleName];
+        } else {
+            moduleNames = moduleName;
         }
 
-        for (var i = 0, c = moduleNames.length, moduleName, moduleContent; i < c; i++) {
-            moduleName = moduleNames[i];
+        for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
+            moduleNamesItem = moduleNames[i];
+            module = modules[moduleNamesItem];
 
-            moduleContent = modules[moduleName];
-            if (is_shortcut(moduleName, moduleContent)) {
-                moduleName = moduleContent.replace('@', '');
+            var replacement = lmd_trigger('stats:before-require-count', moduleNamesItem, module);
+            if (replacement) {
+                moduleNamesItem = replacement[0];
             }
-
-            stats_require_module(moduleName, byModuleName);
+            stats_require_module(moduleNamesItem, byModuleName);
         }
-
         return method.apply(thisObject, arguments);
     }
 }
@@ -321,17 +345,17 @@ function stats_wrap_require(require, byModuleName) {
         wrappedRequire[name] = require[name];
     }
 
+    if (require.async) {
+        wrappedRequire.async = stats_wrap_require_method(require.async, this, byModuleName);
+    }
 
-    wrappedRequire.async = stats_wrap_require_method(require.async, this, byModuleName);
+    if (require.css) {
+        wrappedRequire.css = stats_wrap_require_method(require.css, this, byModuleName);
+    }
 
-
-
-    wrappedRequire.css = stats_wrap_require_method(require.css, this, byModuleName);
-
-
-
-    wrappedRequire.js = stats_wrap_require_method(require.js, this, byModuleName);
-
+    if (require.js) {
+        wrappedRequire.js = stats_wrap_require_method(require.js, this, byModuleName);
+    }
 
     return wrappedRequire;
 }
@@ -363,6 +387,62 @@ function stats_shortcut(moduleName, shortcut) {
     }
 }
 
+/**
+ * Returns module statistics or all statistics
+ *
+ * @param {String} [moduleName]
+ * @return {Object}
+ */
+require.stats = function (moduleName) {
+    var replacement = lmd_trigger('stats:before-return-stats', moduleName, stats_results);
+
+    if (replacement && replacement[1]) {
+        return replacement[1];
+    }
+    return moduleName ? stats_results[moduleName] : stats_results;
+};
+
+lmd_on('lmd-register:call-module', function (event, moduleName, require) {
+    return [moduleName, stats_wrap_require(require, moduleName)];
+});
+
+lmd_on('lmd-register:after-register', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
+lmd_on('lmd-register:before-register', function (event, moduleName, module) {
+    stats_type(moduleName, !module ? 'global' : typeof modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
+});
+
+lmd_on('lmd-require:from-cache', function (event, moduleName) {
+    stats_require(moduleName);
+});
+
+lmd_on('lmd-require:first-init', function (event, moduleName, module) {
+    stats_require(moduleName);
+    stats_initStart(moduleName);
+});
+
+lmd_on('shortcuts:before-resolve', function (event, moduleName, module) {
+    // assign shortcut name for module
+    stats_shortcut(module, moduleName);
+});
+/*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
+/**
+ * @name global
+ * @name require
+ * @name initialized_modules
+ * @name modules
+ * @name global_eval
+ * @name register_module
+ * @name global_document
+ * @name global_noop
+ * @name local_undefined
+ * @name create_race
+ * @name race_callbacks
+ * @name coverage_options
+ * @name coverage_module
+ */
 
 
 /**
@@ -422,9 +502,9 @@ function stats_calculate_coverage(moduleName) {
         }
     }
     stats.coverage.functions = {
-        total: total,
-        covered: covered,
-        percentage: 100.0 * (total ? covered / total : 1)
+        total:total,
+        covered:covered,
+        percentage:100.0 * (total ? covered / total : 1)
     };
 
     covered = 0;
@@ -448,9 +528,9 @@ function stats_calculate_coverage(moduleName) {
         }
     }
     stats.coverage.conditions = {
-        total: total,
-        covered: covered,
-        percentage: 100.0 * (total ? covered / total : 1)
+        total:total,
+        covered:covered,
+        percentage:100.0 * (total ? covered / total : 1)
     };
     stats.coverage.report = lineReport;
 }
@@ -523,18 +603,19 @@ function coverage_module(moduleName, lines, conditions, functions) {
     }
 })();
 
+lmd_on('lmd-register:call-sandboxed-module', function (event, moduleName, require) {
+    return [moduleName, {
+        coverage_line: require.coverage_line,
+        coverage_function: require.coverage_function,
+        coverage_condition: require.coverage_condition
+    }];
+});
 
-
-/**
- * Returns module statistics or all statistics
- *
- * @param {String} [moduleName]
- * @return {Object}
- */
-require.stats = function (moduleName) {
-
+lmd_on('stats:before-return-stats', function (event, moduleName, stats_results) {
     if (moduleName) {
+        console.log('stats_calculate_coverage(moduleName);');
         stats_calculate_coverage(moduleName);
+        return [];
     } else {
         for (var moduleNameId in stats_results) {
             stats_calculate_coverage(moduleNameId);
@@ -584,12 +665,9 @@ require.stats = function (moduleName) {
             result.global[statName].percentage /= modulesCount;
         }
 
-        return result;
+        return [moduleName, result];
     }
-
-    return moduleName ? stats_results[moduleName] : stats_results;
-};
-
+});
 /**
  * Coverage for off-package LMD modules
  *
@@ -4605,6 +4683,26 @@ function is_shortcut(moduleName, moduleContent) {
            typeof moduleContent === "string" &&
            moduleContent.charAt(0) == '@';
 }
+
+lmd_on('lmd-require:first-init', function (event, moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        lmd_trigger('shortcuts:before-resolve', moduleName, module);
+
+        moduleName = module.replace('@', '');
+        module = modules[moduleName];
+
+        return [moduleName, module];
+    }
+});
+
+lmd_on('stats:before-require-count', function (event, moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        moduleName = module.replace('@', '');
+        module = modules[moduleName];
+
+        return [moduleName, module];
+    }
+});
 /**
  * Parallel resource loader
  *
@@ -5093,7 +5191,7 @@ function cache_async(moduleName, module) {
             } catch(e) {}
         }());
     }
-    main(stats_wrap_require(require, "main") ||require, output.exports, output);
+    main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
 })(this,(function(e){e("testcase_lmd_basic_features"),e("testcase_lmd_async_require"),e("testcase_lmd_loader"),e("testcase_lmd_cache"),e("testcase_lmd_coverage")}),{
 "coverage_fully_covered": "(function(e,t,n){function i(){return e.coverage_function(\"coverage_fully_covered\",\"test:2:79\"),e.coverage_line(\"coverage_fully_covered\",\"3\"),r}var e=arguments[0];e.coverage_function(\"coverage_fully_covered\",\"(?):0:1\"),e.coverage_line(\"coverage_fully_covered\",\"1\");var r=\"123\";e.coverage_line(\"coverage_fully_covered\",\"2\"),e.coverage_line(\"coverage_fully_covered\",\"6\");if(e.coverage_condition(\"coverage_fully_covered\",\"if:6:118\",!0)){e.coverage_line(\"coverage_fully_covered\",\"7\");var s=i()}})",
 "coverage_not_conditions": "(function(e){e.coverage_line(\"coverage_not_conditions\",\"2\");if(e.coverage_condition(\"coverage_not_conditions\",\"if:2:31\",!1)){e.coverage_line(\"coverage_not_conditions\",\"3\");var t=123}})",
@@ -5125,7 +5223,7 @@ function cache_async(moduleName, module) {
 "third_party_module_a": "(function(e){return e(\"third_party_module_a_dep\"),function(e,t){e.uQuery_dep();var n=function(){var e=function(){};return e}();e.uQuery=n}(window),window.uQuery})",
 "third_party_module_b": "(function(e){function r(){}function i(){}var t=e(\"Function\"),n=e(\"Date\");new n,new t(\"return true\");var s=\"string\";return{pewpew:r,ololo:i,someVariable:s}})",
 "testcase_lmd_basic_features": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"raises\"),f=\"?\"+Math.random(),l=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";i(\"LMD basic features @ \"+l),t(\"require() globals\",function(){o(4),s(e(\"eval\"),\"should require globals as modules\"),s(typeof e(\"some_undefined\")==\"undefined\",\"if no module nor global - return undefined\"),s(!!e.stats(\"eval\"),\"should count stats: globals\"),s(!!e.stats(\"some_undefined\"),\"should count stats: undefineds\")}),t(\"require() module-functions\",function(){o(10);var t=e(\"module_function_fd\"),n=e(\"module_function_fe\"),r=e(\"module_function_plain\");s(t()===!0,\"can require function definitions\"),s(n()===!0,\"can require function expressions\"),s(r()===!0,\"can require plain modules\"),s(t===e(\"module_function_fd\"),\"require must return the same instance of fd\"),s(n===e(\"module_function_fe\"),\"require must return the same instance of fe\"),s(r===e(\"module_function_plain\"),\"require must return the same instance of plain module\"),s(!!e.stats(\"module_function_fd\"),\"should count stats: in-package modules\")}),t(\"require() sandboxed module-functions\",function(){o(3);var t=e(\"module_function_fd_sandboxed\"),n=e(\"module_function_fe_sandboxed\"),r=e(\"module_function_plain_sandboxed\");s(t.some_function()===!0,\"can require sandboxed function definitions\"),s(n.some_function()===!0,\"can require sandboxed function expressions\"),s(r.some_function()===!0,\"can require sandboxed plain modules\")}),t(\"require() lazy module-functions\",function(){o(4);var t=e(\"module_function_lazy\");s(t()===!0,\"can require lazy function definitions\"),s(typeof e(\"lazy_fd\")==\"undefined\",\"lazy function definition's name should not leak into globals\"),s(t===e(\"module_function_lazy\"),\"require must return the same instance of lazy fd\")}),t(\"require() module-objects/json\",function(){o(3);var t=e(\"module_as_json\");s(typeof t==\"object\",\"json module should be an object\"),s(t.ok===!0,\"should return content\"),s(t===e(\"module_as_json\"),\"require of json module should return the same instance\")}),t(\"require() module-strings\",function(){o(2);var t=e(\"module_as_string\");s(typeof t==\"string\",\"string module should be an string\"),s(t===e(\"module_as_string\"),\"require of string module should return the same instance\")}),t(\"require() shortcuts\",function(){o(2);var t=e(\"sk_to_global_object\");s(t.toString().replace(/\\s|\\n/g,\"\")===\"functionDate(){[nativecode]}\",\"require() should follow shortcuts: require global by shortcut\");var n=e(\"sk_to_module_as_json\");s(typeof n==\"object\"&&n.ok===!0&&n===e(\"module_as_json\"),\"require() should follow shortcuts: require in-package module by shortcut\")}),t(\"require() third party\",function(){o(2);var t=e(\"third_party_module_a\");s(typeof t==\"function\",\"require() can load plain 3-party non-lmd modules, 1 exports\"),t=e(\"third_party_module_b\"),s(typeof t==\"object\"&&typeof t.pewpew==\"function\"&&typeof t.ololo==\"function\"&&t.someVariable===\"string\",\"require() can load plain 3-party non-lmd modules, N exports\")})})",
-"testcase_lmd_async_require": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"raises\"),f=\"?\"+Math.random(),l=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";i(\"LMD async require @ \"+l),n(\"require.async() module-functions\",function(){o(6),e.async(\"./modules/async/module_function_async.js\"+f,function(t){s(t.some_function()===!0,\"should require async module-functions\"),s(e(\"./modules/async/module_function_async.js\"+f)===t,\"can sync require, loaded async module-functions\"),e.async(\"module_function_fd2\",function(t){s(t()===!0,\"can require async in-package modules\"),s(!!e.stats(\"module_function_fd2\"),\"should count stats: async modules\"),r()})})}),n(\"require.async() module-strings\",function(){o(3),e.async(\"./modules/async/module_as_string_async.html\"+f,function(t){s(typeof t==\"string\",\"should require async module-strings\"),s(t==='<div class=\"b-template\">${pewpew}</div>',\"content ok?\"),s(e(\"./modules/async/module_as_string_async.html\"+f)===t,\"can sync require, loaded async module-strings\"),r()})}),n(\"require.async() module-objects\",function(){o(2),e.async(\"./modules/async/module_as_json_async.json\"+f,function(t){s(typeof t==\"object\",\"should require async module-object\"),s(e(\"./modules/async/module_as_json_async.json\"+f)===t,\"can sync require, loaded async module-object\"),r()})}),n(\"require.async() chain calls\",function(){o(3);var t=e.async(\"./modules/async/module_as_json_async.json\"+f).async(\"./modules/async/module_as_json_async.json\"+f,function(){s(!0,\"Callback is optional\"),s(!0,\"WeCan use chain calls\"),r()});s(typeof t==\"function\",\"must return require\")}),n(\"require.async():json race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_as_json_async.json\"+f,n),e.async(\"./modules/async_race/module_as_json_async.json\"+f,n)}),n(\"require.async():js race calls\",function(){o(2);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_function_async.js\"+f,n),e.async(\"./modules/async_race/module_function_async.js\"+f,n)}),n(\"require.async():string race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_as_string_async.html\"+f,n),e.async(\"./modules/async_race/module_as_string_async.html\"+f,n)}),n(\"require.async() errors\",function(){o(2),e.async(\"./modules/async/undefined_module.js\"+f,function(t){s(typeof t==\"undefined\",\"should return undefined on error\"),e.async(\"./modules/async/undefined_module.js\"+f,function(e){s(typeof e==\"undefined\",\"should not cache errorous modules\"),r()})})}),n(\"require.async() parallel loading\",function(){o(2),e.async([\"./modules/parallel/1.js\"+f,\"./modules/parallel/2.js\"+f,\"./modules/parallel/3.js\"+f],function(e,t,n){s(!0,\"Modules executes as they are loaded - in load order\"),s(e.file===\"1.js\"&&t.file===\"2.js\"&&n.file===\"3.js\",\"Modules should be callbacked in list order\"),r()})}),n(\"require.async() shortcuts\",function(){o(10),s(typeof e(\"sk_async_html\")==\"undefined\",\"require should return undefined if shortcuts not initialized by loaders\"),s(typeof e(\"sk_async_html\")==\"undefined\",\"require should return undefined ... always\"),e.async(\"sk_async_json\",function(t){s(t.ok===!0,\"should require shortcuts: json\"),s(e(\"sk_async_json\")===t,\"if shortcut is defined require should return the same code\"),s(e(\"/modules/shortcuts/async.json\")===t,\"Module should be inited using shortcut content\"),e.async(\"sk_async_html\",function(t){s(t===\"ok\",\"should require shortcuts: html\"),e.async(\"sk_async_js\",function(t){s(t()===\"ok\",\"should require shortcuts: js\"),s(e.stats(\"sk_async_js\")===e.stats(\"/modules/shortcuts/async.js\"),\"shortcut should point to the same object as module\"),s(!!e.stats(\"/modules/shortcuts/async.js\"),\"should count stats of real file\"),s(e.stats(\"/modules/shortcuts/async.js\").shortcuts[0]===\"sk_async_js\",\"should pass shourtcuts names\"),r()})})})}),n(\"require.async() plain\",function(){o(3),e.async(\"./modules/async/module_plain_function_async.js\"+f,function(t){s(t.some_function()===!0,\"should require async module-functions\"),s(e(\"./modules/async/module_plain_function_async.js\"+f)===t,\"can async require plain modules, loaded async module-functions\"),r()})})})",
+"testcase_lmd_async_require": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"raises\"),f=\"?\"+Math.random(),l=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";i(\"LMD async require @ \"+l),n(\"require.async() module-functions\",function(){o(6),e.async(\"./modules/async/module_function_async.js\"+f,function(t){s(t.some_function()===!0,\"should require async module-functions\"),s(e(\"./modules/async/module_function_async.js\"+f)===t,\"can sync require, loaded async module-functions\"),e.async(\"module_function_fd2\",function(t){s(t()===!0,\"can require async in-package modules\"),s(!!e.stats(\"module_function_fd2\"),\"should count stats: async modules\"),r()})})}),n(\"require.async() module-strings\",function(){o(3),e.async(\"./modules/async/module_as_string_async.html\"+f,function(t){s(typeof t==\"string\",\"should require async module-strings\"),s(t==='<div class=\"b-template\">${pewpew}</div>',\"content ok?\"),s(e(\"./modules/async/module_as_string_async.html\"+f)===t,\"can sync require, loaded async module-strings\"),r()})}),n(\"require.async() module-objects\",function(){o(2),e.async(\"./modules/async/module_as_json_async.json\"+f,function(t){s(typeof t==\"object\",\"should require async module-object\"),s(e(\"./modules/async/module_as_json_async.json\"+f)===t,\"can sync require, loaded async module-object\"),r()})}),n(\"require.async() chain calls\",function(){o(3);var t=e.async(\"./modules/async/module_as_json_async.json\"+f).async(\"./modules/async/module_as_json_async.json\"+f,function(){s(!0,\"Callback is optional\"),s(!0,\"WeCan use chain calls\"),r()});s(typeof t==\"function\",\"must return require\")}),n(\"require.async():json race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_as_json_async.json\"+f,n),e.async(\"./modules/async_race/module_as_json_async.json\"+f,n)}),n(\"require.async():js race calls\",function(){o(2);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_function_async.js\"+f,n),e.async(\"./modules/async_race/module_function_async.js\"+f,n)}),n(\"require.async():string race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_as_string_async.html\"+f,n),e.async(\"./modules/async_race/module_as_string_async.html\"+f,n)}),n(\"require.async() errors\",function(){o(2),e.async(\"./modules/async/undefined_module.js\"+f,function(t){s(typeof t==\"undefined\",\"should return undefined on error\"),e.async(\"./modules/async/undefined_module.js\"+f,function(e){s(typeof e==\"undefined\",\"should not cache errorous modules\"),r()})})}),n(\"require.async() parallel loading\",function(){o(2),e.async([\"./modules/parallel/1.js\"+f,\"./modules/parallel/2.js\"+f,\"./modules/parallel/3.js\"+f],function(e,t,n){s(!0,\"Modules executes as they are loaded - in load order\"),s(e.file===\"1.js\"&&t.file===\"2.js\"&&n.file===\"3.js\",\"Modules should be callbacked in list order\"),r()})}),n(\"require.async() shortcuts\",function(){o(10),s(typeof e(\"sk_async_html\")==\"undefined\",\"require should return undefined if shortcuts not initialized by loaders\"),s(typeof e(\"sk_async_html\")==\"undefined\",\"require should return undefined ... always\"),e.async(\"sk_async_json\",function(t){s(t.ok===!0,\"should require shortcuts: json\"),s(e(\"sk_async_json\")===t,\"if shortcut is defined require should return the same code\"),s(e(\"/modules/shortcuts/async.json\")===t,\"Module should be inited using shortcut content\"),e.async(\"sk_async_html\",function(t){s(t===\"ok\",\"should require shortcuts: html\"),e.async(\"sk_async_js\",function(t){s(t()===\"ok\",\"should require shortcuts: js\"),console.log(e.stats(\"sk_async_js\"),e.stats(\"/modules/shortcuts/async.js\")),s(e.stats(\"sk_async_js\")===e.stats(\"/modules/shortcuts/async.js\"),\"shortcut should point to the same object as module\"),s(!!e.stats(\"/modules/shortcuts/async.js\"),\"should count stats of real file\"),s(e.stats(\"/modules/shortcuts/async.js\").shortcuts[0]===\"sk_async_js\",\"should pass shourtcuts names\"),r()})})})}),n(\"require.async() plain\",function(){o(3),e.async(\"./modules/async/module_plain_function_async.js\"+f,function(t){s(t.some_function()===!0,\"should require async module-functions\"),s(e(\"./modules/async/module_plain_function_async.js\"+f)===t,\"can async require plain modules, loaded async module-functions\"),r()})})})",
 "testcase_lmd_loader": "(function(e){function h(e,t){return a.defaultView&&a.defaultView.getComputedStyle?a.defaultView.getComputedStyle(e,\"\").getPropertyValue(t):(t=t.replace(/\\-(\\w)/g,function(e,t){return t.toUpperCase()}),e.currentStyle[t])}var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"document\"),f=e(\"raises\"),l=\"?\"+Math.random(),c=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";i(\"LMD loader @ \"+c),n(\"require.js()\",function(){o(6),e.js(\"./modules/loader/non_lmd_module.js\"+l,function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"SCRIPT\",\"should return script tag on success\"),s(e(\"some_function\")()===!0,\"we can grab content of the loaded script\"),s(e(\"./modules/loader/non_lmd_module.js\"+l)===t,\"should cache script tag on success\"),e.js(\"http://yandex.ru/jquery.js\"+l,function(t){s(typeof t==\"undefined\",\"should return undefined on error in 3 seconds\"),s(typeof e(\"http://yandex.ru/jquery.js\"+l)==\"undefined\",\"should not cache errorous modules\"),e.js(\"module_as_string\",function(t){e.async(\"module_as_string\",function(e){s(t===e,\"require.js() acts like require.async() if in-package/declared module passed\"),r()})})})})}),n(\"require.js() JSON callback and chain calls\",function(){o(2);var t=e(\"setTimeout\")(function(){s(!1,\"JSONP call fails\"),r()},3e3);e(\"window\").someJsonHandler=function(n){s(n.ok,\"JSON called\"),e(\"window\").someJsonHandler=null,e(\"clearTimeout\")(t),r()};var n=e.js(\"./modules/loader/non_lmd_module.jsonp.js\"+l);s(typeof n==\"function\",\"require.js() must return require\")}),n(\"require.js() race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.js(\"./modules/loader_race/non_lmd_module.js\"+l,n),e.js(\"./modules/loader_race/non_lmd_module.js\"+l,n)}),n(\"require.css()\",function(){o(6),e.css(\"./modules/loader/some_css.css\"+l,function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"LINK\",\"should return link tag on success\"),s(h(a.getElementById(\"qunit-fixture\"),\"visibility\")===\"hidden\",\"css should be applied\"),s(e(\"./modules/loader/some_css.css\"+l)===t,\"should cache link tag on success\"),e.css(\"./modules/loader/some_css_404.css\"+l,function(t){s(typeof t==\"undefined\",\"should return undefined on error in 3 seconds\"),s(typeof e(\"./modules/loader/some_css_404.css\"+l)==\"undefined\",\"should not cache errorous modules\"),e.css(\"module_as_string\",function(t){e.async(\"module_as_string\",function(e){s(t===e,\"require.css() acts like require.async() if in-package/declared module passed\"),r()})})})})}),n(\"require.css() CSS loader without callback\",function(){o(1);var t=e.css(\"./modules/loader/some_css_callbackless.css\"+l).css(\"./modules/loader/some_css_callbackless.css\"+l+1);s(typeof t==\"function\",\"require.css() must return require\"),r()}),n(\"require.css() race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.css(\"./modules/loader_race/some_css.css\"+l,n),e.css(\"./modules/loader_race/some_css.css\"+l,n)}),n(\"require.css() shortcut\",function(){o(4),e.css(\"sk_css_css\",function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"LINK\",\"should return link tag on success\"),s(e(\"sk_css_css\")===t,\"require should return the same result\"),e.css(\"sk_css_css\",function(n){s(n===t,\"should load once\"),s(e(\"sk_css_css\")===e(\"/modules/shortcuts/css.css\"),\"should be defined using path-to-module\"),r()})})}),n(\"require.js() shortcut\",function(){o(5),e.js(\"sk_js_js\",function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"SCRIPT\",\"should return script tag on success\"),s(e(\"sk_js_js\")===t,\"require should return the same result\"),e.js(\"sk_js_js\",function(n){s(n===t,\"should load once\"),s(e(\"sk_js_js\")===e(\"/modules/shortcuts/js.js\"),\"should be defined using path-to-module\"),s(typeof e(\"shortcuts_js\")==\"function\",\"Should create a global function shortcuts_js as in module function\"),r()})})})})",
 "testcase_lmd_coverage": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"asyncTest\"),i=e(\"start\"),s=e(\"module\"),o=e(\"ok\"),u=e(\"expect\"),a=e(\"$\"),f=e(\"raises\"),l=\"?\"+Math.random(),c=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";s(\"LMD Stats coverage @ \"+c),t(\"Coverage\",function(){u(6),e(\"coverage_fully_covered\"),e(\"coverage_not_conditions\"),e(\"coverage_not_functions\"),e(\"coverage_not_statements\");var t=e.stats(),n;n=t.modules.coverage_fully_covered.coverage.report;for(var r in n)n.hasOwnProperty(r)&&o(!1,\"should be fully covered!\");n=t.modules.coverage_not_conditions.coverage.report,o(n[2].conditions,\"coverage_not_conditions: not 1 line\"),o(n[3].lines===!1,\"coverage_not_conditions: not 2 line\"),n=t.modules.coverage_not_functions.coverage.report,o(n[3].functions[0]===\"test\",\"coverage_not_functions: not 2 line\"),o(n[4].lines===!1,\"coverage_not_functions: not 3 line\"),n=t.modules.coverage_not_statements.coverage.report,o(n[11].lines===!1,\"coverage_not_statements: not 11 line\"),n=t.modules.coverage_not_covered.coverage.report,o(n[1]&&n[2]&&n[3]&&n[6]&&n[7],\"coverage_not_covered: not covered\")}),n(\"Coverage - Async: stats_coverage_async\",function(){u(2),e.async([\"coverage_fully_covered_async\",\"coverage_not_functions_async\"],function(){var t=e.stats(),n;n=t.modules.coverage_fully_covered_async.coverage.report;for(var r in n)n.hasOwnProperty(r)&&o(!1,\"should be fully covered!\");n=t.modules.coverage_not_functions_async.coverage.report,o(n[3].functions[0]===\"test\",\"coverage_not_functions: not 2 line\"),o(n[4].lines===!1,\"coverage_not_functions: not 3 line\"),i()})})})",
 "testcase_lmd_cache": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"raises\"),f=e(\"localStorage\"),l=\"?\"+Math.random(),c=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\",h=\"latest\";if(!f)return;i(\"LMD cache @ \"+c),n(\"localStorage cache + cache_async test\",function(){o(10),s(typeof f.lmd==\"string\",\"LMD Should create cache\");var t=JSON.parse(f.lmd);s(t.version===h,\"Should save version\"),s(typeof t.modules==\"object\",\"Should save modules\"),s(typeof t.main==\"string\",\"Should save main function as string\"),s(typeof t.lmd==\"string\",\"Should save lmd source as string\"),s(typeof t.sandboxed==\"object\",\"Should save sandboxed modules\"),e.async(\"./modules/async/module_function_async.js\",function(t){var n=\"lmd:\"+h+\":\"+\"./modules/async/module_function_async.js\";s(t.some_function()===!0,\"should require async module-functions\"),s(typeof f[n]==\"string\",\"LMD Should cache async requests\"),f.removeItem(n),e.async(\"./modules/async/module_function_async.js\"),s(!f[n],\"LMD Should not recreate cache it was manually deleted key=\"+n),r()})})})"
