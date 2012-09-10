@@ -143,3 +143,7 @@ var sendTo = function () {
         return iframe;
     }
 }();
+
+require.stats.sendTo = function (host) {
+    return sendTo(host, "stats", require.stats());
+};

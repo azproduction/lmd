@@ -183,22 +183,21 @@ function stats_require_module(moduleName, byModuleName) {
 }
 
 function stats_wrap_require_method(method, thisObject, byModuleName) {
-    return function (moduleNames) {
-        if (Object.prototype.toString.call(moduleNames) !== "[object Array]") {
-            moduleNames = [moduleNames];
+    return function (moduleName) {
+        var moduleNames;
+        if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
+            moduleNames = [moduleName];
         }
 
-        for (var i = 0, c = moduleNames.length, moduleName, moduleContent; i < c; i++) {
-            moduleName = moduleNames[i];
-            if ($P.SHORTCUTS) {
-                moduleContent = modules[moduleName];
-                if (is_shortcut(moduleName, moduleContent)) {
-                    moduleName = moduleContent.replace('@', '');
-                }
+        for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
+            moduleNamesItem = moduleNames[i];
+            module = modules[moduleNamesItem];
+            var replacement = lmd_on('stats:before-require-count', moduleNamesItem, module);
+            if (replacement) {
+                moduleNamesItem = replacement[0];
             }
-            stats_require_module(moduleName, byModuleName);
+            stats_require_module(moduleNamesItem, byModuleName);
         }
-
         return method.apply(thisObject, arguments);
     }
 }
@@ -210,15 +209,15 @@ function stats_wrap_require(require, byModuleName) {
         wrappedRequire[name] = require[name];
     }
 
-    if ($P.ASYNC) {
+    if (require.async) {
         wrappedRequire.async = stats_wrap_require_method(require.async, this, byModuleName);
     }
 
-    if ($P.CSS) {
+    if (require.css) {
         wrappedRequire.css = stats_wrap_require_method(require.css, this, byModuleName);
     }
 
-    if ($P.JS) {
+    if (require.js) {
         wrappedRequire.js = stats_wrap_require_method(require.js, this, byModuleName);
     }
 
@@ -252,168 +251,6 @@ function stats_shortcut(moduleName, shortcut) {
     }
 }
 
-if ($P.STATS_COVERAGE) {
-
-    /**
-     * Calculate coverage total
-     *
-     * @param moduleName
-     */
-    function stats_calculate_coverage(moduleName) {
-        var stats = stats_get(moduleName),
-            total,
-            covered,
-            lineId,
-            lineNum,
-            parts;
-
-        var lineReport = {};
-
-        if (!stats.lines) {
-            return;
-        }
-        stats.coverage = {};
-
-        covered = 0;
-        total = stats.lines.length;
-        for (lineId in stats.runLines) {
-            if (stats.runLines[lineId] > 0) {
-                covered++;
-            } else {
-                lineNum = lineId;
-                if (!lineReport[lineNum]) {
-                    lineReport[lineNum] = {};
-                }
-                lineReport[lineNum].lines = false;
-            }
-        }
-        stats.coverage.lines = {
-            total: total,
-            covered: covered,
-            percentage: 100.0 * (total ? covered / total : 1)
-        };
-
-        covered = 0;
-        total = stats.functions.length;
-        for (lineId in stats.runFunctions) {
-            if (stats.runFunctions[lineId] > 0) {
-                covered++;
-            } else {
-                parts = lineId.split(':');
-                lineNum = parts[1];
-                if (!lineReport[lineNum]) {
-                    lineReport[lineNum] = {};
-                }
-                if (!lineReport[lineNum].functions) {
-                    lineReport[lineNum].functions = [];
-                }
-                lineReport[lineNum].functions.push(parts[0]);
-            }
-        }
-        stats.coverage.functions = {
-            total: total,
-            covered: covered,
-            percentage: 100.0 * (total ? covered / total : 1)
-        };
-
-        covered = 0;
-        total = stats.conditions.length;
-        for (lineId in stats.runConditions) {
-            if (stats.runConditions[lineId][1] > 0) {
-                covered += 1;
-            }
-
-            if (stats.runConditions[lineId][1] === 0) {
-
-                parts = lineId.split(':');
-                lineNum = parts[1];
-                if (!lineReport[lineNum]) {
-                    lineReport[lineNum] = {};
-                }
-                if (!lineReport[lineNum].conditions) {
-                    lineReport[lineNum].conditions = [];
-                }
-                lineReport[lineNum].conditions.push(stats.runConditions[lineId]);
-            }
-        }
-        stats.coverage.conditions = {
-            total: total,
-            covered: covered,
-            percentage: 100.0 * (total ? covered / total : 1)
-        };
-        stats.coverage.report = lineReport;
-    }
-
-    /**
-     * Line counter
-     *
-     * @private
-     */
-    require.coverage_line = function (moduleName, lineId) {
-        stats_results[moduleName].runLines[lineId] += 1;
-    };
-
-    /**
-     * Function call counter
-     *
-     * @private
-     */
-    require.coverage_function = function (moduleName, lineId) {
-        stats_results[moduleName].runFunctions[lineId] += 1;
-    };
-
-    /**
-     * Condition counter
-     *
-     * @private
-     */
-    require.coverage_condition = function (moduleName, lineId, condition) {
-        stats_results[moduleName].runConditions[lineId][condition ? 1 : 0] += 1;
-        return condition;
-    };
-
-    /**
-     * Registers module
-     *
-     * @private
-     */
-    function coverage_module(moduleName, lines, conditions, functions) {
-        var stats = stats_get(moduleName);
-        if (stats.lines) {
-            return;
-        }
-        stats.lines = lines;
-        stats.conditions = conditions;
-        stats.functions = functions;
-        stats.runLines = {};
-        stats.runConditions = {};
-        stats.runFunctions = {};
-        for (var i = 0, c = lines.length; i < c; i += 1) {
-            stats.runLines[lines[i]] = 0;
-        }
-
-        for (i = 0, c = conditions.length; i < c; i += 1) {
-            stats.runConditions[conditions[i]] = [0, 0];
-        }
-
-        for (i = 0, c = functions.length; i < c; i += 1) {
-            stats.runFunctions[functions[i]] = 0;
-        }
-    }
-
-    (function () {
-        var moduleOption;
-        for (var moduleName in coverage_options) {
-            if (coverage_options.hasOwnProperty(moduleName)) {
-                moduleOption = coverage_options[moduleName];
-                coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
-                stats_type(moduleName, 'in-package');
-            }
-        }
-    })();
-
-}
-
 /**
  * Returns module statistics or all statistics
  *
@@ -421,66 +258,37 @@ if ($P.STATS_COVERAGE) {
  * @return {Object}
  */
 require.stats = function (moduleName) {
-    if ($P.STATS_COVERAGE) {
-        if (moduleName) {
-            stats_calculate_coverage(moduleName);
-        } else {
-            for (var moduleNameId in stats_results) {
-                stats_calculate_coverage(moduleNameId);
-            }
-            // calculate global coverage
-            var result = {
-                    modules: stats_results,
-                    global: {
-                        lines: {
-                            total: 0,
-                            covered: 0,
-                            percentage: 0
-                        },
+    var replacement = lmd_trigger('stats:before-return-stats', moduleName, stats_results);
 
-                        conditions: {
-                            total: 0,
-                            covered: 0,
-                            percentage: 0
-                        },
-
-                        functions: {
-                            total: 0,
-                            covered: 0,
-                            percentage: 0
-                        }
-                    }
-                },
-                modulesCount = 0,
-                moduleStats;
-
-            for (var moduleName in stats_results) {
-                moduleStats = stats_results[moduleName];
-                // not a shortcut
-                if (moduleName === moduleStats.name && moduleStats.coverage) {
-                    modulesCount++;
-                    for (var statName in moduleStats.coverage) {
-                        if (statName !== "report") {
-                            result.global[statName].total += moduleStats.coverage[statName].total;
-                            result.global[statName].covered += moduleStats.coverage[statName].covered;
-                            result.global[statName].percentage += moduleStats.coverage[statName].percentage;
-                        }
-                    }
-                }
-            }
-            for (statName in result.global) {
-                // avg percentage
-                result.global[statName].percentage /= modulesCount;
-            }
-
-            return result;
-        }
+    if (replacement && replacement[1]) {
+        return replacement[1];
     }
+
     return moduleName ? stats_results[moduleName] : stats_results;
 };
 
-if ($P.STATS_SENDTO) {
-    require.stats.sendTo = function (host) {
-        return sendTo(host, "stats", require.stats());
-    };
-}
+lmd_on('lmd-register:call-module', function (event, moduleName, require) {
+    return [moduleName, stats_wrap_require(require, moduleName)];
+});
+
+lmd_on('lmd-register:after-register', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
+lmd_on('lmd-register:before-register', function (event, moduleName, module) {
+    stats_type(moduleName, !module ? 'global' : typeof modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
+});
+
+lmd_on('lmd-require:from-cache', function (event, moduleName) {
+    stats_require(moduleName);
+});
+
+lmd_on('lmd-require:first-init', function (event, moduleName, module) {
+    stats_require(moduleName);
+    stats_initStart(moduleName);
+});
+
+lmd_on('shortcuts:before-resolve', function (event, moduleName, module) {
+    // assign shortcut name for module
+    stats_shortcut(module, moduleName);
+});

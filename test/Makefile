@@ -15,7 +15,7 @@ coverage: test
 	cp -R qunit/vendors coverage/vendors
 
 run_qunit:
-	cd qunit && http-server
+	http-server ./qunit/
 
 run_coverage:
 	cd coverage && http-server

@@ -25,3 +25,20 @@ function is_shortcut(moduleName, moduleContent) {
            typeof moduleContent === "string" &&
            moduleContent.charAt(0) == '@';
 }
+
+lmd_on('lmd-require:first-init', function (event, moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        lmd_trigger('shortcuts:before-resolve', moduleName, module);
+
+        moduleName = module.replace('@', '');
+        module = modules[moduleName];
+        return [moduleName, module];
+    }
+});
+
+lmd_on('stats:before-require-count', function (event, moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        moduleName = module.replace('@', '');
+    }
+    return [moduleName, module];
+});
