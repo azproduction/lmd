@@ -27,7 +27,7 @@
                 module = module(
                     sandboxed_modules[moduleName] ?
                         {coverage_line: require.coverage_line, coverage_function: require.coverage_function, coverage_condition: require.coverage_condition} ||
-                        local_undefined : require,
+                        local_undefined : stats_wrap_require(require, moduleName) ||require,
                     output.exports,
                     output
                 ) || output.exports;
@@ -77,6 +77,14 @@
     }
 
 /*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
+/**
+ * This plugin prevents from duplicate resource loading
+ *
+ * Flag "race"
+ *
+ * This plugin provides private "race_callbacks" function
+ */
+
 
 var race_callbacks = {},
     /**
@@ -101,6 +109,16 @@ var race_callbacks = {},
             race_callbacks[name] = false;
         }
     };
+/**
+ * Package usage statistics
+ *
+ * @see /README.md near "Application statistics. Require, load, eval, call statistics" for details
+ *
+ * Flag "stats"
+ *
+ * This plugin provides require.stats() function and bunch of private functions
+ */
+
 /**
  * @name global
  * @name require
@@ -149,25 +167,33 @@ var race_callbacks = {},
  * @name lmdStats
  * @type {Object}
  *
- * @property {String}   name            module name
- * @property {Number[]} accessTimes     module access times
- * @property {Number}   initTime        module init time: load+eval+call
- * @property {String[]} shortcuts       list of used shortcuts
+ * @property {String}       name            module name
+ * @property {Object}       moduleAccessTimes  module access times {byModuleName: accessTimes}
+ * @property {Number[]}     accessTimes     access times
+ * @property {Number}       initTime        module init time: load+eval+call
+ * @property {String[]}     shortcuts       list of used shortcuts
  *
- * @property {String[]} lines           list of all statements
- * @property {String[]} conditions      list of all conditions
- * @property {String[]} functions       list of all functions
+ * @property {String}       type            module type: global, in-package, off-package
  *
- * @property {Object} runLines          {lineId: callTimes}
- * @property {Object} runConditions     {conditionId: [falseTimes, trueTimes]}
- * @property {Object} runFunctions      {functionId: callTimes}
+ * @property {String[]}     lines           list of all statements
+ * @property {String[]}     conditions      list of all conditions
+ * @property {String[]}     functions       list of all functions
+ *
+ * @property {Object}       runLines          {lineId: callTimes}
+ * @property {Object}       runConditions     {conditionId: [falseTimes, trueTimes]}
+ * @property {Object}       runFunctions      {functionId: callTimes}
  *
  * @property {LmdCoverage} coverage
  *
  * @example
  *  {
  *      name: "pewpew",
- *      accessTimes: [0, 5, 2715],
+ *      type: "in-package",
+ *      accessTimes: [0],
+ *      moduleAccessTimes: [{
+ *          time: 0,
+ *          byModule: "main"
+ *      }],
  *      initTime: 10,
  *      shortcuts: ["ololo"],
  *
@@ -239,6 +265,7 @@ function stats_get(moduleName) {
            stats_results[moduleName] = {
                name: moduleName,
                accessTimes: [],
+               moduleAccessTimes: {},
                initTime: -1
            };
 }
@@ -255,6 +282,58 @@ function stats_initEnd(moduleName) {
 function stats_require(moduleName) {
     var stat = stats_get(moduleName);
     stat.accessTimes.push(+new stats_Date - stats_startTime);
+}
+
+function stats_require_module(moduleName, byModuleName) {
+    var stat = stats_get(moduleName);
+
+    if (!stat.moduleAccessTimes[byModuleName]) {
+        stat.moduleAccessTimes[byModuleName] = [];
+    }
+    stat.moduleAccessTimes[byModuleName].push(+new stats_Date - stats_startTime);
+}
+
+function stats_wrap_require_method(method, thisObject, byModuleName) {
+    return function (moduleNames) {
+        if (Object.prototype.toString.call(moduleNames) !== "[object Array]") {
+            moduleNames = [moduleNames];
+        }
+
+        for (var i = 0, c = moduleNames.length, moduleName, moduleContent; i < c; i++) {
+            moduleName = moduleNames[i];
+
+            moduleContent = modules[moduleName];
+            if (is_shortcut(moduleName, moduleContent)) {
+                moduleName = moduleContent.replace('@', '');
+            }
+
+            stats_require_module(moduleName, byModuleName);
+        }
+
+        return method.apply(thisObject, arguments);
+    }
+}
+
+function stats_wrap_require(require, byModuleName) {
+    var wrappedRequire = stats_wrap_require_method(require, this, byModuleName);
+
+    for (var name in require) {
+        wrappedRequire[name] = require[name];
+    }
+
+
+    wrappedRequire.async = stats_wrap_require_method(require.async, this, byModuleName);
+
+
+
+    wrappedRequire.css = stats_wrap_require_method(require.css, this, byModuleName);
+
+
+
+    wrappedRequire.js = stats_wrap_require_method(require.js, this, byModuleName);
+
+
+    return wrappedRequire;
 }
 
 function stats_type(moduleName, type) {
@@ -510,6 +589,16 @@ require.stats = function (moduleName) {
 
     return moduleName ? stats_results[moduleName] : stats_results;
 };
+
+/**
+ * Coverage for off-package LMD modules
+ *
+ * Flag "stats_coverage_async"
+ *
+ * This plugin provides a bunch of private functions
+ *
+ * This plugin is HUGE - it includes all UglifyJs code
+ */
 
 /**
  * @name global
@@ -4490,6 +4579,14 @@ return function (moduleName, file, content, isPlainModule) {
 
 } ());
 /**
+ * This plugin enables shortcuts
+ *
+ * Flag "shortcuts"
+ *
+ * This plugin provides private "is_shortcut" function
+ */
+
+/**
  * @name global
  * @name require
  * @name initialized_modules
@@ -4508,6 +4605,14 @@ function is_shortcut(moduleName, moduleContent) {
            typeof moduleContent === "string" &&
            moduleContent.charAt(0) == '@';
 }
+/**
+ * Parallel resource loader
+ *
+ * Flag "parallel"
+ *
+ * This plugin provides private "parallel" function
+ */
+
 /**
  * @name global
  * @name require
@@ -4544,6 +4649,13 @@ function parallel(method, items, callback) {
     }
 }
 /**
+ * This plugin dumps off-package modules content to localStorage
+ *
+ * Flag "cache_async"
+ *
+ * Provides cache_async function
+ */
+/**
  * @name global
  * @name version
  */
@@ -4555,6 +4667,15 @@ function cache_async(moduleName, module) {
         } catch(e) {}
     }
 }
+/**
+ * Async loader of off-package LMD modules (special LMD format file)
+ *
+ * @see /README.md near "LMD Modules types" for details
+ *
+ * Flag "async"
+ *
+ * This plugin provides require.async() function
+ */
 /**
  * @name global
  * @name require
@@ -4726,6 +4847,14 @@ function cache_async(moduleName, module) {
 
     };
 /**
+ * Async loader of js files (NOT LMD modules): jQuery, d3.js etc
+ *
+ * Flag "js"
+ *
+ * This plugin provides require.js() function
+ */
+
+/**
  * @name global
  * @name require
  * @name initialized_modules
@@ -4815,6 +4944,13 @@ function cache_async(moduleName, module) {
         return require;
 
     };
+/**
+ * Async loader of css files
+ *
+ * Flag "css"
+ *
+ * This plugin provides require.css() function
+ */
 /**
  * @name global
  * @name require
@@ -4927,6 +5063,11 @@ function cache_async(moduleName, module) {
 
     };
 /**
+ * This plugin dumps modules content to localStorage
+ *
+ * Flag "cache"
+ */
+/**
  * @name global
  * @name lmd
  * @name sandboxed_modules
@@ -4952,40 +5093,40 @@ function cache_async(moduleName, module) {
             } catch(e) {}
         }());
     }
-    main(require, output.exports, output);
-})(this,(function(a){a("testcase_lmd_basic_features"),a("testcase_lmd_async_require"),a("testcase_lmd_loader"),a("testcase_lmd_cache"),a("testcase_lmd_coverage")}),{
-"coverage_fully_covered": "(function(a,b,c){function e(){return a.coverage_function(\"coverage_fully_covered\",\"test:2:79\"),a.coverage_line(\"coverage_fully_covered\",\"3\"),d}var a=arguments[0];a.coverage_function(\"coverage_fully_covered\",\"(?):0:1\"),a.coverage_line(\"coverage_fully_covered\",\"1\");var d=\"123\";a.coverage_line(\"coverage_fully_covered\",\"2\"),a.coverage_line(\"coverage_fully_covered\",\"6\");if(a.coverage_condition(\"coverage_fully_covered\",\"if:6:118\",!0)){a.coverage_line(\"coverage_fully_covered\",\"7\");var f=e()}})",
-"coverage_not_conditions": "(function(a){a.coverage_line(\"coverage_not_conditions\",\"2\");if(a.coverage_condition(\"coverage_not_conditions\",\"if:2:31\",!1)){a.coverage_line(\"coverage_not_conditions\",\"3\");var b=123}})",
-"coverage_not_functions": "(function(a){function c(){return a.coverage_function(\"coverage_not_functions\",\"test:3:45\"),a.coverage_line(\"coverage_not_functions\",\"4\"),b}var a=arguments[0];a.coverage_function(\"coverage_not_functions\",\"(?):1:1\"),a.coverage_line(\"coverage_not_functions\",\"2\");var b=\"123\";a.coverage_line(\"coverage_not_functions\",\"3\"),a.coverage_line(\"coverage_not_functions\",\"7\");if(a.coverage_condition(\"coverage_not_functions\",\"if:7:110\",!0)){a.coverage_line(\"coverage_not_functions\",\"8\");var d=b}})",
-"coverage_not_statements": "(function(a,b,c){function f(b){return a.coverage_function(\"coverage_not_statements\",\"test:4:87\"),a.coverage_line(\"coverage_not_statements\",\"5\"),b}var a=arguments[0];a.coverage_function(\"coverage_not_statements\",\"(?):0:1\"),a.coverage_line(\"coverage_not_statements\",\"1\");var d=\"123\",e;a.coverage_line(\"coverage_not_statements\",\"4\"),a.coverage_line(\"coverage_not_statements\",\"8\"),a.coverage_condition(\"coverage_not_statements\",\"if:8:127\",!0)?(a.coverage_line(\"coverage_not_statements\",\"9\"),e=f(1)):(a.coverage_line(\"coverage_not_statements\",\"11\"),e=f(2))})",
-"coverage_not_covered": "(function(a,b,c){function e(){return a.coverage_function(\"coverage_not_covered\",\"test:2:88\"),a.coverage_line(\"coverage_not_covered\",\"3\"),d}var a=arguments[0];a.coverage_function(\"coverage_not_covered\",\"(?):0:1\"),a.coverage_line(\"coverage_not_covered\",\"1\");var d=\"123\";a.coverage_line(\"coverage_not_covered\",\"2\"),a.coverage_line(\"coverage_not_covered\",\"6\");if(a.coverage_condition(\"coverage_not_covered\",\"if:6:145\",!0)){a.coverage_line(\"coverage_not_covered\",\"7\");var f=e()}})",
+    main(stats_wrap_require(require, "main") ||require, output.exports, output);
+})(this,(function(e){e("testcase_lmd_basic_features"),e("testcase_lmd_async_require"),e("testcase_lmd_loader"),e("testcase_lmd_cache"),e("testcase_lmd_coverage")}),{
+"coverage_fully_covered": "(function(e,t,n){function i(){return e.coverage_function(\"coverage_fully_covered\",\"test:2:79\"),e.coverage_line(\"coverage_fully_covered\",\"3\"),r}var e=arguments[0];e.coverage_function(\"coverage_fully_covered\",\"(?):0:1\"),e.coverage_line(\"coverage_fully_covered\",\"1\");var r=\"123\";e.coverage_line(\"coverage_fully_covered\",\"2\"),e.coverage_line(\"coverage_fully_covered\",\"6\");if(e.coverage_condition(\"coverage_fully_covered\",\"if:6:118\",!0)){e.coverage_line(\"coverage_fully_covered\",\"7\");var s=i()}})",
+"coverage_not_conditions": "(function(e){e.coverage_line(\"coverage_not_conditions\",\"2\");if(e.coverage_condition(\"coverage_not_conditions\",\"if:2:31\",!1)){e.coverage_line(\"coverage_not_conditions\",\"3\");var t=123}})",
+"coverage_not_functions": "(function(e){function n(){return e.coverage_function(\"coverage_not_functions\",\"test:3:45\"),e.coverage_line(\"coverage_not_functions\",\"4\"),t}var e=arguments[0];e.coverage_function(\"coverage_not_functions\",\"(?):1:1\"),e.coverage_line(\"coverage_not_functions\",\"2\");var t=\"123\";e.coverage_line(\"coverage_not_functions\",\"3\"),e.coverage_line(\"coverage_not_functions\",\"7\");if(e.coverage_condition(\"coverage_not_functions\",\"if:7:110\",!0)){e.coverage_line(\"coverage_not_functions\",\"8\");var r=t}})",
+"coverage_not_statements": "(function(e,t,n){function s(t){return e.coverage_function(\"coverage_not_statements\",\"test:4:87\"),e.coverage_line(\"coverage_not_statements\",\"5\"),t}var e=arguments[0];e.coverage_function(\"coverage_not_statements\",\"(?):0:1\"),e.coverage_line(\"coverage_not_statements\",\"1\");var r=\"123\",i;e.coverage_line(\"coverage_not_statements\",\"4\"),e.coverage_line(\"coverage_not_statements\",\"8\"),e.coverage_condition(\"coverage_not_statements\",\"if:8:127\",!0)?(e.coverage_line(\"coverage_not_statements\",\"9\"),i=s(1)):(e.coverage_line(\"coverage_not_statements\",\"11\"),i=s(2))})",
+"coverage_not_covered": "(function(e,t,n){function i(){return e.coverage_function(\"coverage_not_covered\",\"test:2:88\"),e.coverage_line(\"coverage_not_covered\",\"3\"),r}var e=arguments[0];e.coverage_function(\"coverage_not_covered\",\"(?):0:1\"),e.coverage_line(\"coverage_not_covered\",\"1\");var r=\"123\";e.coverage_line(\"coverage_not_covered\",\"2\"),e.coverage_line(\"coverage_not_covered\",\"6\");if(e.coverage_condition(\"coverage_not_covered\",\"if:6:145\",!0)){e.coverage_line(\"coverage_not_covered\",\"7\");var s=i()}})",
 "coverage_fully_covered_async": "@/modules/coverage/fully_covered_async.js",
 "coverage_not_functions_async": "@/modules/coverage/not_functions_async.js",
 "sk_css_css": "@/modules/shortcuts/css.css",
 "sk_js_js": "@/modules/shortcuts/js.js",
-"module_function_fd2": "(function(a,b,c){return a(\"ok\")(!0,\"fd2 should be called once\"),function(){return!0}})",
+"module_function_fd2": "(function(e,t,n){return e(\"ok\")(!0,\"fd2 should be called once\"),function(){return!0}})",
 "sk_async_html": "@/modules/shortcuts/async.html",
 "sk_async_js": "@/modules/shortcuts/async.js",
 "sk_async_json": "@/modules/shortcuts/async.json",
-"third_party_module_a_dep": "(function(a){return window.uQuery_dep=function(){return!0},window.uQuery_dep})",
+"third_party_module_a_dep": "(function(e){return window.uQuery_dep=function(){return!0},window.uQuery_dep})",
 "module_as_json": {
     "ok": true
 },
 "module_as_string": "<div class=\"b-template\">${pewpew}</div>",
-"module_function_fd": "(function(a,b,c){return a(\"ok\")(!0,\"fd should be called once\"),function(){return!0}})",
-"module_function_fd_sandboxed": "(function(a,b,c){if(typeof a==\"function\")throw\"require should not be a function\";b.some_function=function(){return!0}})",
-"module_function_fe": "(function(a,b,c){return a(\"ok\")(!0,\"fe should be called once\"),function(){return!0}})",
-"module_function_fe_sandboxed": "(function(a,b,c){if(typeof a==\"function\")throw\"require should not be a function\";b.some_function=function(){return!0}})",
-"module_function_lazy": "(function(a,b,c){return a(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
-"module_function_plain": "(function(a,b,c){a(\"ok\")(!0,\"plain module must be called once\"),c.exports=function(){return!0}})",
-"module_function_plain_sandboxed": "(function(a,b,c){if(typeof a==\"function\")throw\"require should not be a function\";b.some_function=function(){return!0}})",
+"module_function_fd": "(function(e,t,n){return e(\"ok\")(!0,\"fd should be called once\"),function(){return!0}})",
+"module_function_fd_sandboxed": "(function(e,t,n){if(typeof e==\"function\")throw\"require should not be a function\";t.some_function=function(){return!0}})",
+"module_function_fe": "(function(e,t,n){return e(\"ok\")(!0,\"fe should be called once\"),function(){return!0}})",
+"module_function_fe_sandboxed": "(function(e,t,n){if(typeof e==\"function\")throw\"require should not be a function\";t.some_function=function(){return!0}})",
+"module_function_lazy": "(function(e,t,n){return e(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
+"module_function_plain": "(function(e,t,n){e(\"ok\")(!0,\"plain module must be called once\"),n.exports=function(){return!0}})",
+"module_function_plain_sandboxed": "(function(e,t,n){if(typeof e==\"function\")throw\"require should not be a function\";t.some_function=function(){return!0}})",
 "sk_to_global_object": "@Date",
 "sk_to_module_as_json": "@module_as_json",
-"third_party_module_a": "(function(a){return a(\"third_party_module_a_dep\"),function(a,b){a.uQuery_dep();var c=function(){var a=function(){};return a}();a.uQuery=c}(window),window.uQuery})",
-"third_party_module_b": "(function(a){function d(){}function e(){}var b=a(\"Function\"),c=a(\"Date\");new c,new b(\"return true\");var f=\"string\";return{pewpew:d,ololo:e,someVariable:f}})",
-"testcase_lmd_basic_features": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"raises\"),j=\"?\"+Math.random(),k=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\";e(\"LMD basic features @ \"+k),b(\"require() globals\",function(){g(4),f(a(\"eval\"),\"should require globals as modules\"),f(typeof a(\"some_undefined\")==\"undefined\",\"if no module nor global - return undefined\"),f(!!a.stats(\"eval\"),\"should count stats: globals\"),f(!!a.stats(\"some_undefined\"),\"should count stats: undefineds\")}),b(\"require() module-functions\",function(){g(10);var b=a(\"module_function_fd\"),c=a(\"module_function_fe\"),d=a(\"module_function_plain\");f(b()===!0,\"can require function definitions\"),f(c()===!0,\"can require function expressions\"),f(d()===!0,\"can require plain modules\"),f(b===a(\"module_function_fd\"),\"require must return the same instance of fd\"),f(c===a(\"module_function_fe\"),\"require must return the same instance of fe\"),f(d===a(\"module_function_plain\"),\"require must return the same instance of plain module\"),f(!!a.stats(\"module_function_fd\"),\"should count stats: in-package modules\")}),b(\"require() sandboxed module-functions\",function(){g(3);var b=a(\"module_function_fd_sandboxed\"),c=a(\"module_function_fe_sandboxed\"),d=a(\"module_function_plain_sandboxed\");f(b.some_function()===!0,\"can require sandboxed function definitions\"),f(c.some_function()===!0,\"can require sandboxed function expressions\"),f(d.some_function()===!0,\"can require sandboxed plain modules\")}),b(\"require() lazy module-functions\",function(){g(4);var b=a(\"module_function_lazy\");f(b()===!0,\"can require lazy function definitions\"),f(typeof a(\"lazy_fd\")==\"undefined\",\"lazy function definition's name should not leak into globals\"),f(b===a(\"module_function_lazy\"),\"require must return the same instance of lazy fd\")}),b(\"require() module-objects/json\",function(){g(3);var b=a(\"module_as_json\");f(typeof b==\"object\",\"json module should be an object\"),f(b.ok===!0,\"should return content\"),f(b===a(\"module_as_json\"),\"require of json module should return the same instance\")}),b(\"require() module-strings\",function(){g(2);var b=a(\"module_as_string\");f(typeof b==\"string\",\"string module should be an string\"),f(b===a(\"module_as_string\"),\"require of string module should return the same instance\")}),b(\"require() shortcuts\",function(){g(2);var b=a(\"sk_to_global_object\");f(b.toString().replace(/\\s|\\n/g,\"\")===\"functionDate(){[nativecode]}\",\"require() should follow shortcuts: require global by shortcut\");var c=a(\"sk_to_module_as_json\");f(typeof c==\"object\"&&c.ok===!0&&c===a(\"module_as_json\"),\"require() should follow shortcuts: require in-package module by shortcut\")}),b(\"require() third party\",function(){g(2);var b=a(\"third_party_module_a\");f(typeof b==\"function\",\"require() can load plain 3-party non-lmd modules, 1 exports\"),b=a(\"third_party_module_b\"),f(typeof b==\"object\"&&typeof b.pewpew==\"function\"&&typeof b.ololo==\"function\"&&b.someVariable===\"string\",\"require() can load plain 3-party non-lmd modules, N exports\")})})",
-"testcase_lmd_async_require": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"raises\"),j=\"?\"+Math.random(),k=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\";e(\"LMD async require @ \"+k),c(\"require.async() module-functions\",function(){g(6),a.async(\"./modules/async/module_function_async.js\"+j,function(b){f(b.some_function()===!0,\"should require async module-functions\"),f(a(\"./modules/async/module_function_async.js\"+j)===b,\"can sync require, loaded async module-functions\"),a.async(\"module_function_fd2\",function(b){f(b()===!0,\"can require async in-package modules\"),f(!!a.stats(\"module_function_fd2\"),\"should count stats: async modules\"),d()})})}),c(\"require.async() module-strings\",function(){g(3),a.async(\"./modules/async/module_as_string_async.html\"+j,function(b){f(typeof b==\"string\",\"should require async module-strings\"),f(b==='<div class=\"b-template\">${pewpew}</div>',\"content ok?\"),f(a(\"./modules/async/module_as_string_async.html\"+j)===b,\"can sync require, loaded async module-strings\"),d()})}),c(\"require.async() module-objects\",function(){g(2),a.async(\"./modules/async/module_as_json_async.json\"+j,function(b){f(typeof b==\"object\",\"should require async module-object\"),f(a(\"./modules/async/module_as_json_async.json\"+j)===b,\"can sync require, loaded async module-object\"),d()})}),c(\"require.async() chain calls\",function(){g(3);var b=a.async(\"./modules/async/module_as_json_async.json\"+j).async(\"./modules/async/module_as_json_async.json\"+j,function(){f(!0,\"Callback is optional\"),f(!0,\"WeCan use chain calls\"),d()});f(b===a,\"must return require\")}),c(\"require.async():json race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.async(\"./modules/async_race/module_as_json_async.json\"+j,c),a.async(\"./modules/async_race/module_as_json_async.json\"+j,c)}),c(\"require.async():js race calls\",function(){g(2);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.async(\"./modules/async_race/module_function_async.js\"+j,c),a.async(\"./modules/async_race/module_function_async.js\"+j,c)}),c(\"require.async():string race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.async(\"./modules/async_race/module_as_string_async.html\"+j,c),a.async(\"./modules/async_race/module_as_string_async.html\"+j,c)}),c(\"require.async() errors\",function(){g(2),a.async(\"./modules/async/undefined_module.js\"+j,function(b){f(typeof b==\"undefined\",\"should return undefined on error\"),a.async(\"./modules/async/undefined_module.js\"+j,function(a){f(typeof a==\"undefined\",\"should not cache errorous modules\"),d()})})}),c(\"require.async() parallel loading\",function(){g(2),a.async([\"./modules/parallel/1.js\"+j,\"./modules/parallel/2.js\"+j,\"./modules/parallel/3.js\"+j],function(a,b,c){f(!0,\"Modules executes as they are loaded - in load order\"),f(a.file===\"1.js\"&&b.file===\"2.js\"&&c.file===\"3.js\",\"Modules should be callbacked in list order\"),d()})}),c(\"require.async() shortcuts\",function(){g(10),f(typeof a(\"sk_async_html\")==\"undefined\",\"require should return undefined if shortcuts not initialized by loaders\"),f(typeof a(\"sk_async_html\")==\"undefined\",\"require should return undefined ... always\"),a.async(\"sk_async_json\",function(b){f(b.ok===!0,\"should require shortcuts: json\"),f(a(\"sk_async_json\")===b,\"if shortcut is defined require should return the same code\"),f(a(\"/modules/shortcuts/async.json\")===b,\"Module should be inited using shortcut content\"),a.async(\"sk_async_html\",function(b){f(b===\"ok\",\"should require shortcuts: html\"),a.async(\"sk_async_js\",function(b){f(b()===\"ok\",\"should require shortcuts: js\"),f(a.stats(\"sk_async_js\")===a.stats(\"/modules/shortcuts/async.js\"),\"shortcut should point to the same object as module\"),f(!!a.stats(\"/modules/shortcuts/async.js\"),\"should count stats of real file\"),f(a.stats(\"/modules/shortcuts/async.js\").shortcuts[0]===\"sk_async_js\",\"should pass shourtcuts names\"),d()})})})}),c(\"require.async() plain\",function(){g(3),a.async(\"./modules/async/module_plain_function_async.js\"+j,function(b){f(b.some_function()===!0,\"should require async module-functions\"),f(a(\"./modules/async/module_plain_function_async.js\"+j)===b,\"can async require plain modules, loaded async module-functions\"),d()})})})",
-"testcase_lmd_loader": "(function(a){function m(a,b){return i.defaultView&&i.defaultView.getComputedStyle?i.defaultView.getComputedStyle(a,\"\").getPropertyValue(b):(b=b.replace(/\\-(\\w)/g,function(a,b){return b.toUpperCase()}),a.currentStyle[b])}var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"document\"),j=a(\"raises\"),k=\"?\"+Math.random(),l=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\";e(\"LMD loader @ \"+l),c(\"require.js()\",function(){g(6),a.js(\"./modules/loader/non_lmd_module.js\"+k,function(b){f(typeof b==\"object\"&&b.nodeName.toUpperCase()===\"SCRIPT\",\"should return script tag on success\"),f(a(\"some_function\")()===!0,\"we can grab content of the loaded script\"),f(a(\"./modules/loader/non_lmd_module.js\"+k)===b,\"should cache script tag on success\"),a.js(\"http://yandex.ru/jquery.js\"+k,function(b){f(typeof b==\"undefined\",\"should return undefined on error in 3 seconds\"),f(typeof a(\"http://yandex.ru/jquery.js\"+k)==\"undefined\",\"should not cache errorous modules\"),a.js(\"module_as_string\",function(b){a.async(\"module_as_string\",function(a){f(b===a,\"require.js() acts like require.async() if in-package/declared module passed\"),d()})})})})}),c(\"require.js() JSON callback and chain calls\",function(){g(2);var b=a(\"setTimeout\")(function(){f(!1,\"JSONP call fails\"),d()},3e3);a(\"window\").someJsonHandler=function(c){f(c.ok,\"JSON called\"),a(\"window\").someJsonHandler=null,a(\"clearTimeout\")(b),d()};var c=a.js(\"./modules/loader/non_lmd_module.jsonp.js\"+k);f(c===a,\"require.js() must return require\")}),c(\"require.js() race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.js(\"./modules/loader_race/non_lmd_module.js\"+k,c),a.js(\"./modules/loader_race/non_lmd_module.js\"+k,c)}),c(\"require.css()\",function(){g(6),a.css(\"./modules/loader/some_css.css\"+k,function(b){f(typeof b==\"object\"&&b.nodeName.toUpperCase()===\"LINK\",\"should return link tag on success\"),f(m(i.getElementById(\"qunit-fixture\"),\"visibility\")===\"hidden\",\"css should be applied\"),f(a(\"./modules/loader/some_css.css\"+k)===b,\"should cache link tag on success\"),a.css(\"./modules/loader/some_css_404.css\"+k,function(b){f(typeof b==\"undefined\",\"should return undefined on error in 3 seconds\"),f(typeof a(\"./modules/loader/some_css_404.css\"+k)==\"undefined\",\"should not cache errorous modules\"),a.css(\"module_as_string\",function(b){a.async(\"module_as_string\",function(a){f(b===a,\"require.css() acts like require.async() if in-package/declared module passed\"),d()})})})})}),c(\"require.css() CSS loader without callback\",function(){g(1);var b=a.css(\"./modules/loader/some_css_callbackless.css\"+k).css(\"./modules/loader/some_css_callbackless.css\"+k+1);f(b===a,\"require.css() must return require\"),d()}),c(\"require.css() race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.css(\"./modules/loader_race/some_css.css\"+k,c),a.css(\"./modules/loader_race/some_css.css\"+k,c)}),c(\"require.css() shortcut\",function(){g(4),a.css(\"sk_css_css\",function(b){f(typeof b==\"object\"&&b.nodeName.toUpperCase()===\"LINK\",\"should return link tag on success\"),f(a(\"sk_css_css\")===b,\"require should return the same result\"),a.css(\"sk_css_css\",function(c){f(c===b,\"should load once\"),f(a(\"sk_css_css\")===a(\"/modules/shortcuts/css.css\"),\"should be defined using path-to-module\"),d()})})}),c(\"require.js() shortcut\",function(){g(5),a.js(\"sk_js_js\",function(b){f(typeof b==\"object\"&&b.nodeName.toUpperCase()===\"SCRIPT\",\"should return script tag on success\"),f(a(\"sk_js_js\")===b,\"require should return the same result\"),a.js(\"sk_js_js\",function(c){f(c===b,\"should load once\"),f(a(\"sk_js_js\")===a(\"/modules/shortcuts/js.js\"),\"should be defined using path-to-module\"),f(typeof a(\"shortcuts_js\")==\"function\",\"Should create a global function shortcuts_js as in module function\"),d()})})})})",
-"testcase_lmd_coverage": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"asyncTest\"),e=a(\"start\"),f=a(\"module\"),g=a(\"ok\"),h=a(\"expect\"),i=a(\"$\"),j=a(\"raises\"),k=\"?\"+Math.random(),l=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\";f(\"LMD Stats coverage @ \"+l),b(\"Coverage\",function(){h(6),a(\"coverage_fully_covered\"),a(\"coverage_not_conditions\"),a(\"coverage_not_functions\"),a(\"coverage_not_statements\");var b=a.stats(),c;c=b.modules.coverage_fully_covered.coverage.report;for(var d in c)c.hasOwnProperty(d)&&g(!1,\"should be fully covered!\");c=b.modules.coverage_not_conditions.coverage.report,g(c[2].conditions,\"coverage_not_conditions: not 1 line\"),g(c[3].lines===!1,\"coverage_not_conditions: not 2 line\"),c=b.modules.coverage_not_functions.coverage.report,g(c[3].functions[0]===\"test\",\"coverage_not_functions: not 2 line\"),g(c[4].lines===!1,\"coverage_not_functions: not 3 line\"),c=b.modules.coverage_not_statements.coverage.report,g(c[11].lines===!1,\"coverage_not_statements: not 11 line\"),c=b.modules.coverage_not_covered.coverage.report,g(c[1]&&c[2]&&c[3]&&c[6]&&c[7],\"coverage_not_covered: not covered\")}),c(\"Coverage - Async: stats_coverage_async\",function(){h(2),a.async([\"coverage_fully_covered_async\",\"coverage_not_functions_async\"],function(){var b=a.stats(),c;c=b.modules.coverage_fully_covered_async.coverage.report;for(var d in c)c.hasOwnProperty(d)&&g(!1,\"should be fully covered!\");c=b.modules.coverage_not_functions_async.coverage.report,g(c[3].functions[0]===\"test\",\"coverage_not_functions: not 2 line\"),g(c[4].lines===!1,\"coverage_not_functions: not 3 line\"),e()})})})",
-"testcase_lmd_cache": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"raises\"),j=a(\"localStorage\"),k=\"?\"+Math.random(),l=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\",m=\"latest\";if(!j)return;e(\"LMD cache @ \"+l),c(\"localStorage cache + cache_async test\",function(){g(10),f(typeof j.lmd==\"string\",\"LMD Should create cache\");var b=JSON.parse(j.lmd);f(b.version===m,\"Should save version\"),f(typeof b.modules==\"object\",\"Should save modules\"),f(typeof b.main==\"string\",\"Should save main function as string\"),f(typeof b.lmd==\"string\",\"Should save lmd source as string\"),f(typeof b.sandboxed==\"object\",\"Should save sandboxed modules\"),a.async(\"./modules/async/module_function_async.js\",function(b){var c=\"lmd:\"+m+\":\"+\"./modules/async/module_function_async.js\";f(b.some_function()===!0,\"should require async module-functions\"),f(typeof j[c]==\"string\",\"LMD Should cache async requests\"),j.removeItem(c),a.async(\"./modules/async/module_function_async.js\"),f(!j[c],\"LMD Should not recreate cache it was manually deleted key=\"+c),d()})})})"
+"third_party_module_a": "(function(e){return e(\"third_party_module_a_dep\"),function(e,t){e.uQuery_dep();var n=function(){var e=function(){};return e}();e.uQuery=n}(window),window.uQuery})",
+"third_party_module_b": "(function(e){function r(){}function i(){}var t=e(\"Function\"),n=e(\"Date\");new n,new t(\"return true\");var s=\"string\";return{pewpew:r,ololo:i,someVariable:s}})",
+"testcase_lmd_basic_features": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"raises\"),f=\"?\"+Math.random(),l=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";i(\"LMD basic features @ \"+l),t(\"require() globals\",function(){o(4),s(e(\"eval\"),\"should require globals as modules\"),s(typeof e(\"some_undefined\")==\"undefined\",\"if no module nor global - return undefined\"),s(!!e.stats(\"eval\"),\"should count stats: globals\"),s(!!e.stats(\"some_undefined\"),\"should count stats: undefineds\")}),t(\"require() module-functions\",function(){o(10);var t=e(\"module_function_fd\"),n=e(\"module_function_fe\"),r=e(\"module_function_plain\");s(t()===!0,\"can require function definitions\"),s(n()===!0,\"can require function expressions\"),s(r()===!0,\"can require plain modules\"),s(t===e(\"module_function_fd\"),\"require must return the same instance of fd\"),s(n===e(\"module_function_fe\"),\"require must return the same instance of fe\"),s(r===e(\"module_function_plain\"),\"require must return the same instance of plain module\"),s(!!e.stats(\"module_function_fd\"),\"should count stats: in-package modules\")}),t(\"require() sandboxed module-functions\",function(){o(3);var t=e(\"module_function_fd_sandboxed\"),n=e(\"module_function_fe_sandboxed\"),r=e(\"module_function_plain_sandboxed\");s(t.some_function()===!0,\"can require sandboxed function definitions\"),s(n.some_function()===!0,\"can require sandboxed function expressions\"),s(r.some_function()===!0,\"can require sandboxed plain modules\")}),t(\"require() lazy module-functions\",function(){o(4);var t=e(\"module_function_lazy\");s(t()===!0,\"can require lazy function definitions\"),s(typeof e(\"lazy_fd\")==\"undefined\",\"lazy function definition's name should not leak into globals\"),s(t===e(\"module_function_lazy\"),\"require must return the same instance of lazy fd\")}),t(\"require() module-objects/json\",function(){o(3);var t=e(\"module_as_json\");s(typeof t==\"object\",\"json module should be an object\"),s(t.ok===!0,\"should return content\"),s(t===e(\"module_as_json\"),\"require of json module should return the same instance\")}),t(\"require() module-strings\",function(){o(2);var t=e(\"module_as_string\");s(typeof t==\"string\",\"string module should be an string\"),s(t===e(\"module_as_string\"),\"require of string module should return the same instance\")}),t(\"require() shortcuts\",function(){o(2);var t=e(\"sk_to_global_object\");s(t.toString().replace(/\\s|\\n/g,\"\")===\"functionDate(){[nativecode]}\",\"require() should follow shortcuts: require global by shortcut\");var n=e(\"sk_to_module_as_json\");s(typeof n==\"object\"&&n.ok===!0&&n===e(\"module_as_json\"),\"require() should follow shortcuts: require in-package module by shortcut\")}),t(\"require() third party\",function(){o(2);var t=e(\"third_party_module_a\");s(typeof t==\"function\",\"require() can load plain 3-party non-lmd modules, 1 exports\"),t=e(\"third_party_module_b\"),s(typeof t==\"object\"&&typeof t.pewpew==\"function\"&&typeof t.ololo==\"function\"&&t.someVariable===\"string\",\"require() can load plain 3-party non-lmd modules, N exports\")})})",
+"testcase_lmd_async_require": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"raises\"),f=\"?\"+Math.random(),l=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";i(\"LMD async require @ \"+l),n(\"require.async() module-functions\",function(){o(6),e.async(\"./modules/async/module_function_async.js\"+f,function(t){s(t.some_function()===!0,\"should require async module-functions\"),s(e(\"./modules/async/module_function_async.js\"+f)===t,\"can sync require, loaded async module-functions\"),e.async(\"module_function_fd2\",function(t){s(t()===!0,\"can require async in-package modules\"),s(!!e.stats(\"module_function_fd2\"),\"should count stats: async modules\"),r()})})}),n(\"require.async() module-strings\",function(){o(3),e.async(\"./modules/async/module_as_string_async.html\"+f,function(t){s(typeof t==\"string\",\"should require async module-strings\"),s(t==='<div class=\"b-template\">${pewpew}</div>',\"content ok?\"),s(e(\"./modules/async/module_as_string_async.html\"+f)===t,\"can sync require, loaded async module-strings\"),r()})}),n(\"require.async() module-objects\",function(){o(2),e.async(\"./modules/async/module_as_json_async.json\"+f,function(t){s(typeof t==\"object\",\"should require async module-object\"),s(e(\"./modules/async/module_as_json_async.json\"+f)===t,\"can sync require, loaded async module-object\"),r()})}),n(\"require.async() chain calls\",function(){o(3);var t=e.async(\"./modules/async/module_as_json_async.json\"+f).async(\"./modules/async/module_as_json_async.json\"+f,function(){s(!0,\"Callback is optional\"),s(!0,\"WeCan use chain calls\"),r()});s(typeof t==\"function\",\"must return require\")}),n(\"require.async():json race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_as_json_async.json\"+f,n),e.async(\"./modules/async_race/module_as_json_async.json\"+f,n)}),n(\"require.async():js race calls\",function(){o(2);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_function_async.js\"+f,n),e.async(\"./modules/async_race/module_function_async.js\"+f,n)}),n(\"require.async():string race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_as_string_async.html\"+f,n),e.async(\"./modules/async_race/module_as_string_async.html\"+f,n)}),n(\"require.async() errors\",function(){o(2),e.async(\"./modules/async/undefined_module.js\"+f,function(t){s(typeof t==\"undefined\",\"should return undefined on error\"),e.async(\"./modules/async/undefined_module.js\"+f,function(e){s(typeof e==\"undefined\",\"should not cache errorous modules\"),r()})})}),n(\"require.async() parallel loading\",function(){o(2),e.async([\"./modules/parallel/1.js\"+f,\"./modules/parallel/2.js\"+f,\"./modules/parallel/3.js\"+f],function(e,t,n){s(!0,\"Modules executes as they are loaded - in load order\"),s(e.file===\"1.js\"&&t.file===\"2.js\"&&n.file===\"3.js\",\"Modules should be callbacked in list order\"),r()})}),n(\"require.async() shortcuts\",function(){o(10),s(typeof e(\"sk_async_html\")==\"undefined\",\"require should return undefined if shortcuts not initialized by loaders\"),s(typeof e(\"sk_async_html\")==\"undefined\",\"require should return undefined ... always\"),e.async(\"sk_async_json\",function(t){s(t.ok===!0,\"should require shortcuts: json\"),s(e(\"sk_async_json\")===t,\"if shortcut is defined require should return the same code\"),s(e(\"/modules/shortcuts/async.json\")===t,\"Module should be inited using shortcut content\"),e.async(\"sk_async_html\",function(t){s(t===\"ok\",\"should require shortcuts: html\"),e.async(\"sk_async_js\",function(t){s(t()===\"ok\",\"should require shortcuts: js\"),s(e.stats(\"sk_async_js\")===e.stats(\"/modules/shortcuts/async.js\"),\"shortcut should point to the same object as module\"),s(!!e.stats(\"/modules/shortcuts/async.js\"),\"should count stats of real file\"),s(e.stats(\"/modules/shortcuts/async.js\").shortcuts[0]===\"sk_async_js\",\"should pass shourtcuts names\"),r()})})})}),n(\"require.async() plain\",function(){o(3),e.async(\"./modules/async/module_plain_function_async.js\"+f,function(t){s(t.some_function()===!0,\"should require async module-functions\"),s(e(\"./modules/async/module_plain_function_async.js\"+f)===t,\"can async require plain modules, loaded async module-functions\"),r()})})})",
+"testcase_lmd_loader": "(function(e){function h(e,t){return a.defaultView&&a.defaultView.getComputedStyle?a.defaultView.getComputedStyle(e,\"\").getPropertyValue(t):(t=t.replace(/\\-(\\w)/g,function(e,t){return t.toUpperCase()}),e.currentStyle[t])}var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"document\"),f=e(\"raises\"),l=\"?\"+Math.random(),c=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";i(\"LMD loader @ \"+c),n(\"require.js()\",function(){o(6),e.js(\"./modules/loader/non_lmd_module.js\"+l,function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"SCRIPT\",\"should return script tag on success\"),s(e(\"some_function\")()===!0,\"we can grab content of the loaded script\"),s(e(\"./modules/loader/non_lmd_module.js\"+l)===t,\"should cache script tag on success\"),e.js(\"http://yandex.ru/jquery.js\"+l,function(t){s(typeof t==\"undefined\",\"should return undefined on error in 3 seconds\"),s(typeof e(\"http://yandex.ru/jquery.js\"+l)==\"undefined\",\"should not cache errorous modules\"),e.js(\"module_as_string\",function(t){e.async(\"module_as_string\",function(e){s(t===e,\"require.js() acts like require.async() if in-package/declared module passed\"),r()})})})})}),n(\"require.js() JSON callback and chain calls\",function(){o(2);var t=e(\"setTimeout\")(function(){s(!1,\"JSONP call fails\"),r()},3e3);e(\"window\").someJsonHandler=function(n){s(n.ok,\"JSON called\"),e(\"window\").someJsonHandler=null,e(\"clearTimeout\")(t),r()};var n=e.js(\"./modules/loader/non_lmd_module.jsonp.js\"+l);s(typeof n==\"function\",\"require.js() must return require\")}),n(\"require.js() race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.js(\"./modules/loader_race/non_lmd_module.js\"+l,n),e.js(\"./modules/loader_race/non_lmd_module.js\"+l,n)}),n(\"require.css()\",function(){o(6),e.css(\"./modules/loader/some_css.css\"+l,function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"LINK\",\"should return link tag on success\"),s(h(a.getElementById(\"qunit-fixture\"),\"visibility\")===\"hidden\",\"css should be applied\"),s(e(\"./modules/loader/some_css.css\"+l)===t,\"should cache link tag on success\"),e.css(\"./modules/loader/some_css_404.css\"+l,function(t){s(typeof t==\"undefined\",\"should return undefined on error in 3 seconds\"),s(typeof e(\"./modules/loader/some_css_404.css\"+l)==\"undefined\",\"should not cache errorous modules\"),e.css(\"module_as_string\",function(t){e.async(\"module_as_string\",function(e){s(t===e,\"require.css() acts like require.async() if in-package/declared module passed\"),r()})})})})}),n(\"require.css() CSS loader without callback\",function(){o(1);var t=e.css(\"./modules/loader/some_css_callbackless.css\"+l).css(\"./modules/loader/some_css_callbackless.css\"+l+1);s(typeof t==\"function\",\"require.css() must return require\"),r()}),n(\"require.css() race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.css(\"./modules/loader_race/some_css.css\"+l,n),e.css(\"./modules/loader_race/some_css.css\"+l,n)}),n(\"require.css() shortcut\",function(){o(4),e.css(\"sk_css_css\",function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"LINK\",\"should return link tag on success\"),s(e(\"sk_css_css\")===t,\"require should return the same result\"),e.css(\"sk_css_css\",function(n){s(n===t,\"should load once\"),s(e(\"sk_css_css\")===e(\"/modules/shortcuts/css.css\"),\"should be defined using path-to-module\"),r()})})}),n(\"require.js() shortcut\",function(){o(5),e.js(\"sk_js_js\",function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"SCRIPT\",\"should return script tag on success\"),s(e(\"sk_js_js\")===t,\"require should return the same result\"),e.js(\"sk_js_js\",function(n){s(n===t,\"should load once\"),s(e(\"sk_js_js\")===e(\"/modules/shortcuts/js.js\"),\"should be defined using path-to-module\"),s(typeof e(\"shortcuts_js\")==\"function\",\"Should create a global function shortcuts_js as in module function\"),r()})})})})",
+"testcase_lmd_coverage": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"asyncTest\"),i=e(\"start\"),s=e(\"module\"),o=e(\"ok\"),u=e(\"expect\"),a=e(\"$\"),f=e(\"raises\"),l=\"?\"+Math.random(),c=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";s(\"LMD Stats coverage @ \"+c),t(\"Coverage\",function(){u(6),e(\"coverage_fully_covered\"),e(\"coverage_not_conditions\"),e(\"coverage_not_functions\"),e(\"coverage_not_statements\");var t=e.stats(),n;n=t.modules.coverage_fully_covered.coverage.report;for(var r in n)n.hasOwnProperty(r)&&o(!1,\"should be fully covered!\");n=t.modules.coverage_not_conditions.coverage.report,o(n[2].conditions,\"coverage_not_conditions: not 1 line\"),o(n[3].lines===!1,\"coverage_not_conditions: not 2 line\"),n=t.modules.coverage_not_functions.coverage.report,o(n[3].functions[0]===\"test\",\"coverage_not_functions: not 2 line\"),o(n[4].lines===!1,\"coverage_not_functions: not 3 line\"),n=t.modules.coverage_not_statements.coverage.report,o(n[11].lines===!1,\"coverage_not_statements: not 11 line\"),n=t.modules.coverage_not_covered.coverage.report,o(n[1]&&n[2]&&n[3]&&n[6]&&n[7],\"coverage_not_covered: not covered\")}),n(\"Coverage - Async: stats_coverage_async\",function(){u(2),e.async([\"coverage_fully_covered_async\",\"coverage_not_functions_async\"],function(){var t=e.stats(),n;n=t.modules.coverage_fully_covered_async.coverage.report;for(var r in n)n.hasOwnProperty(r)&&o(!1,\"should be fully covered!\");n=t.modules.coverage_not_functions_async.coverage.report,o(n[3].functions[0]===\"test\",\"coverage_not_functions: not 2 line\"),o(n[4].lines===!1,\"coverage_not_functions: not 3 line\"),i()})})})",
+"testcase_lmd_cache": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"raises\"),f=e(\"localStorage\"),l=\"?\"+Math.random(),c=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\",h=\"latest\";if(!f)return;i(\"LMD cache @ \"+c),n(\"localStorage cache + cache_async test\",function(){o(10),s(typeof f.lmd==\"string\",\"LMD Should create cache\");var t=JSON.parse(f.lmd);s(t.version===h,\"Should save version\"),s(typeof t.modules==\"object\",\"Should save modules\"),s(typeof t.main==\"string\",\"Should save main function as string\"),s(typeof t.lmd==\"string\",\"Should save lmd source as string\"),s(typeof t.sandboxed==\"object\",\"Should save sandboxed modules\"),e.async(\"./modules/async/module_function_async.js\",function(t){var n=\"lmd:\"+h+\":\"+\"./modules/async/module_function_async.js\";s(t.some_function()===!0,\"should require async module-functions\"),s(typeof f[n]==\"string\",\"LMD Should cache async requests\"),f.removeItem(n),e.async(\"./modules/async/module_function_async.js\"),s(!f[n],\"LMD Should not recreate cache it was manually deleted key=\"+n),r()})})})"
 },{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true},"latest",{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"]},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[]},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"]},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"]},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"]}})

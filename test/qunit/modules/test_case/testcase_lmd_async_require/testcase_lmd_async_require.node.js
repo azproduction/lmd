@@ -116,7 +116,7 @@
                 start();
             });
 
-        ok(requireReturned === require, "require.async() must return require");
+        ok(typeof requireReturned === "function", "require.async() must return require");
     });
 
     asyncTest("require.async() errors", function () {
