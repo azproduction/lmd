@@ -26,16 +26,18 @@ function is_shortcut(moduleName, moduleContent) {
            moduleContent.charAt(0) == '@';
 }
 
-lmd_on('lmd-require:first-init', function (event, moduleName, module) {
+function rewrite_shortcut(event, moduleName, module) {
     if (is_shortcut(moduleName, module)) {
         lmd_trigger('shortcuts:before-resolve', moduleName, module);
 
         moduleName = module.replace('@', '');
         module = modules[moduleName];
-
-        return [moduleName, module];
     }
-});
+    return [moduleName, module];
+}
+
+lmd_on('lmd-require:first-init', rewrite_shortcut);
+lmd_on('*:rewrite-shortcut', rewrite_shortcut);
 
 lmd_on('stats:before-require-count', function (event, moduleName, module) {
     if (is_shortcut(moduleName, module)) {

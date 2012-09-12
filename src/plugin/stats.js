@@ -247,7 +247,7 @@ function stats_shortcut(moduleName, shortcut) {
     }
 
     // ie6 indexOf hackz
-    index = /*if ($P.IE) {*/shortcuts.indexOf ? /*}*/shortcuts.indexOf(shortcut)/*if ($P.IE) {*/:function(){for(var i=shortcuts.length;i-->0;)if(shortcuts[i]===shortcut)return i;return-1;}()/*}*/;
+    index = lmd_trigger('*:request-indexof', [].indexOf)[0].call(shortcuts, shortcut);
 
     if (index === -1) {
         shortcuts.push(shortcut);
@@ -289,6 +289,67 @@ lmd_on('lmd-require:first-init', function (event, moduleName, module) {
     stats_require(moduleName);
     stats_initStart(moduleName);
 });
+
+
+
+lmd_on('css:before-check', function (event, moduleName, module) {
+    if (!(module || !global_document) || initialized_modules[moduleName]) {
+        stats_require(moduleName);
+    }
+});
+
+lmd_on('css:before-init', function (event, moduleName, module) {
+    stats_initStart(moduleName);
+});
+
+lmd_on('css:request-error', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
+
+
+
+lmd_on('js:before-check', function (event, moduleName, module) {
+    if (!module || initialized_modules[moduleName]) {
+        stats_require(moduleName);
+    }
+});
+
+lmd_on('js:before-init', function (event, moduleName, module) {
+    stats_initStart(moduleName);
+});
+
+lmd_on('js:request-error', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
+
+lmd_on('async:before-check', function (event, moduleName, module) {
+    if (!module || initialized_modules[moduleName]) {
+        stats_require(moduleName);
+    }
+});
+
+lmd_on('async:before-init', function (event, moduleName, module) {
+    stats_initStart(moduleName);
+});
+
+lmd_on('async:request-error', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
+
+
+lmd_on('worker_or_node:request-error', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
+
+
+lmd_on('node:request-error', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
 
 lmd_on('shortcuts:before-resolve', function (event, moduleName, module) {
     // assign shortcut name for module

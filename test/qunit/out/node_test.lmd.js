@@ -45,16 +45,16 @@
         /**
          * LMD event trigger function
          */
-        lmd_trigger = function (event, data, data2) {
+        lmd_trigger = function (event, data, data2, data3) {
             var list = lmd_events[event],
                 result;
 
             if (list) {
                 for (var i = 0, c = list.length; i < c; i++) {
-                    result = list[i](event, data, data2) || result;
+                    result = list[i](event, data, data2, data3) || result;
                 }
             }
-            return result || [data, data2];
+            return result || [data, data2, data3];
         },
         /**
          * LMD event register function
@@ -99,6 +99,137 @@
         initialized_modules[moduleName] = 0;
     }
 
+(function () {
+    lmd_on('js:request-environment-module', function (event, moduleName, module) {
+        try {
+            // call importScripts or require
+            // any of them can throw error if file not found or transmission error
+            module = register_module(moduleName, (global.importScripts || global.require)(moduleName) || {});
+            return [moduleName, module];
+        } catch (e) {
+            // error -> default behaviour
+            lmd_trigger('worker_or_node:request-error', moduleName, module);
+            return [moduleName, module];
+        }
+    });
+}());
+(function () {
+    lmd_on('async:require-environment-file', function (event, moduleName, module, callback) {
+        global.require('fs').readFile(moduleName, 'utf8', function (err, module) {
+            if (err) {
+                lmd_trigger('node:request-error', moduleName);
+                callback();
+                return;
+            }
+            // check file extension - not content-type
+            if ((/js$|json$/).test(moduleName)) {
+                module = lmd_trigger('*:wrap-module', moduleName, module, moduleName)[1];
+                if (!(/json$/).test(moduleName)) {
+                    module = lmd_trigger('*:coverage-apply', moduleName, module)[1];
+                }
+                module = global_eval(module);
+            }
+            // 4. Then callback it
+            callback(register_module(moduleName, module));
+        });
+    });
+}());
+/**
+ * @name global
+ * @name require
+ * @name initialized_modules
+ * @name modules
+ * @name global_eval
+ * @name register_module
+ * @name global_document
+ * @name global_noop
+ * @name local_undefined
+ * @name create_race
+ * @name race_callbacks
+ */
+
+(function () {
+
+// Simple JSON stringify
+function stringify(object) {
+    var properties = [];
+    for (var key in object) {
+        if (object.hasOwnProperty(key)) {
+            properties.push(quote(key) + ':' + getValue(object[key]));
+        }
+    }
+    return "{" + properties.join(",") + "}";
+}
+
+function getValue(value) {
+    if (typeof value === "string") {
+        return quote(value);
+    } else if (typeof value === "boolean") {
+        return "" + value;
+    } else if (value.join) {
+        if (value.length == 0) {
+            return "[]";
+        } else {
+            var flat = [];
+            for (var i = 0, len = value.length; i < len; i += 1) {
+                flat.push(getValue(value[i]));
+            }
+            return '[' + flat.join(",") + ']';
+        }
+    } else if (typeof value === "number") {
+        return value;
+    } else {
+        return stringify(value);
+    }
+}
+
+function pad(s) {
+    return '0000'.substr(s.length) + s;
+}
+
+function replacer(c) {
+    switch (c) {
+        case '\b': return '\\b';
+        case '\f': return '\\f';
+        case '\n': return '\\n';
+        case '\r': return '\\r';
+        case '\t': return '\\t';
+        case '"': return '\\"';
+        case '\\': return '\\\\';
+        default: return '\\u' + pad(c.charCodeAt(0).toString(16));
+    }
+}
+
+function quote(s) {
+    return '"' + s.replace(/[\u0000-\u001f"\\\u007f-\uffff]/g, replacer) + '"';
+}
+
+function indexOf(item) {
+    for (var i = this.length; i --> 0;) {
+        if (this[i] === item) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+lmd_on('*:request-json', function (event, JSON) {
+    if (typeof JSON === "object") {
+        return [JSON];
+    }
+
+    return [{stringify: stringify}];
+});
+
+lmd_on('*:request-indexof', function (event, arrayIndexOf) {
+    if (typeof arrayIndexOf === "function") {
+        return [arrayIndexOf];
+    }
+
+    return [indexOf];
+});
+
+}());
 /**
  * This plugin prevents from duplicate resource loading
  *
@@ -107,6 +238,7 @@
  * This plugin provides private "race_callbacks" function
  */
 
+(function () {
 
 var race_callbacks = {},
     /**
@@ -131,6 +263,17 @@ var race_callbacks = {},
             race_callbacks[name] = false;
         }
     };
+
+lmd_on('*:request-race', function (event, moduleName, callback) {
+    callback = create_race(moduleName, callback);
+    if (race_callbacks[moduleName].length > 1) {
+        return [moduleName];
+    } else {
+        return [moduleName, callback];
+    }
+});
+
+}());
 /**
  * Package usage statistics
  *
@@ -380,7 +523,7 @@ function stats_shortcut(moduleName, shortcut) {
     }
 
     // ie6 indexOf hackz
-    index = shortcuts.indexOf ? shortcuts.indexOf(shortcut):function(){for(var i=shortcuts.length;i-->0;)if(shortcuts[i]===shortcut)return i;return-1;}();
+    index = lmd_trigger('*:request-indexof', [].indexOf)[0].call(shortcuts, shortcut);
 
     if (index === -1) {
         shortcuts.push(shortcut);
@@ -422,6 +565,67 @@ lmd_on('lmd-require:first-init', function (event, moduleName, module) {
     stats_require(moduleName);
     stats_initStart(moduleName);
 });
+
+
+
+lmd_on('css:before-check', function (event, moduleName, module) {
+    if (!(module || !global_document) || initialized_modules[moduleName]) {
+        stats_require(moduleName);
+    }
+});
+
+lmd_on('css:before-init', function (event, moduleName, module) {
+    stats_initStart(moduleName);
+});
+
+lmd_on('css:request-error', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
+
+
+
+lmd_on('js:before-check', function (event, moduleName, module) {
+    if (!module || initialized_modules[moduleName]) {
+        stats_require(moduleName);
+    }
+});
+
+lmd_on('js:before-init', function (event, moduleName, module) {
+    stats_initStart(moduleName);
+});
+
+lmd_on('js:request-error', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
+
+lmd_on('async:before-check', function (event, moduleName, module) {
+    if (!module || initialized_modules[moduleName]) {
+        stats_require(moduleName);
+    }
+});
+
+lmd_on('async:before-init', function (event, moduleName, module) {
+    stats_initStart(moduleName);
+});
+
+lmd_on('async:request-error', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
+
+
+lmd_on('worker_or_node:request-error', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
+
+
+lmd_on('node:request-error', function (event, moduleName, module) {
+    stats_initEnd(moduleName);
+});
+
 
 lmd_on('shortcuts:before-resolve', function (event, moduleName, module) {
     // assign shortcut name for module
@@ -613,7 +817,6 @@ lmd_on('lmd-register:call-sandboxed-module', function (event, moduleName, requir
 
 lmd_on('stats:before-return-stats', function (event, moduleName, stats_results) {
     if (moduleName) {
-        console.log('stats_calculate_coverage(moduleName);');
         stats_calculate_coverage(moduleName);
         return [];
     } else {
@@ -4656,6 +4859,13 @@ return function (moduleName, file, content, isPlainModule) {
 };
 
 } ());
+
+lmd_on('*:coverage-apply', function (event, moduleName, module) {
+    var isPlainModule = lmd_trigger('*:is-plain-module', moduleName, module, false)[2];
+    module = coverage_apply(moduleName, moduleName, module, isPlainModule);
+
+    return [moduleName, module];
+});
 /**
  * This plugin enables shortcuts
  *
@@ -4684,16 +4894,18 @@ function is_shortcut(moduleName, moduleContent) {
            moduleContent.charAt(0) == '@';
 }
 
-lmd_on('lmd-require:first-init', function (event, moduleName, module) {
+function rewrite_shortcut(event, moduleName, module) {
     if (is_shortcut(moduleName, module)) {
         lmd_trigger('shortcuts:before-resolve', moduleName, module);
 
         moduleName = module.replace('@', '');
         module = modules[moduleName];
-
-        return [moduleName, module];
     }
-});
+    return [moduleName, module];
+}
+
+lmd_on('lmd-require:first-init', rewrite_shortcut);
+lmd_on('*:rewrite-shortcut', rewrite_shortcut);
 
 lmd_on('stats:before-require-count', function (event, moduleName, module) {
     if (is_shortcut(moduleName, module)) {
@@ -4725,6 +4937,8 @@ lmd_on('stats:before-require-count', function (event, moduleName, module) {
  * @name race_callbacks
  */
 
+(function () {
+
 function parallel(method, items, callback) {
     var i = 0,
         j = 0,
@@ -4746,6 +4960,13 @@ function parallel(method, items, callback) {
         method(items[i], readyFactory(i));
     }
 }
+
+lmd_on('*:request-parallel', function (event, moduleNames, callback, method) {
+    parallel(method, moduleNames, callback);
+    return [];
+});
+
+}());
 /*if ($P.CACHE_ASYNC) include('cache_async.js');*/
 /**
  * Async loader of off-package LMD modules (special LMD format file)
@@ -4770,83 +4991,6 @@ function parallel(method, items, callback) {
  * @name parallel
  */
 
-
-    /**
-     * @param code
-     * @return {Boolean} true if it is a plain LMD module
-     */
-    var async_is_plain_code = function (code) {
-        // remove comments (bad rx - I know it, but it works for that case), spaces and ;
-        code = code.replace(/\/\*.*?\*\/|\/\/.*(?=[\n\r])|\s|\;/g, '');
-
-        // simple FD/FE parser
-        if (/\(function\(|function[a-z0-9_]+\(/.test(code)) {
-            var index = 0,
-                length = code.length,
-                is_can_return = false,
-                string = false,
-                parentheses = 0,
-                braces = 0;
-
-            while (index < length) {
-                switch (code.charAt(index)) {
-                    // count braces if not in string
-                    case '{':
-                        if (!string) {
-                            is_can_return = true;
-                            braces++
-                        }
-                        break;
-                    case '}':
-                        if (!string) braces--;
-                        break;
-
-                    case '(':
-                        if (!string) parentheses++;
-                        break;
-                    case ')':
-                        if (!string) parentheses--;
-                        break;
-
-                    case '\\':
-                        if (string) index++; // skip next char in in string
-                        break;
-
-                    case "'":
-                        if (string === "'") {
-                            string = false; // close string
-                        } else if (string === false) {
-                            string = "'"; // open string
-                        }
-                        break;
-
-                    case '"':
-                        if (string === '"') {
-                            string = false; // close string
-                        } else if (string === false) {
-                            string = '"'; // open string
-                        }
-                        break;
-                }
-                index++;
-
-                if (is_can_return && !parentheses && !braces) {
-                    return index !== length;
-                }
-            }
-        }
-        return true;
-    };
-
-    var async_plain = function (module, contentTypeOrExtension) {
-        // its NOT a JSON ant its a plain code
-        if (!(/json$/).test(contentTypeOrExtension) && async_is_plain_code(module)) {
-            // its not a JSON and its a Plain LMD module - wrap it
-            module = '(function(require,exports,module){\n' + module + '\n})';
-        }
-        return module;
-    };
-
     /**
      * Load off-package LMD module
      *
@@ -4856,62 +5000,39 @@ function parallel(method, items, callback) {
     require.async = function (moduleName, callback) {
         callback = callback || global_noop;
 
-        // expect that its an array
         if (typeof moduleName !== "string") {
-            parallel(require.async, moduleName, callback);
-            return require;
+            callback = lmd_trigger('*:request-parallel', moduleName, callback, require.async)[1];
+            if (!callback) {
+                return require;
+            }
         }
+
         var module = modules[moduleName],
             XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
 
-        // Its an shortcut
-        if (is_shortcut(moduleName, module)) {
-            // rewrite module name
-            // assign shortcut name for module
-            stats_shortcut(module, moduleName);
-            moduleName = module.replace('@', '');
-            module = modules[moduleName];
+        var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+        if (replacement) {
+            moduleName = replacement[0];
+            module = replacement[1];
         }
 
-        if (!module || initialized_modules[moduleName]) {
-            stats_require(moduleName);
-        }
+        lmd_trigger('async:before-check', moduleName, module);
         // If module exists or its a node.js env
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
 
-        stats_initStart(moduleName);
+        lmd_trigger('js:before-init', moduleName, module);
 
-        callback = create_race(moduleName, callback);
+        callback = lmd_trigger('*:request-race', moduleName, callback)[1];
         // if already called
-        if (race_callbacks[moduleName].length > 1) {
+        if (!callback) {
             return require;
         }
 
         if (!XMLHttpRequestConstructor) {
-            global.require('fs').readFile(moduleName, 'utf8', function (err, module) {
-                if (err) {
-
-                    // stop init on error
-                    stats_initEnd(moduleName);
-                    callback();
-                    return;
-                }
-                // check file extension - not content-type
-                if ((/js$|json$/).test(moduleName)) {
-                    var isPlainModule = false;
-                    isPlainModule = async_is_plain_code(module);
-                    module = async_plain(module, moduleName);
-                    if (!(/json$/).test(moduleName)) {
-                        module = coverage_apply(moduleName, moduleName, module, isPlainModule);
-                    }
-                    module = global_eval(module);
-                }
-                // 4. Then callback it
-                callback(register_module(moduleName, module));
-            });
+            lmd_trigger('async:require-environment-file', moduleName, module, callback);
             return require;
         }
 //#JSCOVERAGE_IF 0
@@ -4925,20 +5046,19 @@ function parallel(method, items, callback) {
                     var contentType = xhr.getResponseHeader('content-type');
                     module = xhr.responseText;
                     if ((/script$|json$/).test(contentType)) {
-                        var isPlainModule = false;
-                        isPlainModule = async_is_plain_code(module);
-                        module = async_plain(module, contentType);
+                        module = lmd_trigger('*:wrap-module', moduleName, module, contentType)[1];
                         if (!(/json$/).test(contentType)) {
-                            module = coverage_apply(moduleName, moduleName, module, isPlainModule);
+                            module = lmd_trigger('*:coverage-apply', moduleName, module)[1];
                         }
+
                         module = global_eval(module);
                     }
 
+                    lmd_trigger('async:before-callback', moduleName, typeof module === "function" ? xhr.responseText : module);
                     // 4. Then callback it
                     callback(register_module(moduleName, module));
                 } else {
-                    // stop init on error
-                    stats_initEnd(moduleName);
+                    lmd_trigger('async:request-error', moduleName, module);
                     callback();
                 }
             }
@@ -4949,6 +5069,98 @@ function parallel(method, items, callback) {
         return require;
 //#JSCOVERAGE_ENDIF
     };
+
+(function () {
+
+
+/**
+ * @param code
+ * @return {Boolean} true if it is a plain LMD module
+ */
+var async_is_plain_code = function (code) {
+    // remove comments (bad rx - I know it, but it works for that case), spaces and ;
+    code = code.replace(/\/\*.*?\*\/|\/\/.*(?=[\n\r])|\s|\;/g, '');
+
+    // simple FD/FE parser
+    if (/\(function\(|function[a-z0-9_]+\(/.test(code)) {
+        var index = 0,
+            length = code.length,
+            is_can_return = false,
+            string = false,
+            parentheses = 0,
+            braces = 0;
+
+        while (index < length) {
+            switch (code.charAt(index)) {
+                // count braces if not in string
+                case '{':
+                    if (!string) {
+                        is_can_return = true;
+                        braces++
+                    }
+                    break;
+                case '}':
+                    if (!string) braces--;
+                    break;
+
+                case '(':
+                    if (!string) parentheses++;
+                    break;
+                case ')':
+                    if (!string) parentheses--;
+                    break;
+
+                case '\\':
+                    if (string) index++; // skip next char in in string
+                    break;
+
+                case "'":
+                    if (string === "'") {
+                        string = false; // close string
+                    } else if (string === false) {
+                        string = "'"; // open string
+                    }
+                    break;
+
+                case '"':
+                    if (string === '"') {
+                        string = false; // close string
+                    } else if (string === false) {
+                        string = '"'; // open string
+                    }
+                    break;
+            }
+            index++;
+
+            if (is_can_return && !parentheses && !braces) {
+                return index !== length;
+            }
+        }
+    }
+    return true;
+};
+
+var async_plain = function (module, contentTypeOrExtension) {
+    // its NOT a JSON ant its a plain code
+    if (!(/json$/).test(contentTypeOrExtension) && async_is_plain_code(module)) {
+        // its not a JSON and its a Plain LMD module - wrap it
+        module = '(function(require,exports,module){\n' + module + '\n})';
+    }
+    return module;
+};
+
+lmd_on('*:wrap-module', function (event, moduleName, module, contentTypeOrExtension) {
+    module = async_plain(module, contentTypeOrExtension);
+    return [moduleName, module, contentTypeOrExtension];
+});
+
+lmd_on('*:is-plain-module', function (event, moduleName, module) {
+    if (typeof async_is_plain_code === "function") {
+        return [moduleName, module, async_is_plain_code(module)];
+    }
+});
+
+}());
 /**
  * Async loader of js files (NOT LMD modules): jQuery, d3.js etc
  *
@@ -4980,55 +5192,41 @@ function parallel(method, items, callback) {
     require.js = function (moduleName, callback) {
         callback = callback || global_noop;
 
-        // expect that its an array
         if (typeof moduleName !== "string") {
-            parallel(require.js, moduleName, callback);
-            return require;
+            callback = lmd_trigger('*:request-parallel', moduleName, callback, require.js)[1];
+            if (!callback) {
+                return require;
+            }
         }
+
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
             head;
 
-        // Its an shortcut
-        if (is_shortcut(moduleName, module)) {
-            // assign shortcut name for module
-            stats_shortcut(module, moduleName);
-            // rewrite module name
-            moduleName = module.replace('@', '');
-            module = modules[moduleName];
+        var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+        if (replacement) {
+            moduleName = replacement[0];
+            module = replacement[1];
         }
 
-        if (!module || initialized_modules[moduleName]) {
-            stats_require(moduleName);
-        }
+        lmd_trigger('js:before-check', moduleName, module);
         // If module exists
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
 
-        stats_initStart(moduleName);
+        lmd_trigger('js:before-init', moduleName, module);
 
-        callback = create_race(moduleName, callback);
+        callback = lmd_trigger('*:request-race', moduleName, callback)[1];
         // if already called
-        if (race_callbacks[moduleName].length > 1) {
+        if (!callback) {
             return require;
         }
         // by default return undefined
         if (!global_document) {
-
-            // if no global try to require
-            // node or worker
-            try {
-                // call importScripts or require
-                // any of them can throw error if file not found or transmission error
-                module = register_module(moduleName, (global.importScripts || global.require)(moduleName) || {});
-            } catch (e) {
-                // error -> default behaviour
-                // stop init on error
-                stats_initEnd(moduleName);
-            }
+            module = lmd_trigger('js:request-environment-module', moduleName, module)[1];
             callback(module);
             return require;
         }
@@ -5045,8 +5243,9 @@ function parallel(method, items, callback) {
 
                 isNotLoaded = 0;
                 // register or cleanup
-                // stop init on error
-                !e && stats_initEnd(moduleName);
+                if (!e) {
+                    lmd_trigger('js:request-error', moduleName, module);
+                }
                 callback(e ? register_module(moduleName, script) : head.removeChild(script) && local_undefined); // e === undefined if error
             }
         }, 3000, 0);
@@ -5092,38 +5291,35 @@ function parallel(method, items, callback) {
     require.css = function (moduleName, callback) {
         callback = callback || global_noop;
 
-        // expect that its an array
         if (typeof moduleName !== "string") {
-            parallel(require.css, moduleName, callback);
-            return require;
+            callback = lmd_trigger('*:request-parallel', moduleName, callback, require.css)[1];
+            if (!callback) {
+                return require;
+            }
         }
+
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;
 
-        // Its an shortcut
-        if (is_shortcut(moduleName, module)) {
-            // assign shortcut name for module
-            stats_shortcut(module, moduleName);
-            // rewrite module name
-            moduleName = module.replace('@', '');
-            module = modules[moduleName];
+        var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+        if (replacement) {
+            moduleName = replacement[0];
+            module = replacement[1];
         }
 
-        if (!(module || !global_document) || initialized_modules[moduleName]) {
-            stats_require(moduleName);
-        }
+        lmd_trigger('css:before-check', moduleName, module);
         // If module exists or its a worker or node.js environment
         if (module || !global_document) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
 
-        stats_initStart(moduleName);
+        lmd_trigger('css:before-init', moduleName, module);
 
-        callback = create_race(moduleName, callback);
+        callback = lmd_trigger('*:request-race', moduleName, callback)[1];
         // if already called
-        if (race_callbacks[moduleName].length > 1) {
+        if (!callback) {
             return require;
         }
 //#JSCOVERAGE_IF 0
@@ -5136,8 +5332,9 @@ function parallel(method, items, callback) {
                     // register or cleanup
                     link.removeAttribute('id');
 
-                    // stop init on error
-                    !e && stats_initEnd(moduleName);
+                    if (!e) {
+                        lmd_trigger('css:request-error', moduleName, module);
+                    }
                     callback(e ? register_module(moduleName, link) : head.removeChild(link) && local_undefined); // e === undefined if error
                 }
             };
@@ -5324,7 +5521,7 @@ return window.uQuery_dep;
         return true;
     };
 }),
-"module_function_lazy": "(function(e,t,n){return e(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
+"module_function_lazy": "(function(a,b,c){return a(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
 "module_function_plain": (function (require, exports, module) { /* wrapped by builder */
 require('ok')(true, "plain module must be called once");
 

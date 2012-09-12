@@ -20,6 +20,8 @@
  * @name race_callbacks
  */
 
+(function () {
+
 function parallel(method, items, callback) {
     var i = 0,
         j = 0,
@@ -41,3 +43,10 @@ function parallel(method, items, callback) {
         method(items[i], readyFactory(i));
     }
 }
+
+lmd_on('*:request-parallel', function (event, moduleNames, callback, method) {
+    parallel(method, moduleNames, callback);
+    return [];
+});
+
+}());

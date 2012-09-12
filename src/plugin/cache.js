@@ -12,6 +12,8 @@
  * @name version
  */
 
+(function () {
+
     // If possible to dump and version passed (fallback mode)
     // then dump application source
     if (global.localStorage && version/*if ($P.OPERA_MOBILE) {*/ && /_/.test(function(_){}) /*}*/) {
@@ -29,3 +31,5 @@
             } catch(e) {}
         }());
     }
+
+}());

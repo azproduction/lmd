@@ -32,51 +32,36 @@
     require.css = function (moduleName, callback) {
         callback = callback || global_noop;
 
-        if ($P.PARALLEL) {
-            // expect that its an array
-            if (typeof moduleName !== "string") {
-                parallel(require.css, moduleName, callback);
+        if (typeof moduleName !== "string") {
+            callback = lmd_trigger('*:request-parallel', moduleName, callback, require.css)[1];
+            if (!callback) {
                 return require;
             }
         }
+
         var module = modules[moduleName],
             isNotLoaded = 1,
             head;
 
-        if ($P.SHORTCUTS) {
-            // Its an shortcut
-            if (is_shortcut(moduleName, module)) {
-                if ($P.STATS) {
-                    // assign shortcut name for module
-                    stats_shortcut(module, moduleName);
-                }
-                // rewrite module name
-                moduleName = module.replace('@', '');
-                module = modules[moduleName];
-            }
+        var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+        if (replacement) {
+            moduleName = replacement[0];
+            module = replacement[1];
         }
 
-        if ($P.STATS) {
-            if (!(module || !global_document) || initialized_modules[moduleName]) {
-                stats_require(moduleName);
-            }
-        }
+        lmd_trigger('css:before-check', moduleName, module);
         // If module exists or its a worker or node.js environment
         if (module || !global_document) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
 
-        if ($P.STATS) {
-            stats_initStart(moduleName);
-        }
+        lmd_trigger('css:before-init', moduleName, module);
 
-        if ($P.RACE) {
-            callback = create_race(moduleName, callback);
-            // if already called
-            if (race_callbacks[moduleName].length > 1) {
-                return require;
-            }
+        callback = lmd_trigger('*:request-race', moduleName, callback)[1];
+        // if already called
+        if (!callback) {
+            return require;
         }
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
         // Create stylesheet link
@@ -88,9 +73,8 @@
                     // register or cleanup
                     link.removeAttribute('id');
 
-                    if ($P.STATS) {
-                        // stop init on error
-                        !e && stats_initEnd(moduleName);
+                    if (!e) {
+                        lmd_trigger('css:request-error', moduleName, module);
                     }
                     callback(e ? register_module(moduleName, link) : head.removeChild(link) && local_undefined); // e === undefined if error
                 }

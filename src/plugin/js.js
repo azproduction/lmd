@@ -29,71 +29,41 @@
     require.js = function (moduleName, callback) {
         callback = callback || global_noop;
 
-        if ($P.PARALLEL) {
-            // expect that its an array
-            if (typeof moduleName !== "string") {
-                parallel(require.js, moduleName, callback);
+        if (typeof moduleName !== "string") {
+            callback = lmd_trigger('*:request-parallel', moduleName, callback, require.js)[1];
+            if (!callback) {
                 return require;
             }
         }
+
         var module = modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
             head;
 
-        if ($P.SHORTCUTS) {
-            // Its an shortcut
-            if (is_shortcut(moduleName, module)) {
-                if ($P.STATS) {
-                    // assign shortcut name for module
-                    stats_shortcut(module, moduleName);
-                }
-                // rewrite module name
-                moduleName = module.replace('@', '');
-                module = modules[moduleName];
-            }
+        var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+        if (replacement) {
+            moduleName = replacement[0];
+            module = replacement[1];
         }
 
-        if ($P.STATS) {
-            if (!module || initialized_modules[moduleName]) {
-                stats_require(moduleName);
-            }
-        }
+        lmd_trigger('js:before-check', moduleName, module);
         // If module exists
         if (module) {
             callback(initialized_modules[moduleName] ? module : require(moduleName));
             return require;
         }
 
-        if ($P.STATS) {
-            stats_initStart(moduleName);
-        }
+        lmd_trigger('js:before-init', moduleName, module);
 
-        if ($P.RACE) {
-            callback = create_race(moduleName, callback);
-            // if already called
-            if (race_callbacks[moduleName].length > 1) {
-                return require;
-            }
+        callback = lmd_trigger('*:request-race', moduleName, callback)[1];
+        // if already called
+        if (!callback) {
+            return require;
         }
         // by default return undefined
         if (!global_document) {
-
-            if ($P.WORKER || $P.NODE) {
-                // if no global try to require
-                // node or worker
-                try {
-                    // call importScripts or require
-                    // any of them can throw error if file not found or transmission error
-                    module = register_module(moduleName, (global.importScripts || global.require)(moduleName) || {});
-                } catch (e) {
-                    // error -> default behaviour
-                    if ($P.STATS) {
-                        // stop init on error
-                        stats_initEnd(moduleName);
-                    }
-                }
-            }
+            module = lmd_trigger('js:request-environment-module', moduleName, module)[1];
             callback(module);
             return require;
         }
@@ -101,9 +71,7 @@
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
         var script = global_document.createElement("script");
         global.setTimeout(script.onreadystatechange = script.onload = function (e) {
-            if ($P.IE) {
-                e = e || global.event;
-            }
+            e = e || global.event;
             if (isNotLoaded &&
                 (!e ||
                 !script[readyState] ||
@@ -112,9 +80,8 @@
 
                 isNotLoaded = 0;
                 // register or cleanup
-                if ($P.STATS) {
-                    // stop init on error
-                    !e && stats_initEnd(moduleName);
+                if (!e) {
+                    lmd_trigger('js:request-error', moduleName, module);
                 }
                 callback(e ? register_module(moduleName, script) : head.removeChild(script) && local_undefined); // e === undefined if error
             }

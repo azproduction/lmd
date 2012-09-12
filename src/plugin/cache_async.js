@@ -10,6 +10,8 @@
  * @name version
  */
 
+(function () {
+
 function cache_async(moduleName, module) {
     if (global.localStorage && version) {
         try {
@@ -17,3 +19,9 @@ function cache_async(moduleName, module) {
         } catch(e) {}
     }
 }
+
+lmd_on('async:before-callback', function (event, moduleName, module) {
+    cache_async(moduleName, module);
+});
+
+}());

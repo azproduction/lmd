@@ -513,7 +513,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
 
         optionNames.forEach(function (optionName) {
             /*if ($P.STATS) include('stats.js');*/
-            var includePattern = new RegExp('\\/\\*\\if \\(' + optionName.replace(/\$/g, '\\$') + '\\)\\s+include\\(\'([a-z-\\/_\\.]+)\'\\);?\\s*\\*\\/', ''),
+            var includePattern = new RegExp('\\/\\*\\if \\(' + optionName.replace(/\$/g, '\\$').replace(/\|/g, '\\|') + '\\)\\s+include\\(\'([a-z-\\/_\\.]+)\'\\);?\\s*\\*\\/', ''),
                 patchContent = '',
                 match;
 

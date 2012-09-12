@@ -160,7 +160,6 @@
                     ok(js() === 'ok', 'should require shortcuts: js');
 
                     // stats
-                    console.log(require.stats('sk_async_js'), require.stats('/modules/shortcuts/async.js'));
                     ok(require.stats('sk_async_js') === require.stats('/modules/shortcuts/async.js'), "shortcut should point to the same object as module");
                     ok(!!require.stats('/modules/shortcuts/async.js'), "should count stats of real file");
                     ok(require.stats('/modules/shortcuts/async.js').shortcuts[0] === 'sk_async_js', "should pass shourtcuts names");

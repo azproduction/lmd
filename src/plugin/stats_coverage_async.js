@@ -65,3 +65,10 @@ return function (moduleName, file, content, isPlainModule) {
 };
 
 } ());
+
+lmd_on('*:coverage-apply', function (event, moduleName, module) {
+    var isPlainModule = lmd_trigger('*:is-plain-module', moduleName, module, false)[2];
+    module = coverage_apply(moduleName, moduleName, module, isPlainModule);
+
+    return [moduleName, module];
+});
