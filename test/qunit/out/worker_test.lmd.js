@@ -27,7 +27,7 @@
                 module = module(
                     sandboxed_modules[moduleName] ?
                         {coverage_line: require.coverage_line, coverage_function: require.coverage_function, coverage_condition: require.coverage_condition} ||
-                        local_undefined : require,
+                        local_undefined : stats_wrap_require(require, moduleName) ||require,
                     output.exports,
                     output
                 ) || output.exports;
@@ -77,6 +77,14 @@
     }
 
 /*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
+/**
+ * This plugin prevents from duplicate resource loading
+ *
+ * Flag "race"
+ *
+ * This plugin provides private "race_callbacks" function
+ */
+
 
 var race_callbacks = {},
     /**
@@ -101,6 +109,16 @@ var race_callbacks = {},
             race_callbacks[name] = false;
         }
     };
+/**
+ * Package usage statistics
+ *
+ * @see /README.md near "Application statistics. Require, load, eval, call statistics" for details
+ *
+ * Flag "stats"
+ *
+ * This plugin provides require.stats() function and bunch of private functions
+ */
+
 /**
  * @name global
  * @name require
@@ -149,25 +167,33 @@ var race_callbacks = {},
  * @name lmdStats
  * @type {Object}
  *
- * @property {String}   name            module name
- * @property {Number[]} accessTimes     module access times
- * @property {Number}   initTime        module init time: load+eval+call
- * @property {String[]} shortcuts       list of used shortcuts
+ * @property {String}       name            module name
+ * @property {Object}       moduleAccessTimes  module access times {byModuleName: accessTimes}
+ * @property {Number[]}     accessTimes     access times
+ * @property {Number}       initTime        module init time: load+eval+call
+ * @property {String[]}     shortcuts       list of used shortcuts
  *
- * @property {String[]} lines           list of all statements
- * @property {String[]} conditions      list of all conditions
- * @property {String[]} functions       list of all functions
+ * @property {String}       type            module type: global, in-package, off-package
  *
- * @property {Object} runLines          {lineId: callTimes}
- * @property {Object} runConditions     {conditionId: [falseTimes, trueTimes]}
- * @property {Object} runFunctions      {functionId: callTimes}
+ * @property {String[]}     lines           list of all statements
+ * @property {String[]}     conditions      list of all conditions
+ * @property {String[]}     functions       list of all functions
+ *
+ * @property {Object}       runLines          {lineId: callTimes}
+ * @property {Object}       runConditions     {conditionId: [falseTimes, trueTimes]}
+ * @property {Object}       runFunctions      {functionId: callTimes}
  *
  * @property {LmdCoverage} coverage
  *
  * @example
  *  {
  *      name: "pewpew",
- *      accessTimes: [0, 5, 2715],
+ *      type: "in-package",
+ *      accessTimes: [0],
+ *      moduleAccessTimes: [{
+ *          time: 0,
+ *          byModule: "main"
+ *      }],
  *      initTime: 10,
  *      shortcuts: ["ololo"],
  *
@@ -239,6 +265,7 @@ function stats_get(moduleName) {
            stats_results[moduleName] = {
                name: moduleName,
                accessTimes: [],
+               moduleAccessTimes: {},
                initTime: -1
            };
 }
@@ -255,6 +282,58 @@ function stats_initEnd(moduleName) {
 function stats_require(moduleName) {
     var stat = stats_get(moduleName);
     stat.accessTimes.push(+new stats_Date - stats_startTime);
+}
+
+function stats_require_module(moduleName, byModuleName) {
+    var stat = stats_get(moduleName);
+
+    if (!stat.moduleAccessTimes[byModuleName]) {
+        stat.moduleAccessTimes[byModuleName] = [];
+    }
+    stat.moduleAccessTimes[byModuleName].push(+new stats_Date - stats_startTime);
+}
+
+function stats_wrap_require_method(method, thisObject, byModuleName) {
+    return function (moduleNames) {
+        if (Object.prototype.toString.call(moduleNames) !== "[object Array]") {
+            moduleNames = [moduleNames];
+        }
+
+        for (var i = 0, c = moduleNames.length, moduleName, moduleContent; i < c; i++) {
+            moduleName = moduleNames[i];
+
+            moduleContent = modules[moduleName];
+            if (is_shortcut(moduleName, moduleContent)) {
+                moduleName = moduleContent.replace('@', '');
+            }
+
+            stats_require_module(moduleName, byModuleName);
+        }
+
+        return method.apply(thisObject, arguments);
+    }
+}
+
+function stats_wrap_require(require, byModuleName) {
+    var wrappedRequire = stats_wrap_require_method(require, this, byModuleName);
+
+    for (var name in require) {
+        wrappedRequire[name] = require[name];
+    }
+
+
+    wrappedRequire.async = stats_wrap_require_method(require.async, this, byModuleName);
+
+
+
+    wrappedRequire.css = stats_wrap_require_method(require.css, this, byModuleName);
+
+
+
+    wrappedRequire.js = stats_wrap_require_method(require.js, this, byModuleName);
+
+
+    return wrappedRequire;
 }
 
 function stats_type(moduleName, type) {
@@ -510,6 +589,16 @@ require.stats = function (moduleName) {
 
     return moduleName ? stats_results[moduleName] : stats_results;
 };
+
+/**
+ * Coverage for off-package LMD modules
+ *
+ * Flag "stats_coverage_async"
+ *
+ * This plugin provides a bunch of private functions
+ *
+ * This plugin is HUGE - it includes all UglifyJs code
+ */
 
 /**
  * @name global
@@ -4490,6 +4579,14 @@ return function (moduleName, file, content, isPlainModule) {
 
 } ());
 /**
+ * This plugin enables shortcuts
+ *
+ * Flag "shortcuts"
+ *
+ * This plugin provides private "is_shortcut" function
+ */
+
+/**
  * @name global
  * @name require
  * @name initialized_modules
@@ -4508,6 +4605,14 @@ function is_shortcut(moduleName, moduleContent) {
            typeof moduleContent === "string" &&
            moduleContent.charAt(0) == '@';
 }
+/**
+ * Parallel resource loader
+ *
+ * Flag "parallel"
+ *
+ * This plugin provides private "parallel" function
+ */
+
 /**
  * @name global
  * @name require
@@ -4544,6 +4649,15 @@ function parallel(method, items, callback) {
     }
 }
 /*if ($P.CACHE_ASYNC) include('cache_async.js');*/
+/**
+ * Async loader of off-package LMD modules (special LMD format file)
+ *
+ * @see /README.md near "LMD Modules types" for details
+ *
+ * Flag "async"
+ *
+ * This plugin provides require.async() function
+ */
 /**
  * @name global
  * @name require
@@ -4714,6 +4828,14 @@ function parallel(method, items, callback) {
 
     };
 /**
+ * Async loader of js files (NOT LMD modules): jQuery, d3.js etc
+ *
+ * Flag "js"
+ *
+ * This plugin provides require.js() function
+ */
+
+/**
  * @name global
  * @name require
  * @name initialized_modules
@@ -4814,6 +4936,13 @@ function parallel(method, items, callback) {
         return require;
 //#JSCOVERAGE_ENDIF
     };
+/**
+ * Async loader of css files
+ *
+ * Flag "css"
+ *
+ * This plugin provides require.css() function
+ */
 /**
  * @name global
  * @name require
@@ -4926,7 +5055,7 @@ function parallel(method, items, callback) {
 //#JSCOVERAGE_ENDIF
     };
 /*if ($P.CACHE) include('cache.js');*/
-    main(require, output.exports, output);
+    main(stats_wrap_require(require, "main") ||require, output.exports, output);
 })(worker_global_environment,(function (require) {
     // common for BOM Node and Worker Envs
     require('testcase_lmd_basic_features');
@@ -5083,7 +5212,7 @@ return window.uQuery_dep;
         return true;
     };
 }),
-"module_function_lazy": "(function(a,b,c){return a(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
+"module_function_lazy": "(function(e,t,n){return e(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
 "module_function_plain": (function (require, exports, module) { /* wrapped by builder */
 require('ok')(true, "plain module must be called once");
 
@@ -5357,7 +5486,7 @@ return {
                 start();
             });
 
-        ok(requireReturned === require, "must return require");
+        ok(typeof requireReturned === "function", "must return require");
     });
 
     asyncTest("require.async():json race calls", function () {

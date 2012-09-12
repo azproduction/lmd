@@ -64,7 +64,7 @@
                 start();
             });
 
-        ok(requireReturned === require, "must return require");
+        ok(typeof requireReturned === "function", "must return require");
     });
 
     asyncTest("require.async():json race calls", function () {
