@@ -7,43 +7,36 @@
  */
 
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
+(function (sb) {
 
 function is_shortcut(moduleName, moduleContent) {
-    return !initialized_modules[moduleName] &&
+    return !sb.initialized[moduleName] &&
            typeof moduleContent === "string" &&
            moduleContent.charAt(0) == '@';
 }
 
-function rewrite_shortcut(event, moduleName, module) {
+function rewrite_shortcut(moduleName, module) {
     if (is_shortcut(moduleName, module)) {
-        lmd_trigger('shortcuts:before-resolve', moduleName, module);
+        sb.trigger('shortcuts:before-resolve', moduleName, module);
 
         moduleName = module.replace('@', '');
-        module = modules[moduleName];
+        module = sb.modules[moduleName];
     }
     return [moduleName, module];
 }
 
-lmd_on('lmd-require:first-init', rewrite_shortcut);
-lmd_on('*:rewrite-shortcut', rewrite_shortcut);
+sb.on('lmd-require:first-init', rewrite_shortcut);
+sb.on('*:rewrite-shortcut', rewrite_shortcut);
 
-lmd_on('stats:before-require-count', function (event, moduleName, module) {
+sb.on('stats:before-require-count', function (moduleName, module) {
     if (is_shortcut(moduleName, module)) {
         moduleName = module.replace('@', '');
-        module = modules[moduleName];
+        module = sb.modules[moduleName];
 
         return [moduleName, module];
     }
 });
+
+}(sandbox));

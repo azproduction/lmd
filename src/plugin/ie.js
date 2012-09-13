@@ -1,18 +1,7 @@
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
-
-(function () {
+(function (sb) {
 
 // Simple JSON stringify
 function stringify(object) {
@@ -77,7 +66,7 @@ function indexOf(item) {
     return -1;
 }
 
-lmd_on('*:request-json', function (event, JSON) {
+sb.on('*:request-json', function (JSON) {
     if (typeof JSON === "object") {
         return [JSON];
     }
@@ -85,7 +74,7 @@ lmd_on('*:request-json', function (event, JSON) {
     return [{stringify: stringify}];
 });
 
-lmd_on('*:request-indexof', function (event, arrayIndexOf) {
+sb.on('*:request-indexof', function (arrayIndexOf) {
     if (typeof arrayIndexOf === "function") {
         return [arrayIndexOf];
     }
@@ -93,4 +82,4 @@ lmd_on('*:request-indexof', function (event, arrayIndexOf) {
     return [indexOf];
 });
 
-}());
+}(sandbox));

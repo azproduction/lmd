@@ -7,20 +7,9 @@
  */
 
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
-
-(function () {
+(function (sb) {
 
 function parallel(method, items, callback) {
     var i = 0,
@@ -34,7 +23,7 @@ function parallel(method, items, callback) {
             results[index] = data;
             j++;
             if (j >= c) {
-                callback.apply(global, results);
+                callback.apply(sb.global, results);
             }
         }
     };
@@ -44,9 +33,9 @@ function parallel(method, items, callback) {
     }
 }
 
-lmd_on('*:request-parallel', function (event, moduleNames, callback, method) {
+sb.on('*:request-parallel', function (moduleNames, callback, method) {
     parallel(method, moduleNames, callback);
     return [];
 });
 
-}());
+}(sandbox));

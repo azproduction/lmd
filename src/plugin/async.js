@@ -8,62 +8,52 @@
  * This plugin provides require.async() function
  */
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name global_noop
- * @name register_module
- * @name create_race
- * @name race_callbacks
- * @name cache_async
- * @name parallel
+ * @name sandbox
  */
-
+(function (sb) {
     /**
      * Load off-package LMD module
      *
      * @param {String|Array} moduleName same origin path to LMD module
      * @param {Function}     [callback]   callback(result) undefined on error others on success
      */
-    require.async = function (moduleName, callback) {
-        callback = callback || global_noop;
+    sb.require.async = function (moduleName, callback) {
+        callback = callback || sb.noop;
 
         if (typeof moduleName !== "string") {
-            callback = lmd_trigger('*:request-parallel', moduleName, callback, require.async)[1];
+            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.async)[1];
             if (!callback) {
-                return require;
+                return sb.require;
             }
         }
 
-        var module = modules[moduleName],
-            XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
+        var module = sb.modules[moduleName],
+            XMLHttpRequestConstructor = sb.global.XMLHttpRequest || sb.global.ActiveXObject;
 
-        var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
         if (replacement) {
             moduleName = replacement[0];
             module = replacement[1];
         }
 
-        lmd_trigger('async:before-check', moduleName, module);
+        sb.trigger('async:before-check', moduleName, module);
         // If module exists or its a node.js env
         if (module) {
-            callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return require;
+            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            return sb.require;
         }
 
-        lmd_trigger('js:before-init', moduleName, module);
+        sb.trigger('*:before-init', moduleName, module);
 
-        callback = lmd_trigger('*:request-race', moduleName, callback)[1];
+        callback = sb.trigger('*:request-race', moduleName, callback)[1];
         // if already called
         if (!callback) {
-            return require;
+            return sb.require;
         }
 
         if (!XMLHttpRequestConstructor) {
-            lmd_trigger('async:require-environment-file', moduleName, module, callback);
-            return require;
+            sb.trigger('async:require-environment-file', moduleName, module, callback);
+            return sb.require;
         }
 /*if ($P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
         // Optimized tiny ajax get
@@ -76,19 +66,19 @@
                     var contentType = xhr.getResponseHeader('content-type');
                     module = xhr.responseText;
                     if ((/script$|json$/).test(contentType)) {
-                        module = lmd_trigger('*:wrap-module', moduleName, module, contentType)[1];
+                        module = sb.trigger('*:wrap-module', moduleName, module, contentType)[1];
                         if (!(/json$/).test(contentType)) {
-                            module = lmd_trigger('*:coverage-apply', moduleName, module)[1];
+                            module = sb.trigger('*:coverage-apply', moduleName, module)[1];
                         }
 
-                        module = global_eval(module);
+                        module = sb.eval(module);
                     }
 
-                    lmd_trigger('async:before-callback', moduleName, typeof module === "function" ? xhr.responseText : module);
+                    sb.trigger('async:before-callback', moduleName, typeof module === "function" ? xhr.responseText : module);
                     // 4. Then callback it
-                    callback(register_module(moduleName, module));
+                    callback(sb.register(moduleName, module));
                 } else {
-                    lmd_trigger('async:request-error', moduleName, module);
+                    sb.trigger('*:request-error', moduleName, module);
                     callback();
                 }
             }
@@ -96,6 +86,8 @@
         xhr.open('get', moduleName);
         xhr.send();
 
-        return require;
+        return sb.require;
 /*if ($P.NODE) {*///#JSCOVERAGE_ENDIF/*}*/
     };
+
+}(sandbox));

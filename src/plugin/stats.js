@@ -8,20 +8,6 @@
  * This plugin provides require.stats() function and bunch of private functions
  */
 
-/**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- * @name coverage_options
- */
 
 /**
  * @name LineReport
@@ -142,10 +128,15 @@
  */
 
 /**
+ * @name sandbox
+ */
+(function (sb) {
+
+/**
  * @type {lmdStats}
  */
 var stats_results = {},
-    stats_Date = global.Date,
+    stats_Date = sb.global.Date,
     stats_startTime = +new stats_Date;
 
 function stats_get(moduleName) {
@@ -193,9 +184,9 @@ function stats_wrap_require_method(method, thisObject, byModuleName) {
 
         for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
             moduleNamesItem = moduleNames[i];
-            module = modules[moduleNamesItem];
+            module = sb.modules[moduleNamesItem];
 
-            var replacement = lmd_trigger('stats:before-require-count', moduleNamesItem, module);
+            var replacement = sb.trigger('stats:before-require-count', moduleNamesItem, module);
             if (replacement) {
                 moduleNamesItem = replacement[0];
             }
@@ -247,7 +238,7 @@ function stats_shortcut(moduleName, shortcut) {
     }
 
     // ie6 indexOf hackz
-    index = lmd_trigger('*:request-indexof', [].indexOf)[0].call(shortcuts, shortcut);
+    index = sb.trigger('*:request-indexof', [].indexOf)[0].call(shortcuts, shortcut);
 
     if (index === -1) {
         shortcuts.push(shortcut);
@@ -261,7 +252,7 @@ function stats_shortcut(moduleName, shortcut) {
  * @return {Object}
  */
 require.stats = function (moduleName) {
-    var replacement = lmd_trigger('stats:before-return-stats', moduleName, stats_results);
+    var replacement = sb.trigger('stats:before-return-stats', moduleName, stats_results);
 
     if (replacement && replacement[1]) {
         return replacement[1];
@@ -269,89 +260,72 @@ require.stats = function (moduleName) {
     return moduleName ? stats_results[moduleName] : stats_results;
 };
 
-lmd_on('lmd-register:call-module', function (event, moduleName, require) {
+sb.on('lmd-register:call-module', function (moduleName, require) {
     return [moduleName, stats_wrap_require(require, moduleName)];
 });
 
-lmd_on('lmd-register:after-register', function (event, moduleName, module) {
+sb.on('lmd-register:after-register', function (moduleName) {
     stats_initEnd(moduleName);
 });
 
-lmd_on('lmd-register:before-register', function (event, moduleName, module) {
-    stats_type(moduleName, !module ? 'global' : typeof modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
+sb.on('lmd-register:before-register', function (moduleName, module) {
+    stats_type(moduleName, !module ? 'global' : typeof sb.modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
 });
 
-lmd_on('lmd-require:from-cache', function (event, moduleName) {
+sb.on('lmd-require:from-cache', function (moduleName) {
     stats_require(moduleName);
 });
 
-lmd_on('lmd-require:first-init', function (event, moduleName, module) {
+sb.on('lmd-require:first-init', function (moduleName) {
     stats_require(moduleName);
     stats_initStart(moduleName);
 });
 
 
 
-lmd_on('css:before-check', function (event, moduleName, module) {
-    if (!(module || !global_document) || initialized_modules[moduleName]) {
+sb.on('css:before-check', function (moduleName, module) {
+    if (!(module || !sb.document) || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
-lmd_on('css:before-init', function (event, moduleName, module) {
-    stats_initStart(moduleName);
-});
 
-lmd_on('css:request-error', function (event, moduleName, module) {
-    stats_initEnd(moduleName);
-});
-
-
-
-
-lmd_on('js:before-check', function (event, moduleName, module) {
-    if (!module || initialized_modules[moduleName]) {
+sb.on('js:before-check', function (moduleName, module) {
+    if (!module || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
-lmd_on('js:before-init', function (event, moduleName, module) {
-    stats_initStart(moduleName);
-});
-
-lmd_on('js:request-error', function (event, moduleName, module) {
-    stats_initEnd(moduleName);
-});
-
-
-lmd_on('async:before-check', function (event, moduleName, module) {
-    if (!module || initialized_modules[moduleName]) {
+sb.on('async:before-check', function (moduleName) {
+    if (!module || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
-lmd_on('async:before-init', function (event, moduleName, module) {
+sb.on('*:before-init', function (moduleName) {
     stats_initStart(moduleName);
 });
 
-lmd_on('async:request-error', function (event, moduleName, module) {
+sb.on('*:request-error', function (moduleName) {
     stats_initEnd(moduleName);
 });
 
 
-
-lmd_on('worker_or_node:request-error', function (event, moduleName, module) {
-    stats_initEnd(moduleName);
-});
-
-
-
-lmd_on('node:request-error', function (event, moduleName, module) {
-    stats_initEnd(moduleName);
-});
-
-
-lmd_on('shortcuts:before-resolve', function (event, moduleName, module) {
+sb.on('shortcuts:before-resolve', function (moduleName, module) {
     // assign shortcut name for module
     stats_shortcut(module, moduleName);
 });
+
+sb.on('*:stats-get', function (moduleName) {
+    return [moduleName, stats_get(moduleName)];
+});
+
+sb.on('*:stats-type', function (moduleName, packageType) {
+    stats_type(moduleName, packageType);
+});
+
+sb.on('*:stats-results', function (moduleName) {
+    return [moduleName, stats_results[moduleName]];
+});
+
+}(sandbox));

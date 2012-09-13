@@ -7,20 +7,10 @@
  *
  * This plugin depends on stats
  */
-
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
+(function (sb) {
 
 /**
   * XDomain post
@@ -56,13 +46,13 @@ var sendTo = function () {
      * @return {HTMLIFrameElement}
      */
     return function (host, method, data, reportName) {
-        var JSON = lmd_trigger('*:request-json', global.JSON)[0];
+        var JSON = sb.trigger('*:request-json', sb.global.JSON)[0];
 
         // Add the iframe with a unique name
-        var iframe = global_document.createElement("iframe"),
-            uniqueString = global.Math.random();
+        var iframe = sb.document.createElement("iframe"),
+            uniqueString = sb.global.Math.random();
 
-        global_document.body.appendChild(iframe);
+        sb.document.body.appendChild(iframe);
         iframe.style.visibility = "hidden";
         iframe.style.position = "absolute";
         iframe.style.left = "-1000px";
@@ -70,14 +60,14 @@ var sendTo = function () {
         iframe.contentWindow.name = uniqueString;
 
         // construct a form with hidden inputs, targeting the iframe
-        var form = global_document.createElement("form");
+        var form = sb.document.createElement("form");
         form.target = uniqueString;
         form.action = host + "/" + method + '/' + (reportName || runId).replace(/\/|\\|\./g, '_');
         form.method = "POST";
         form.setAttribute('accept-charset', 'utf-8');
 
         // repeat for each parameter
-        var input = global_document.createElement("input");
+        var input = sb.document.createElement("input");
         input.type = "hidden";
         input.name = "json";
         input.value = JSON.stringify(data);
@@ -90,6 +80,8 @@ var sendTo = function () {
     }
 }();
 
-require.stats.sendTo = function (host) {
-    return sendTo(host, "stats", require.stats());
+sb.require.stats.sendTo = function (host) {
+    return sendTo(host, "stats", sb.require.stats());
 };
+
+}(sandbox));

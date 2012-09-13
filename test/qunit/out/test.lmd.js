@@ -24,13 +24,13 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require = lmd_trigger(
-                    sandboxed_modules[moduleName] ?
-                        'lmd-register:call-sandboxed-module' :
-                        'lmd-register:call-module',
-                    moduleName,
-                    require
-                )[1];
+                var module_require;
+
+                if (sandboxed_modules[moduleName]) {
+                    module_require = lmd_trigger('lmd-register:call-sandboxed-module', moduleName, require)[1];
+                } else {
+                    module_require = lmd_trigger('lmd-register:call-module', moduleName, require)[1];
+                }
 
                 module = module(module_require, output.exports, output) || output.exports;
             }
@@ -51,7 +51,7 @@
 
             if (list) {
                 for (var i = 0, c = list.length; i < c; i++) {
-                    result = list[i](event, data, data2, data3) || result;
+                    result = list[i](data, data2, data3) || result;
                 }
             }
             return result || [data, data2, data3];
@@ -92,7 +92,32 @@
 
             return register_module(moduleName, module);
         },
-        output = {exports: {}};
+        output = {exports: {}},
+
+        /**
+         * Do not rename it!
+         */
+        sandbox = {
+            global: global,
+            modules: modules,
+            sandboxed: sandboxed_modules,
+
+            eval: global_eval,
+            register: register_module,
+            require: require,
+            initialized: initialized_modules,
+
+            noop: global_noop,
+            document: global_document,
+            lmd: lmd,
+            main: main,
+            version: version,
+            coverage_options: coverage_options,
+
+            on: lmd_on,
+            trigger: lmd_trigger,
+            undefined: local_undefined
+        };
 
     for (var moduleName in modules) {
         // reset module init flag in case of overwriting
@@ -102,20 +127,9 @@
 /*if ($P.WORKER || $P.NODE) include('worker_or_node.js')*/
 /*if ($P.NODE) include('node.js')*/
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
-
-(function () {
+(function (sb) {
 
 // Simple JSON stringify
 function stringify(object) {
@@ -180,7 +194,7 @@ function indexOf(item) {
     return -1;
 }
 
-lmd_on('*:request-json', function (event, JSON) {
+sb.on('*:request-json', function (JSON) {
     if (typeof JSON === "object") {
         return [JSON];
     }
@@ -188,7 +202,7 @@ lmd_on('*:request-json', function (event, JSON) {
     return [{stringify: stringify}];
 });
 
-lmd_on('*:request-indexof', function (event, arrayIndexOf) {
+sb.on('*:request-indexof', function (arrayIndexOf) {
     if (typeof arrayIndexOf === "function") {
         return [arrayIndexOf];
     }
@@ -196,7 +210,7 @@ lmd_on('*:request-indexof', function (event, arrayIndexOf) {
     return [indexOf];
 });
 
-}());
+}(sandbox));
 /**
  * This plugin prevents from duplicate resource loading
  *
@@ -205,7 +219,10 @@ lmd_on('*:request-indexof', function (event, arrayIndexOf) {
  * This plugin provides private "race_callbacks" function
  */
 
-(function () {
+/**
+ * @name sandbox
+ */
+(function (sb) {
 
 var race_callbacks = {},
     /**
@@ -231,7 +248,7 @@ var race_callbacks = {},
         }
     };
 
-lmd_on('*:request-race', function (event, moduleName, callback) {
+sb.on('*:request-race', function (moduleName, callback) {
     callback = create_race(moduleName, callback);
     if (race_callbacks[moduleName].length > 1) {
         return [moduleName];
@@ -240,7 +257,7 @@ lmd_on('*:request-race', function (event, moduleName, callback) {
     }
 });
 
-}());
+}(sandbox));
 /**
  * Package usage statistics
  *
@@ -251,20 +268,6 @@ lmd_on('*:request-race', function (event, moduleName, callback) {
  * This plugin provides require.stats() function and bunch of private functions
  */
 
-/**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- * @name coverage_options
- */
 
 /**
  * @name LineReport
@@ -385,10 +388,15 @@ lmd_on('*:request-race', function (event, moduleName, callback) {
  */
 
 /**
+ * @name sandbox
+ */
+(function (sb) {
+
+/**
  * @type {lmdStats}
  */
 var stats_results = {},
-    stats_Date = global.Date,
+    stats_Date = sb.global.Date,
     stats_startTime = +new stats_Date;
 
 function stats_get(moduleName) {
@@ -436,9 +444,9 @@ function stats_wrap_require_method(method, thisObject, byModuleName) {
 
         for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
             moduleNamesItem = moduleNames[i];
-            module = modules[moduleNamesItem];
+            module = sb.modules[moduleNamesItem];
 
-            var replacement = lmd_trigger('stats:before-require-count', moduleNamesItem, module);
+            var replacement = sb.trigger('stats:before-require-count', moduleNamesItem, module);
             if (replacement) {
                 moduleNamesItem = replacement[0];
             }
@@ -490,7 +498,7 @@ function stats_shortcut(moduleName, shortcut) {
     }
 
     // ie6 indexOf hackz
-    index = lmd_trigger('*:request-indexof', [].indexOf)[0].call(shortcuts, shortcut);
+    index = sb.trigger('*:request-indexof', [].indexOf)[0].call(shortcuts, shortcut);
 
     if (index === -1) {
         shortcuts.push(shortcut);
@@ -504,7 +512,7 @@ function stats_shortcut(moduleName, shortcut) {
  * @return {Object}
  */
 require.stats = function (moduleName) {
-    var replacement = lmd_trigger('stats:before-return-stats', moduleName, stats_results);
+    var replacement = sb.trigger('stats:before-return-stats', moduleName, stats_results);
 
     if (replacement && replacement[1]) {
         return replacement[1];
@@ -512,109 +520,80 @@ require.stats = function (moduleName) {
     return moduleName ? stats_results[moduleName] : stats_results;
 };
 
-lmd_on('lmd-register:call-module', function (event, moduleName, require) {
+sb.on('lmd-register:call-module', function (moduleName, require) {
     return [moduleName, stats_wrap_require(require, moduleName)];
 });
 
-lmd_on('lmd-register:after-register', function (event, moduleName, module) {
+sb.on('lmd-register:after-register', function (moduleName) {
     stats_initEnd(moduleName);
 });
 
-lmd_on('lmd-register:before-register', function (event, moduleName, module) {
-    stats_type(moduleName, !module ? 'global' : typeof modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
+sb.on('lmd-register:before-register', function (moduleName, module) {
+    stats_type(moduleName, !module ? 'global' : typeof sb.modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
 });
 
-lmd_on('lmd-require:from-cache', function (event, moduleName) {
+sb.on('lmd-require:from-cache', function (moduleName) {
     stats_require(moduleName);
 });
 
-lmd_on('lmd-require:first-init', function (event, moduleName, module) {
+sb.on('lmd-require:first-init', function (moduleName) {
     stats_require(moduleName);
     stats_initStart(moduleName);
 });
 
 
 
-lmd_on('css:before-check', function (event, moduleName, module) {
-    if (!(module || !global_document) || initialized_modules[moduleName]) {
+sb.on('css:before-check', function (moduleName, module) {
+    if (!(module || !sb.document) || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
-lmd_on('css:before-init', function (event, moduleName, module) {
-    stats_initStart(moduleName);
-});
 
-lmd_on('css:request-error', function (event, moduleName, module) {
-    stats_initEnd(moduleName);
-});
-
-
-
-
-lmd_on('js:before-check', function (event, moduleName, module) {
-    if (!module || initialized_modules[moduleName]) {
+sb.on('js:before-check', function (moduleName, module) {
+    if (!module || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
-lmd_on('js:before-init', function (event, moduleName, module) {
-    stats_initStart(moduleName);
-});
-
-lmd_on('js:request-error', function (event, moduleName, module) {
-    stats_initEnd(moduleName);
-});
-
-
-lmd_on('async:before-check', function (event, moduleName, module) {
-    if (!module || initialized_modules[moduleName]) {
+sb.on('async:before-check', function (moduleName) {
+    if (!module || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
-lmd_on('async:before-init', function (event, moduleName, module) {
+sb.on('*:before-init', function (moduleName) {
     stats_initStart(moduleName);
 });
 
-lmd_on('async:request-error', function (event, moduleName, module) {
+sb.on('*:request-error', function (moduleName) {
     stats_initEnd(moduleName);
 });
 
 
-
-lmd_on('worker_or_node:request-error', function (event, moduleName, module) {
-    stats_initEnd(moduleName);
-});
-
-
-
-lmd_on('node:request-error', function (event, moduleName, module) {
-    stats_initEnd(moduleName);
-});
-
-
-lmd_on('shortcuts:before-resolve', function (event, moduleName, module) {
+sb.on('shortcuts:before-resolve', function (moduleName, module) {
     // assign shortcut name for module
     stats_shortcut(module, moduleName);
 });
+
+sb.on('*:stats-get', function (moduleName) {
+    return [moduleName, stats_get(moduleName)];
+});
+
+sb.on('*:stats-type', function (moduleName, packageType) {
+    stats_type(moduleName, packageType);
+});
+
+sb.on('*:stats-results', function (moduleName) {
+    return [moduleName, stats_results[moduleName]];
+});
+
+}(sandbox));
 /*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- * @name coverage_options
- * @name coverage_module
+ * @name sandbox
  */
-
+(function (sb) {
 
 /**
  * Calculate coverage total
@@ -622,7 +601,7 @@ lmd_on('shortcuts:before-resolve', function (event, moduleName, module) {
  * @param moduleName
  */
 function stats_calculate_coverage(moduleName) {
-    var stats = stats_get(moduleName),
+    var stats = sb.trigger('*:stats-get', moduleName, null)[1],
         total,
         covered,
         lineId,
@@ -711,8 +690,8 @@ function stats_calculate_coverage(moduleName) {
  *
  * @private
  */
-require.coverage_line = function (moduleName, lineId) {
-    stats_results[moduleName].runLines[lineId] += 1;
+sb.require.coverage_line = function (moduleName, lineId) {
+    sb.trigger('*:stats-results', moduleName, null)[1].runLines[lineId] += 1;
 };
 
 /**
@@ -720,8 +699,8 @@ require.coverage_line = function (moduleName, lineId) {
  *
  * @private
  */
-require.coverage_function = function (moduleName, lineId) {
-    stats_results[moduleName].runFunctions[lineId] += 1;
+sb.require.coverage_function = function (moduleName, lineId) {
+    sb.trigger('*:stats-results', moduleName, null)[1].runFunctions[lineId] += 1;
 };
 
 /**
@@ -729,8 +708,8 @@ require.coverage_function = function (moduleName, lineId) {
  *
  * @private
  */
-require.coverage_condition = function (moduleName, lineId, condition) {
-    stats_results[moduleName].runConditions[lineId][condition ? 1 : 0] += 1;
+sb.require.coverage_condition = function (moduleName, lineId, condition) {
+    sb.trigger('*:stats-results', moduleName, null)[1].runConditions[lineId][condition ? 1 : 0] += 1;
     return condition;
 };
 
@@ -740,7 +719,7 @@ require.coverage_condition = function (moduleName, lineId, condition) {
  * @private
  */
 function coverage_module(moduleName, lines, conditions, functions) {
-    var stats = stats_get(moduleName);
+    var stats = sb.trigger('*:stats-get', moduleName, null)[1];
     if (stats.lines) {
         return;
     }
@@ -769,12 +748,16 @@ function coverage_module(moduleName, lines, conditions, functions) {
         if (coverage_options.hasOwnProperty(moduleName)) {
             moduleOption = coverage_options[moduleName];
             coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
-            stats_type(moduleName, 'in-package');
+            sb.trigger('*:stats-type', moduleName, 'in-package');
         }
     }
 })();
 
-lmd_on('lmd-register:call-sandboxed-module', function (event, moduleName, require) {
+sb.on('*:stats-coverage', function (moduleName, moduleOption) {
+    coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
+});
+
+sb.on('lmd-register:call-sandboxed-module', function (moduleName, require) {
     return [moduleName, {
         coverage_line: require.coverage_line,
         coverage_function: require.coverage_function,
@@ -782,7 +765,7 @@ lmd_on('lmd-register:call-sandboxed-module', function (event, moduleName, requir
     }];
 });
 
-lmd_on('stats:before-return-stats', function (event, moduleName, stats_results) {
+sb.on('stats:before-return-stats', function (moduleName, stats_results) {
     if (moduleName) {
         stats_calculate_coverage(moduleName);
         return [];
@@ -838,6 +821,8 @@ lmd_on('stats:before-return-stats', function (event, moduleName, stats_results) 
         return [moduleName, result];
     }
 });
+
+}(sandbox));
 /**
  * Coverage for off-package LMD modules
  *
@@ -849,20 +834,9 @@ lmd_on('stats:before-return-stats', function (event, moduleName, stats_results) 
  */
 
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- * @name coverage_options
- * @name coverage_module
+ * @name sandbox
  */
+(function (sb) {
 
 var coverage_apply = (function () {
 var mock_exports = {},
@@ -4821,18 +4795,20 @@ return function (moduleName, file, content, isPlainModule) {
     var coverageResult = interpret(moduleName, file, content, isPlainModule ? 0 : 1),
         moduleOption = coverageResult.options;
 
-    coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
+    sb.trigger('*:stats-coverage', moduleName, moduleOption);
     return coverageResult.code;
 };
 
 } ());
 
-lmd_on('*:coverage-apply', function (event, moduleName, module) {
-    var isPlainModule = lmd_trigger('*:is-plain-module', moduleName, module, false)[2];
+sb.on('*:coverage-apply', function (moduleName, module) {
+    var isPlainModule = sb.trigger('*:is-plain-module', moduleName, module, false)[2];
     module = coverage_apply(moduleName, moduleName, module, isPlainModule);
 
     return [moduleName, module];
 });
+
+}(sandbox));
 /**
  * This plugin enables shortcuts
  *
@@ -4842,46 +4818,39 @@ lmd_on('*:coverage-apply', function (event, moduleName, module) {
  */
 
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
+(function (sb) {
 
 function is_shortcut(moduleName, moduleContent) {
-    return !initialized_modules[moduleName] &&
+    return !sb.initialized[moduleName] &&
            typeof moduleContent === "string" &&
            moduleContent.charAt(0) == '@';
 }
 
-function rewrite_shortcut(event, moduleName, module) {
+function rewrite_shortcut(moduleName, module) {
     if (is_shortcut(moduleName, module)) {
-        lmd_trigger('shortcuts:before-resolve', moduleName, module);
+        sb.trigger('shortcuts:before-resolve', moduleName, module);
 
         moduleName = module.replace('@', '');
-        module = modules[moduleName];
+        module = sb.modules[moduleName];
     }
     return [moduleName, module];
 }
 
-lmd_on('lmd-require:first-init', rewrite_shortcut);
-lmd_on('*:rewrite-shortcut', rewrite_shortcut);
+sb.on('lmd-require:first-init', rewrite_shortcut);
+sb.on('*:rewrite-shortcut', rewrite_shortcut);
 
-lmd_on('stats:before-require-count', function (event, moduleName, module) {
+sb.on('stats:before-require-count', function (moduleName, module) {
     if (is_shortcut(moduleName, module)) {
         moduleName = module.replace('@', '');
-        module = modules[moduleName];
+        module = sb.modules[moduleName];
 
         return [moduleName, module];
     }
 });
+
+}(sandbox));
 /**
  * Parallel resource loader
  *
@@ -4891,20 +4860,9 @@ lmd_on('stats:before-require-count', function (event, moduleName, module) {
  */
 
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
-
-(function () {
+(function (sb) {
 
 function parallel(method, items, callback) {
     var i = 0,
@@ -4918,7 +4876,7 @@ function parallel(method, items, callback) {
             results[index] = data;
             j++;
             if (j >= c) {
-                callback.apply(global, results);
+                callback.apply(sb.global, results);
             }
         }
     };
@@ -4928,12 +4886,12 @@ function parallel(method, items, callback) {
     }
 }
 
-lmd_on('*:request-parallel', function (event, moduleNames, callback, method) {
+sb.on('*:request-parallel', function (moduleNames, callback, method) {
     parallel(method, moduleNames, callback);
     return [];
 });
 
-}());
+}(sandbox));
 /**
  * This plugin dumps off-package modules content to localStorage
  *
@@ -4942,25 +4900,23 @@ lmd_on('*:request-parallel', function (event, moduleNames, callback, method) {
  * Provides cache_async function
  */
 /**
- * @name global
- * @name version
+ * @name sandbox
  */
-
-(function () {
+(function (sb) {
 
 function cache_async(moduleName, module) {
-    if (global.localStorage && version) {
+    if (sb.global.localStorage && sb.version) {
         try {
-            global.localStorage['lmd:' + version + ':' + moduleName] = global.JSON.stringify(module);
+            sb.global.localStorage['lmd:' + sb.version + ':' + moduleName] = sb.global.JSON.stringify(module);
         } catch(e) {}
     }
 }
 
-lmd_on('async:before-callback', function (event, moduleName, module) {
+sb.on('async:before-callback', function (moduleName, module) {
     cache_async(moduleName, module);
 });
 
-}());
+}(sandbox));
 /**
  * Async loader of off-package LMD modules (special LMD format file)
  *
@@ -4971,62 +4927,52 @@ lmd_on('async:before-callback', function (event, moduleName, module) {
  * This plugin provides require.async() function
  */
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name global_noop
- * @name register_module
- * @name create_race
- * @name race_callbacks
- * @name cache_async
- * @name parallel
+ * @name sandbox
  */
-
+(function (sb) {
     /**
      * Load off-package LMD module
      *
      * @param {String|Array} moduleName same origin path to LMD module
      * @param {Function}     [callback]   callback(result) undefined on error others on success
      */
-    require.async = function (moduleName, callback) {
-        callback = callback || global_noop;
+    sb.require.async = function (moduleName, callback) {
+        callback = callback || sb.noop;
 
         if (typeof moduleName !== "string") {
-            callback = lmd_trigger('*:request-parallel', moduleName, callback, require.async)[1];
+            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.async)[1];
             if (!callback) {
-                return require;
+                return sb.require;
             }
         }
 
-        var module = modules[moduleName],
-            XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
+        var module = sb.modules[moduleName],
+            XMLHttpRequestConstructor = sb.global.XMLHttpRequest || sb.global.ActiveXObject;
 
-        var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
         if (replacement) {
             moduleName = replacement[0];
             module = replacement[1];
         }
 
-        lmd_trigger('async:before-check', moduleName, module);
+        sb.trigger('async:before-check', moduleName, module);
         // If module exists or its a node.js env
         if (module) {
-            callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return require;
+            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            return sb.require;
         }
 
-        lmd_trigger('js:before-init', moduleName, module);
+        sb.trigger('*:before-init', moduleName, module);
 
-        callback = lmd_trigger('*:request-race', moduleName, callback)[1];
+        callback = sb.trigger('*:request-race', moduleName, callback)[1];
         // if already called
         if (!callback) {
-            return require;
+            return sb.require;
         }
 
         if (!XMLHttpRequestConstructor) {
-            lmd_trigger('async:require-environment-file', moduleName, module, callback);
-            return require;
+            sb.trigger('async:require-environment-file', moduleName, module, callback);
+            return sb.require;
         }
 
         // Optimized tiny ajax get
@@ -5039,19 +4985,19 @@ lmd_on('async:before-callback', function (event, moduleName, module) {
                     var contentType = xhr.getResponseHeader('content-type');
                     module = xhr.responseText;
                     if ((/script$|json$/).test(contentType)) {
-                        module = lmd_trigger('*:wrap-module', moduleName, module, contentType)[1];
+                        module = sb.trigger('*:wrap-module', moduleName, module, contentType)[1];
                         if (!(/json$/).test(contentType)) {
-                            module = lmd_trigger('*:coverage-apply', moduleName, module)[1];
+                            module = sb.trigger('*:coverage-apply', moduleName, module)[1];
                         }
 
-                        module = global_eval(module);
+                        module = sb.eval(module);
                     }
 
-                    lmd_trigger('async:before-callback', moduleName, typeof module === "function" ? xhr.responseText : module);
+                    sb.trigger('async:before-callback', moduleName, typeof module === "function" ? xhr.responseText : module);
                     // 4. Then callback it
-                    callback(register_module(moduleName, module));
+                    callback(sb.register(moduleName, module));
                 } else {
-                    lmd_trigger('async:request-error', moduleName, module);
+                    sb.trigger('*:request-error', moduleName, module);
                     callback();
                 }
             }
@@ -5059,11 +5005,15 @@ lmd_on('async:before-callback', function (event, moduleName, module) {
         xhr.open('get', moduleName);
         xhr.send();
 
-        return require;
+        return sb.require;
 
     };
 
-(function () {
+}(sandbox));
+/**
+ * @name sandbox
+ */
+(function (sb) {
 
 
 /**
@@ -5142,18 +5092,18 @@ var async_plain = function (module, contentTypeOrExtension) {
     return module;
 };
 
-lmd_on('*:wrap-module', function (event, moduleName, module, contentTypeOrExtension) {
+sb.on('*:wrap-module', function (moduleName, module, contentTypeOrExtension) {
     module = async_plain(module, contentTypeOrExtension);
     return [moduleName, module, contentTypeOrExtension];
 });
 
-lmd_on('*:is-plain-module', function (event, moduleName, module) {
+sb.on('*:is-plain-module', function (moduleName, module) {
     if (typeof async_is_plain_code === "function") {
         return [moduleName, module, async_is_plain_code(module)];
     }
 });
 
-}());
+}(sandbox));
 /**
  * Async loader of js files (NOT LMD modules): jQuery, d3.js etc
  *
@@ -5163,71 +5113,61 @@ lmd_on('*:is-plain-module', function (event, moduleName, module) {
  */
 
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
-
+(function (sb) {
     /**
      * Loads any JavaScript file a non-LMD module
      *
      * @param {String|Array} moduleName path to file
      * @param {Function}     [callback]   callback(result) undefined on error HTMLScriptElement on success
      */
-    require.js = function (moduleName, callback) {
-        callback = callback || global_noop;
+    sb.require.js = function (moduleName, callback) {
+        callback = callback || sb.noop;
 
         if (typeof moduleName !== "string") {
-            callback = lmd_trigger('*:request-parallel', moduleName, callback, require.js)[1];
+            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.js)[1];
             if (!callback) {
-                return require;
+                return sb.require;
             }
         }
 
-        var module = modules[moduleName],
+        var module = sb.modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
             head;
 
-        var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
         if (replacement) {
             moduleName = replacement[0];
             module = replacement[1];
         }
 
-        lmd_trigger('js:before-check', moduleName, module);
+        sb.trigger('js:before-check', moduleName, module);
         // If module exists
         if (module) {
-            callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return require;
+            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            return sb.require;
         }
 
-        lmd_trigger('js:before-init', moduleName, module);
+        sb.trigger('*:before-init', moduleName, module);
 
-        callback = lmd_trigger('*:request-race', moduleName, callback)[1];
+        callback = sb.trigger('*:request-race', moduleName, callback)[1];
         // if already called
         if (!callback) {
-            return require;
+            return sb.require;
         }
         // by default return undefined
-        if (!global_document) {
-            module = lmd_trigger('js:request-environment-module', moduleName, module)[1];
+        if (!sb.document) {
+            module = sb.trigger('js:request-environment-module', moduleName, module)[1];
             callback(module);
-            return require;
+            return sb.require;
         }
 
 
-        var script = global_document.createElement("script");
-        global.setTimeout(script.onreadystatechange = script.onload = function (e) {
-            e = e || global.event;
+        var script = sb.document.createElement("script");
+        sb.global.setTimeout(script.onreadystatechange = script.onload = function (e) {
+            e = e || sb.global.event;
             if (isNotLoaded &&
                 (!e ||
                 !script[readyState] ||
@@ -5237,19 +5177,21 @@ lmd_on('*:is-plain-module', function (event, moduleName, module) {
                 isNotLoaded = 0;
                 // register or cleanup
                 if (!e) {
-                    lmd_trigger('js:request-error', moduleName, module);
+                    sb.trigger('*:request-error', moduleName, module);
                 }
-                callback(e ? register_module(moduleName, script) : head.removeChild(script) && local_undefined); // e === undefined if error
+                callback(e ? sb.register(moduleName, script) : head.removeChild(script) && sb.undefined); // e === undefined if error
             }
         }, 3000, 0);
 
         script.src = moduleName;
-        head = global_document.getElementsByTagName("head")[0];
+        head = sb.document.getElementsByTagName("head")[0];
         head.insertBefore(script, head.firstChild);
 
-        return require;
+        return sb.require;
 
     };
+
+}(sandbox));
 /**
  * Async loader of css files
  *
@@ -5258,18 +5200,9 @@ lmd_on('*:is-plain-module', function (event, moduleName, module) {
  * This plugin provides require.css() function
  */
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
+(function (sb) {
 
     /**
      * Loads any CSS file
@@ -5281,44 +5214,44 @@ lmd_on('*:is-plain-module', function (event, moduleName, module) {
      * @param {String|Array} moduleName path to css file
      * @param {Function}     [callback]   callback(result) undefined on error HTMLLinkElement on success
      */
-    require.css = function (moduleName, callback) {
-        callback = callback || global_noop;
+    sb.require.css = function (moduleName, callback) {
+        callback = callback || sb.noop;
 
         if (typeof moduleName !== "string") {
-            callback = lmd_trigger('*:request-parallel', moduleName, callback, require.css)[1];
+            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.css)[1];
             if (!callback) {
-                return require;
+                return sb.require;
             }
         }
 
-        var module = modules[moduleName],
+        var module = sb.modules[moduleName],
             isNotLoaded = 1,
             head;
 
-        var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
         if (replacement) {
             moduleName = replacement[0];
             module = replacement[1];
         }
 
-        lmd_trigger('css:before-check', moduleName, module);
+        sb.trigger('css:before-check', moduleName, module);
         // If module exists or its a worker or node.js environment
-        if (module || !global_document) {
-            callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return require;
+        if (module || !sb.document) {
+            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            return sb.require;
         }
 
-        lmd_trigger('css:before-init', moduleName, module);
+        sb.trigger('*:before-init', moduleName, module);
 
-        callback = lmd_trigger('*:request-race', moduleName, callback)[1];
+        callback = sb.trigger('*:request-race', moduleName, callback)[1];
         // if already called
         if (!callback) {
-            return require;
+            return sb.require;
         }
 
         // Create stylesheet link
-        var link = global_document.createElement("link"),
-            id = +new global.Date,
+        var link = sb.document.createElement("link"),
+            id = +new sb.global.Date,
             onload = function (e) {
                 if (isNotLoaded) {
                     isNotLoaded = 0;
@@ -5326,9 +5259,9 @@ lmd_on('*:is-plain-module', function (event, moduleName, module) {
                     link.removeAttribute('id');
 
                     if (!e) {
-                        lmd_trigger('css:request-error', moduleName, module);
+                        sb.trigger('*:request-error', moduleName, module);
                     }
-                    callback(e ? register_module(moduleName, link) : head.removeChild(link) && local_undefined); // e === undefined if error
+                    callback(e ? sb.register(moduleName, link) : head.removeChild(link) && sb.undefined); // e === undefined if error
                 }
             };
 
@@ -5337,15 +5270,15 @@ lmd_on('*:is-plain-module', function (event, moduleName, module) {
         link.rel = "stylesheet";
         link.id = id;
 
-        global.setTimeout(onload, 3000, 0);
+        sb.global.setTimeout(onload, 3000, 0);
 
-        head = global_document.getElementsByTagName("head")[0];
+        head = sb.document.getElementsByTagName("head")[0];
         head.insertBefore(link, head.firstChild);
 
         (function poll() {
             if (isNotLoaded) {
                 try {
-                    var sheets = global_document.styleSheets;
+                    var sheets = sb.document.styleSheets;
                     for (var j = 0, k = sheets.length; j < k; j++) {
                         if((sheets[j].ownerNode || sheets[j].owningElement).id == id &&
                            (sheets[j].cssRules || sheets[j].rules).length) {
@@ -5358,83 +5291,79 @@ lmd_on('*:is-plain-module', function (event, moduleName, module) {
                     throw 1;
                 } catch(e) {
                     // Keep polling
-                    global.setTimeout(poll, 90);
+                    sb.global.setTimeout(poll, 90);
                 }
             }
         }());
 
-        return require;
+        return sb.require;
 
     };
+
+}(sandbox));
 /**
  * This plugin dumps modules content to localStorage
  *
  * Flag "cache"
  */
 /**
- * @name global
- * @name lmd
- * @name sandboxed_modules
- * @name modules
- * @name main
- * @name version
+ * @name sandbox
  */
-
-(function () {
+(function (sb) {
 
     // If possible to dump and version passed (fallback mode)
     // then dump application source
-    if (global.localStorage && version) {
+    if (sb.global.localStorage && version) {
         (function () {
             try {
-                global.localStorage['lmd'] = global.JSON.stringify({
-                    version: version,
-                    modules: modules,
+                sb.global.localStorage['lmd'] = sb.global.JSON.stringify({
+                    version: sb.version,
+                    modules: sb.modules,
                     // main module function
-                    main: '(' + main + ')',
+                    main: '(' + sb.main + ')',
                     // lmd function === arguments.callee
-                    lmd: '(' + lmd + ')',
-                    sandboxed: sandboxed_modules
+                    lmd: '(' + sb.lmd + ')',
+                    sandboxed: sb.sandboxed
                 });
             } catch(e) {}
         }());
     }
 
-}());
+}(sandbox));
     main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
-})(this,(function(a){a("testcase_lmd_basic_features"),a("testcase_lmd_async_require"),a("testcase_lmd_loader"),a("testcase_lmd_cache"),a("testcase_lmd_coverage")}),{
-"coverage_fully_covered": "(function(a,b,c){function e(){return a.coverage_function(\"coverage_fully_covered\",\"test:2:79\"),a.coverage_line(\"coverage_fully_covered\",\"3\"),d}var a=arguments[0];a.coverage_function(\"coverage_fully_covered\",\"(?):0:1\"),a.coverage_line(\"coverage_fully_covered\",\"1\");var d=\"123\";a.coverage_line(\"coverage_fully_covered\",\"2\"),a.coverage_line(\"coverage_fully_covered\",\"6\");if(a.coverage_condition(\"coverage_fully_covered\",\"if:6:118\",!0)){a.coverage_line(\"coverage_fully_covered\",\"7\");var f=e()}})",
-"coverage_not_conditions": "(function(a){a.coverage_line(\"coverage_not_conditions\",\"2\");if(a.coverage_condition(\"coverage_not_conditions\",\"if:2:31\",!1)){a.coverage_line(\"coverage_not_conditions\",\"3\");var b=123}})",
-"coverage_not_functions": "(function(a){function c(){return a.coverage_function(\"coverage_not_functions\",\"test:3:45\"),a.coverage_line(\"coverage_not_functions\",\"4\"),b}var a=arguments[0];a.coverage_function(\"coverage_not_functions\",\"(?):1:1\"),a.coverage_line(\"coverage_not_functions\",\"2\");var b=\"123\";a.coverage_line(\"coverage_not_functions\",\"3\"),a.coverage_line(\"coverage_not_functions\",\"7\");if(a.coverage_condition(\"coverage_not_functions\",\"if:7:110\",!0)){a.coverage_line(\"coverage_not_functions\",\"8\");var d=b}})",
-"coverage_not_statements": "(function(a,b,c){function f(b){return a.coverage_function(\"coverage_not_statements\",\"test:4:87\"),a.coverage_line(\"coverage_not_statements\",\"5\"),b}var a=arguments[0];a.coverage_function(\"coverage_not_statements\",\"(?):0:1\"),a.coverage_line(\"coverage_not_statements\",\"1\");var d=\"123\",e;a.coverage_line(\"coverage_not_statements\",\"4\"),a.coverage_line(\"coverage_not_statements\",\"8\"),a.coverage_condition(\"coverage_not_statements\",\"if:8:127\",!0)?(a.coverage_line(\"coverage_not_statements\",\"9\"),e=f(1)):(a.coverage_line(\"coverage_not_statements\",\"11\"),e=f(2))})",
-"coverage_not_covered": "(function(a,b,c){function e(){return a.coverage_function(\"coverage_not_covered\",\"test:2:88\"),a.coverage_line(\"coverage_not_covered\",\"3\"),d}var a=arguments[0];a.coverage_function(\"coverage_not_covered\",\"(?):0:1\"),a.coverage_line(\"coverage_not_covered\",\"1\");var d=\"123\";a.coverage_line(\"coverage_not_covered\",\"2\"),a.coverage_line(\"coverage_not_covered\",\"6\");if(a.coverage_condition(\"coverage_not_covered\",\"if:6:145\",!0)){a.coverage_line(\"coverage_not_covered\",\"7\");var f=e()}})",
+})/*NO ; !*/(this,(function(e){e("testcase_lmd_basic_features"),e("testcase_lmd_async_require"),e("testcase_lmd_loader"),e("testcase_lmd_cache"),e("testcase_lmd_coverage")}),{
+"coverage_fully_covered": "(function(e,t,n){function i(){return e.coverage_function(\"coverage_fully_covered\",\"test:2:79\"),e.coverage_line(\"coverage_fully_covered\",\"3\"),r}var e=arguments[0];e.coverage_function(\"coverage_fully_covered\",\"(?):0:1\"),e.coverage_line(\"coverage_fully_covered\",\"1\");var r=\"123\";e.coverage_line(\"coverage_fully_covered\",\"2\"),e.coverage_line(\"coverage_fully_covered\",\"6\");if(e.coverage_condition(\"coverage_fully_covered\",\"if:6:118\",!0)){e.coverage_line(\"coverage_fully_covered\",\"7\");var s=i()}})",
+"coverage_not_conditions": "(function(e){e.coverage_line(\"coverage_not_conditions\",\"2\");if(e.coverage_condition(\"coverage_not_conditions\",\"if:2:31\",!1)){e.coverage_line(\"coverage_not_conditions\",\"3\");var t=123}})",
+"coverage_not_functions": "(function(e){function n(){return e.coverage_function(\"coverage_not_functions\",\"test:3:45\"),e.coverage_line(\"coverage_not_functions\",\"4\"),t}var e=arguments[0];e.coverage_function(\"coverage_not_functions\",\"(?):1:1\"),e.coverage_line(\"coverage_not_functions\",\"2\");var t=\"123\";e.coverage_line(\"coverage_not_functions\",\"3\"),e.coverage_line(\"coverage_not_functions\",\"7\");if(e.coverage_condition(\"coverage_not_functions\",\"if:7:110\",!0)){e.coverage_line(\"coverage_not_functions\",\"8\");var r=t}})",
+"coverage_not_statements": "(function(e,t,n){function s(t){return e.coverage_function(\"coverage_not_statements\",\"test:4:87\"),e.coverage_line(\"coverage_not_statements\",\"5\"),t}var e=arguments[0];e.coverage_function(\"coverage_not_statements\",\"(?):0:1\"),e.coverage_line(\"coverage_not_statements\",\"1\");var r=\"123\",i;e.coverage_line(\"coverage_not_statements\",\"4\"),e.coverage_line(\"coverage_not_statements\",\"8\"),e.coverage_condition(\"coverage_not_statements\",\"if:8:127\",!0)?(e.coverage_line(\"coverage_not_statements\",\"9\"),i=s(1)):(e.coverage_line(\"coverage_not_statements\",\"11\"),i=s(2))})",
+"coverage_not_covered": "(function(e,t,n){function i(){return e.coverage_function(\"coverage_not_covered\",\"test:2:88\"),e.coverage_line(\"coverage_not_covered\",\"3\"),r}var e=arguments[0];e.coverage_function(\"coverage_not_covered\",\"(?):0:1\"),e.coverage_line(\"coverage_not_covered\",\"1\");var r=\"123\";e.coverage_line(\"coverage_not_covered\",\"2\"),e.coverage_line(\"coverage_not_covered\",\"6\");if(e.coverage_condition(\"coverage_not_covered\",\"if:6:145\",!0)){e.coverage_line(\"coverage_not_covered\",\"7\");var s=i()}})",
 "coverage_fully_covered_async": "@/modules/coverage/fully_covered_async.js",
 "coverage_not_functions_async": "@/modules/coverage/not_functions_async.js",
 "sk_css_css": "@/modules/shortcuts/css.css",
 "sk_js_js": "@/modules/shortcuts/js.js",
-"module_function_fd2": "(function(a,b,c){return a(\"ok\")(!0,\"fd2 should be called once\"),function(){return!0}})",
+"module_function_fd2": "(function(e,t,n){return e(\"ok\")(!0,\"fd2 should be called once\"),function(){return!0}})",
 "sk_async_html": "@/modules/shortcuts/async.html",
 "sk_async_js": "@/modules/shortcuts/async.js",
 "sk_async_json": "@/modules/shortcuts/async.json",
-"third_party_module_a_dep": "(function(a){return window.uQuery_dep=function(){return!0},window.uQuery_dep})",
+"third_party_module_a_dep": "(function(e){return window.uQuery_dep=function(){return!0},window.uQuery_dep})",
 "module_as_json": {
     "ok": true
 },
 "module_as_string": "<div class=\"b-template\">${pewpew}</div>",
-"module_function_fd": "(function(a,b,c){return a(\"ok\")(!0,\"fd should be called once\"),function(){return!0}})",
-"module_function_fd_sandboxed": "(function(a,b,c){if(typeof a==\"function\")throw\"require should not be a function\";b.some_function=function(){return!0}})",
-"module_function_fe": "(function(a,b,c){return a(\"ok\")(!0,\"fe should be called once\"),function(){return!0}})",
-"module_function_fe_sandboxed": "(function(a,b,c){if(typeof a==\"function\")throw\"require should not be a function\";b.some_function=function(){return!0}})",
-"module_function_lazy": "(function(a,b,c){return a(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
-"module_function_plain": "(function(a,b,c){a(\"ok\")(!0,\"plain module must be called once\"),c.exports=function(){return!0}})",
-"module_function_plain_sandboxed": "(function(a,b,c){if(typeof a==\"function\")throw\"require should not be a function\";b.some_function=function(){return!0}})",
+"module_function_fd": "(function(e,t,n){return e(\"ok\")(!0,\"fd should be called once\"),function(){return!0}})",
+"module_function_fd_sandboxed": "(function(e,t,n){if(typeof e==\"function\")throw\"require should not be a function\";t.some_function=function(){return!0}})",
+"module_function_fe": "(function(e,t,n){return e(\"ok\")(!0,\"fe should be called once\"),function(){return!0}})",
+"module_function_fe_sandboxed": "(function(e,t,n){if(typeof e==\"function\")throw\"require should not be a function\";t.some_function=function(){return!0}})",
+"module_function_lazy": "(function(e,t,n){return e(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
+"module_function_plain": "(function(e,t,n){e(\"ok\")(!0,\"plain module must be called once\"),n.exports=function(){return!0}})",
+"module_function_plain_sandboxed": "(function(e,t,n){if(typeof e==\"function\")throw\"require should not be a function\";t.some_function=function(){return!0}})",
 "sk_to_global_object": "@Date",
 "sk_to_module_as_json": "@module_as_json",
-"third_party_module_a": "(function(a){return a(\"third_party_module_a_dep\"),function(a,b){a.uQuery_dep();var c=function(){var a=function(){};return a}();a.uQuery=c}(window),window.uQuery})",
-"third_party_module_b": "(function(a){function d(){}function e(){}var b=a(\"Function\"),c=a(\"Date\");new c,new b(\"return true\");var f=\"string\";return{pewpew:d,ololo:e,someVariable:f}})",
-"testcase_lmd_basic_features": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"raises\"),j=\"?\"+Math.random(),k=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\";e(\"LMD basic features @ \"+k),b(\"require() globals\",function(){g(4),f(a(\"eval\"),\"should require globals as modules\"),f(typeof a(\"some_undefined\")==\"undefined\",\"if no module nor global - return undefined\"),f(!!a.stats(\"eval\"),\"should count stats: globals\"),f(!!a.stats(\"some_undefined\"),\"should count stats: undefineds\")}),b(\"require() module-functions\",function(){g(10);var b=a(\"module_function_fd\"),c=a(\"module_function_fe\"),d=a(\"module_function_plain\");f(b()===!0,\"can require function definitions\"),f(c()===!0,\"can require function expressions\"),f(d()===!0,\"can require plain modules\"),f(b===a(\"module_function_fd\"),\"require must return the same instance of fd\"),f(c===a(\"module_function_fe\"),\"require must return the same instance of fe\"),f(d===a(\"module_function_plain\"),\"require must return the same instance of plain module\"),f(!!a.stats(\"module_function_fd\"),\"should count stats: in-package modules\")}),b(\"require() sandboxed module-functions\",function(){g(3);var b=a(\"module_function_fd_sandboxed\"),c=a(\"module_function_fe_sandboxed\"),d=a(\"module_function_plain_sandboxed\");f(b.some_function()===!0,\"can require sandboxed function definitions\"),f(c.some_function()===!0,\"can require sandboxed function expressions\"),f(d.some_function()===!0,\"can require sandboxed plain modules\")}),b(\"require() lazy module-functions\",function(){g(4);var b=a(\"module_function_lazy\");f(b()===!0,\"can require lazy function definitions\"),f(typeof a(\"lazy_fd\")==\"undefined\",\"lazy function definition's name should not leak into globals\"),f(b===a(\"module_function_lazy\"),\"require must return the same instance of lazy fd\")}),b(\"require() module-objects/json\",function(){g(3);var b=a(\"module_as_json\");f(typeof b==\"object\",\"json module should be an object\"),f(b.ok===!0,\"should return content\"),f(b===a(\"module_as_json\"),\"require of json module should return the same instance\")}),b(\"require() module-strings\",function(){g(2);var b=a(\"module_as_string\");f(typeof b==\"string\",\"string module should be an string\"),f(b===a(\"module_as_string\"),\"require of string module should return the same instance\")}),b(\"require() shortcuts\",function(){g(2);var b=a(\"sk_to_global_object\");f(b.toString().replace(/\\s|\\n/g,\"\")===\"functionDate(){[nativecode]}\",\"require() should follow shortcuts: require global by shortcut\");var c=a(\"sk_to_module_as_json\");f(typeof c==\"object\"&&c.ok===!0&&c===a(\"module_as_json\"),\"require() should follow shortcuts: require in-package module by shortcut\")}),b(\"require() third party\",function(){g(2);var b=a(\"third_party_module_a\");f(typeof b==\"function\",\"require() can load plain 3-party non-lmd modules, 1 exports\"),b=a(\"third_party_module_b\"),f(typeof b==\"object\"&&typeof b.pewpew==\"function\"&&typeof b.ololo==\"function\"&&b.someVariable===\"string\",\"require() can load plain 3-party non-lmd modules, N exports\")})})",
-"testcase_lmd_async_require": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"raises\"),j=\"?\"+Math.random(),k=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\";e(\"LMD async require @ \"+k),c(\"require.async() module-functions\",function(){g(6),a.async(\"./modules/async/module_function_async.js\"+j,function(b){f(b.some_function()===!0,\"should require async module-functions\"),f(a(\"./modules/async/module_function_async.js\"+j)===b,\"can sync require, loaded async module-functions\"),a.async(\"module_function_fd2\",function(b){f(b()===!0,\"can require async in-package modules\"),f(!!a.stats(\"module_function_fd2\"),\"should count stats: async modules\"),d()})})}),c(\"require.async() module-strings\",function(){g(3),a.async(\"./modules/async/module_as_string_async.html\"+j,function(b){f(typeof b==\"string\",\"should require async module-strings\"),f(b==='<div class=\"b-template\">${pewpew}</div>',\"content ok?\"),f(a(\"./modules/async/module_as_string_async.html\"+j)===b,\"can sync require, loaded async module-strings\"),d()})}),c(\"require.async() module-objects\",function(){g(2),a.async(\"./modules/async/module_as_json_async.json\"+j,function(b){f(typeof b==\"object\",\"should require async module-object\"),f(a(\"./modules/async/module_as_json_async.json\"+j)===b,\"can sync require, loaded async module-object\"),d()})}),c(\"require.async() chain calls\",function(){g(3);var b=a.async(\"./modules/async/module_as_json_async.json\"+j).async(\"./modules/async/module_as_json_async.json\"+j,function(){f(!0,\"Callback is optional\"),f(!0,\"WeCan use chain calls\"),d()});f(typeof b==\"function\",\"must return require\")}),c(\"require.async():json race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.async(\"./modules/async_race/module_as_json_async.json\"+j,c),a.async(\"./modules/async_race/module_as_json_async.json\"+j,c)}),c(\"require.async():js race calls\",function(){g(2);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.async(\"./modules/async_race/module_function_async.js\"+j,c),a.async(\"./modules/async_race/module_function_async.js\"+j,c)}),c(\"require.async():string race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.async(\"./modules/async_race/module_as_string_async.html\"+j,c),a.async(\"./modules/async_race/module_as_string_async.html\"+j,c)}),c(\"require.async() errors\",function(){g(2),a.async(\"./modules/async/undefined_module.js\"+j,function(b){f(typeof b==\"undefined\",\"should return undefined on error\"),a.async(\"./modules/async/undefined_module.js\"+j,function(a){f(typeof a==\"undefined\",\"should not cache errorous modules\"),d()})})}),c(\"require.async() parallel loading\",function(){g(2),a.async([\"./modules/parallel/1.js\"+j,\"./modules/parallel/2.js\"+j,\"./modules/parallel/3.js\"+j],function(a,b,c){f(!0,\"Modules executes as they are loaded - in load order\"),f(a.file===\"1.js\"&&b.file===\"2.js\"&&c.file===\"3.js\",\"Modules should be callbacked in list order\"),d()})}),c(\"require.async() shortcuts\",function(){g(10),f(typeof a(\"sk_async_html\")==\"undefined\",\"require should return undefined if shortcuts not initialized by loaders\"),f(typeof a(\"sk_async_html\")==\"undefined\",\"require should return undefined ... always\"),a.async(\"sk_async_json\",function(b){f(b.ok===!0,\"should require shortcuts: json\"),f(a(\"sk_async_json\")===b,\"if shortcut is defined require should return the same code\"),f(a(\"/modules/shortcuts/async.json\")===b,\"Module should be inited using shortcut content\"),a.async(\"sk_async_html\",function(b){f(b===\"ok\",\"should require shortcuts: html\"),a.async(\"sk_async_js\",function(b){f(b()===\"ok\",\"should require shortcuts: js\"),f(a.stats(\"sk_async_js\")===a.stats(\"/modules/shortcuts/async.js\"),\"shortcut should point to the same object as module\"),f(!!a.stats(\"/modules/shortcuts/async.js\"),\"should count stats of real file\"),f(a.stats(\"/modules/shortcuts/async.js\").shortcuts[0]===\"sk_async_js\",\"should pass shourtcuts names\"),d()})})})}),c(\"require.async() plain\",function(){g(3),a.async(\"./modules/async/module_plain_function_async.js\"+j,function(b){f(b.some_function()===!0,\"should require async module-functions\"),f(a(\"./modules/async/module_plain_function_async.js\"+j)===b,\"can async require plain modules, loaded async module-functions\"),d()})})})",
-"testcase_lmd_loader": "(function(a){function m(a,b){return i.defaultView&&i.defaultView.getComputedStyle?i.defaultView.getComputedStyle(a,\"\").getPropertyValue(b):(b=b.replace(/\\-(\\w)/g,function(a,b){return b.toUpperCase()}),a.currentStyle[b])}var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"document\"),j=a(\"raises\"),k=\"?\"+Math.random(),l=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\";e(\"LMD loader @ \"+l),c(\"require.js()\",function(){g(6),a.js(\"./modules/loader/non_lmd_module.js\"+k,function(b){f(typeof b==\"object\"&&b.nodeName.toUpperCase()===\"SCRIPT\",\"should return script tag on success\"),f(a(\"some_function\")()===!0,\"we can grab content of the loaded script\"),f(a(\"./modules/loader/non_lmd_module.js\"+k)===b,\"should cache script tag on success\"),a.js(\"http://yandex.ru/jquery.js\"+k,function(b){f(typeof b==\"undefined\",\"should return undefined on error in 3 seconds\"),f(typeof a(\"http://yandex.ru/jquery.js\"+k)==\"undefined\",\"should not cache errorous modules\"),a.js(\"module_as_string\",function(b){a.async(\"module_as_string\",function(a){f(b===a,\"require.js() acts like require.async() if in-package/declared module passed\"),d()})})})})}),c(\"require.js() JSON callback and chain calls\",function(){g(2);var b=a(\"setTimeout\")(function(){f(!1,\"JSONP call fails\"),d()},3e3);a(\"window\").someJsonHandler=function(c){f(c.ok,\"JSON called\"),a(\"window\").someJsonHandler=null,a(\"clearTimeout\")(b),d()};var c=a.js(\"./modules/loader/non_lmd_module.jsonp.js\"+k);f(typeof c==\"function\",\"require.js() must return require\")}),c(\"require.js() race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.js(\"./modules/loader_race/non_lmd_module.js\"+k,c),a.js(\"./modules/loader_race/non_lmd_module.js\"+k,c)}),c(\"require.css()\",function(){g(6),a.css(\"./modules/loader/some_css.css\"+k,function(b){f(typeof b==\"object\"&&b.nodeName.toUpperCase()===\"LINK\",\"should return link tag on success\"),f(m(i.getElementById(\"qunit-fixture\"),\"visibility\")===\"hidden\",\"css should be applied\"),f(a(\"./modules/loader/some_css.css\"+k)===b,\"should cache link tag on success\"),a.css(\"./modules/loader/some_css_404.css\"+k,function(b){f(typeof b==\"undefined\",\"should return undefined on error in 3 seconds\"),f(typeof a(\"./modules/loader/some_css_404.css\"+k)==\"undefined\",\"should not cache errorous modules\"),a.css(\"module_as_string\",function(b){a.async(\"module_as_string\",function(a){f(b===a,\"require.css() acts like require.async() if in-package/declared module passed\"),d()})})})})}),c(\"require.css() CSS loader without callback\",function(){g(1);var b=a.css(\"./modules/loader/some_css_callbackless.css\"+k).css(\"./modules/loader/some_css_callbackless.css\"+k+1);f(typeof b==\"function\",\"require.css() must return require\"),d()}),c(\"require.css() race calls\",function(){g(1);var b,c=function(a){typeof b==\"undefined\"?b=a:(f(b===a,\"Must perform one call. Results must be the same\"),d())};a.css(\"./modules/loader_race/some_css.css\"+k,c),a.css(\"./modules/loader_race/some_css.css\"+k,c)}),c(\"require.css() shortcut\",function(){g(4),a.css(\"sk_css_css\",function(b){f(typeof b==\"object\"&&b.nodeName.toUpperCase()===\"LINK\",\"should return link tag on success\"),f(a(\"sk_css_css\")===b,\"require should return the same result\"),a.css(\"sk_css_css\",function(c){f(c===b,\"should load once\"),f(a(\"sk_css_css\")===a(\"/modules/shortcuts/css.css\"),\"should be defined using path-to-module\"),d()})})}),c(\"require.js() shortcut\",function(){g(5),a.js(\"sk_js_js\",function(b){f(typeof b==\"object\"&&b.nodeName.toUpperCase()===\"SCRIPT\",\"should return script tag on success\"),f(a(\"sk_js_js\")===b,\"require should return the same result\"),a.js(\"sk_js_js\",function(c){f(c===b,\"should load once\"),f(a(\"sk_js_js\")===a(\"/modules/shortcuts/js.js\"),\"should be defined using path-to-module\"),f(typeof a(\"shortcuts_js\")==\"function\",\"Should create a global function shortcuts_js as in module function\"),d()})})})})",
-"testcase_lmd_coverage": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"asyncTest\"),e=a(\"start\"),f=a(\"module\"),g=a(\"ok\"),h=a(\"expect\"),i=a(\"$\"),j=a(\"raises\"),k=\"?\"+Math.random(),l=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\";f(\"LMD Stats coverage @ \"+l),b(\"Coverage\",function(){h(6),a(\"coverage_fully_covered\"),a(\"coverage_not_conditions\"),a(\"coverage_not_functions\"),a(\"coverage_not_statements\");var b=a.stats(),c;c=b.modules.coverage_fully_covered.coverage.report;for(var d in c)c.hasOwnProperty(d)&&g(!1,\"should be fully covered!\");c=b.modules.coverage_not_conditions.coverage.report,g(c[2].conditions,\"coverage_not_conditions: not 1 line\"),g(c[3].lines===!1,\"coverage_not_conditions: not 2 line\"),c=b.modules.coverage_not_functions.coverage.report,g(c[3].functions[0]===\"test\",\"coverage_not_functions: not 2 line\"),g(c[4].lines===!1,\"coverage_not_functions: not 3 line\"),c=b.modules.coverage_not_statements.coverage.report,g(c[11].lines===!1,\"coverage_not_statements: not 11 line\"),c=b.modules.coverage_not_covered.coverage.report,g(c[1]&&c[2]&&c[3]&&c[6]&&c[7],\"coverage_not_covered: not covered\")}),c(\"Coverage - Async: stats_coverage_async\",function(){h(2),a.async([\"coverage_fully_covered_async\",\"coverage_not_functions_async\"],function(){var b=a.stats(),c;c=b.modules.coverage_fully_covered_async.coverage.report;for(var d in c)c.hasOwnProperty(d)&&g(!1,\"should be fully covered!\");c=b.modules.coverage_not_functions_async.coverage.report,g(c[3].functions[0]===\"test\",\"coverage_not_functions: not 2 line\"),g(c[4].lines===!1,\"coverage_not_functions: not 3 line\"),e()})})})",
-"testcase_lmd_cache": "(function(a){var b=a(\"test\"),c=a(\"asyncTest\"),d=a(\"start\"),e=a(\"module\"),f=a(\"ok\"),g=a(\"expect\"),h=a(\"$\"),i=a(\"raises\"),j=a(\"localStorage\"),k=\"?\"+Math.random(),l=a(\"worker_some_global_var\")?\"Worker\":a(\"node_some_global_var\")?\"Node\":\"DOM\",m=\"latest\";if(!j)return;e(\"LMD cache @ \"+l),c(\"localStorage cache + cache_async test\",function(){g(10),f(typeof j.lmd==\"string\",\"LMD Should create cache\");var b=JSON.parse(j.lmd);f(b.version===m,\"Should save version\"),f(typeof b.modules==\"object\",\"Should save modules\"),f(typeof b.main==\"string\",\"Should save main function as string\"),f(typeof b.lmd==\"string\",\"Should save lmd source as string\"),f(typeof b.sandboxed==\"object\",\"Should save sandboxed modules\"),a.async(\"./modules/async/module_function_async.js\",function(b){var c=\"lmd:\"+m+\":\"+\"./modules/async/module_function_async.js\";f(b.some_function()===!0,\"should require async module-functions\"),f(typeof j[c]==\"string\",\"LMD Should cache async requests\"),j.removeItem(c),a.async(\"./modules/async/module_function_async.js\"),f(!j[c],\"LMD Should not recreate cache it was manually deleted key=\"+c),d()})})})"
+"third_party_module_a": "(function(e){return e(\"third_party_module_a_dep\"),function(e,t){e.uQuery_dep();var n=function(){var e=function(){};return e}();e.uQuery=n}(window),window.uQuery})",
+"third_party_module_b": "(function(e){function r(){}function i(){}var t=e(\"Function\"),n=e(\"Date\");new n,new t(\"return true\");var s=\"string\";return{pewpew:r,ololo:i,someVariable:s}})",
+"testcase_lmd_basic_features": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"raises\"),f=\"?\"+Math.random(),l=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";i(\"LMD basic features @ \"+l),t(\"require() globals\",function(){o(4),s(e(\"eval\"),\"should require globals as modules\"),s(typeof e(\"some_undefined\")==\"undefined\",\"if no module nor global - return undefined\"),s(!!e.stats(\"eval\"),\"should count stats: globals\"),s(!!e.stats(\"some_undefined\"),\"should count stats: undefineds\")}),t(\"require() module-functions\",function(){o(10);var t=e(\"module_function_fd\"),n=e(\"module_function_fe\"),r=e(\"module_function_plain\");s(t()===!0,\"can require function definitions\"),s(n()===!0,\"can require function expressions\"),s(r()===!0,\"can require plain modules\"),s(t===e(\"module_function_fd\"),\"require must return the same instance of fd\"),s(n===e(\"module_function_fe\"),\"require must return the same instance of fe\"),s(r===e(\"module_function_plain\"),\"require must return the same instance of plain module\"),s(!!e.stats(\"module_function_fd\"),\"should count stats: in-package modules\")}),t(\"require() sandboxed module-functions\",function(){o(3);var t=e(\"module_function_fd_sandboxed\"),n=e(\"module_function_fe_sandboxed\"),r=e(\"module_function_plain_sandboxed\");s(t.some_function()===!0,\"can require sandboxed function definitions\"),s(n.some_function()===!0,\"can require sandboxed function expressions\"),s(r.some_function()===!0,\"can require sandboxed plain modules\")}),t(\"require() lazy module-functions\",function(){o(4);var t=e(\"module_function_lazy\");s(t()===!0,\"can require lazy function definitions\"),s(typeof e(\"lazy_fd\")==\"undefined\",\"lazy function definition's name should not leak into globals\"),s(t===e(\"module_function_lazy\"),\"require must return the same instance of lazy fd\")}),t(\"require() module-objects/json\",function(){o(3);var t=e(\"module_as_json\");s(typeof t==\"object\",\"json module should be an object\"),s(t.ok===!0,\"should return content\"),s(t===e(\"module_as_json\"),\"require of json module should return the same instance\")}),t(\"require() module-strings\",function(){o(2);var t=e(\"module_as_string\");s(typeof t==\"string\",\"string module should be an string\"),s(t===e(\"module_as_string\"),\"require of string module should return the same instance\")}),t(\"require() shortcuts\",function(){o(2);var t=e(\"sk_to_global_object\");s(t.toString().replace(/\\s|\\n/g,\"\")===\"functionDate(){[nativecode]}\",\"require() should follow shortcuts: require global by shortcut\");var n=e(\"sk_to_module_as_json\");s(typeof n==\"object\"&&n.ok===!0&&n===e(\"module_as_json\"),\"require() should follow shortcuts: require in-package module by shortcut\")}),t(\"require() third party\",function(){o(2);var t=e(\"third_party_module_a\");s(typeof t==\"function\",\"require() can load plain 3-party non-lmd modules, 1 exports\"),t=e(\"third_party_module_b\"),s(typeof t==\"object\"&&typeof t.pewpew==\"function\"&&typeof t.ololo==\"function\"&&t.someVariable===\"string\",\"require() can load plain 3-party non-lmd modules, N exports\")})})",
+"testcase_lmd_async_require": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"raises\"),f=\"?\"+Math.random(),l=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";i(\"LMD async require @ \"+l),n(\"require.async() module-functions\",function(){o(6),e.async(\"./modules/async/module_function_async.js\"+f,function(t){s(t.some_function()===!0,\"should require async module-functions\"),s(e(\"./modules/async/module_function_async.js\"+f)===t,\"can sync require, loaded async module-functions\"),e.async(\"module_function_fd2\",function(t){s(t()===!0,\"can require async in-package modules\"),s(!!e.stats(\"module_function_fd2\"),\"should count stats: async modules\"),r()})})}),n(\"require.async() module-strings\",function(){o(3),e.async(\"./modules/async/module_as_string_async.html\"+f,function(t){s(typeof t==\"string\",\"should require async module-strings\"),s(t==='<div class=\"b-template\">${pewpew}</div>',\"content ok?\"),s(e(\"./modules/async/module_as_string_async.html\"+f)===t,\"can sync require, loaded async module-strings\"),r()})}),n(\"require.async() module-objects\",function(){o(2),e.async(\"./modules/async/module_as_json_async.json\"+f,function(t){s(typeof t==\"object\",\"should require async module-object\"),s(e(\"./modules/async/module_as_json_async.json\"+f)===t,\"can sync require, loaded async module-object\"),r()})}),n(\"require.async() chain calls\",function(){o(3);var t=e.async(\"./modules/async/module_as_json_async.json\"+f).async(\"./modules/async/module_as_json_async.json\"+f,function(){s(!0,\"Callback is optional\"),s(!0,\"WeCan use chain calls\"),r()});s(typeof t==\"function\",\"must return require\")}),n(\"require.async():json race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_as_json_async.json\"+f,n),e.async(\"./modules/async_race/module_as_json_async.json\"+f,n)}),n(\"require.async():js race calls\",function(){o(2);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_function_async.js\"+f,n),e.async(\"./modules/async_race/module_function_async.js\"+f,n)}),n(\"require.async():string race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.async(\"./modules/async_race/module_as_string_async.html\"+f,n),e.async(\"./modules/async_race/module_as_string_async.html\"+f,n)}),n(\"require.async() errors\",function(){o(2),e.async(\"./modules/async/undefined_module.js\"+f,function(t){s(typeof t==\"undefined\",\"should return undefined on error\"),e.async(\"./modules/async/undefined_module.js\"+f,function(e){s(typeof e==\"undefined\",\"should not cache errorous modules\"),r()})})}),n(\"require.async() parallel loading\",function(){o(2),e.async([\"./modules/parallel/1.js\"+f,\"./modules/parallel/2.js\"+f,\"./modules/parallel/3.js\"+f],function(e,t,n){s(!0,\"Modules executes as they are loaded - in load order\"),s(e.file===\"1.js\"&&t.file===\"2.js\"&&n.file===\"3.js\",\"Modules should be callbacked in list order\"),r()})}),n(\"require.async() shortcuts\",function(){o(10),s(typeof e(\"sk_async_html\")==\"undefined\",\"require should return undefined if shortcuts not initialized by loaders\"),s(typeof e(\"sk_async_html\")==\"undefined\",\"require should return undefined ... always\"),e.async(\"sk_async_json\",function(t){s(t.ok===!0,\"should require shortcuts: json\"),s(e(\"sk_async_json\")===t,\"if shortcut is defined require should return the same code\"),s(e(\"/modules/shortcuts/async.json\")===t,\"Module should be inited using shortcut content\"),e.async(\"sk_async_html\",function(t){s(t===\"ok\",\"should require shortcuts: html\"),e.async(\"sk_async_js\",function(t){s(t()===\"ok\",\"should require shortcuts: js\"),s(e.stats(\"sk_async_js\")===e.stats(\"/modules/shortcuts/async.js\"),\"shortcut should point to the same object as module\"),s(!!e.stats(\"/modules/shortcuts/async.js\"),\"should count stats of real file\"),s(e.stats(\"/modules/shortcuts/async.js\").shortcuts[0]===\"sk_async_js\",\"should pass shourtcuts names\"),r()})})})}),n(\"require.async() plain\",function(){o(3),e.async(\"./modules/async/module_plain_function_async.js\"+f,function(t){s(t.some_function()===!0,\"should require async module-functions\"),s(e(\"./modules/async/module_plain_function_async.js\"+f)===t,\"can async require plain modules, loaded async module-functions\"),r()})})})",
+"testcase_lmd_loader": "(function(e){function h(e,t){return a.defaultView&&a.defaultView.getComputedStyle?a.defaultView.getComputedStyle(e,\"\").getPropertyValue(t):(t=t.replace(/\\-(\\w)/g,function(e,t){return t.toUpperCase()}),e.currentStyle[t])}var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"document\"),f=e(\"raises\"),l=\"?\"+Math.random(),c=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";i(\"LMD loader @ \"+c),n(\"require.js()\",function(){o(6),e.js(\"./modules/loader/non_lmd_module.js\"+l,function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"SCRIPT\",\"should return script tag on success\"),s(e(\"some_function\")()===!0,\"we can grab content of the loaded script\"),s(e(\"./modules/loader/non_lmd_module.js\"+l)===t,\"should cache script tag on success\"),e.js(\"http://yandex.ru/jquery.js\"+l,function(t){s(typeof t==\"undefined\",\"should return undefined on error in 3 seconds\"),s(typeof e(\"http://yandex.ru/jquery.js\"+l)==\"undefined\",\"should not cache errorous modules\"),e.js(\"module_as_string\",function(t){e.async(\"module_as_string\",function(e){s(t===e,\"require.js() acts like require.async() if in-package/declared module passed\"),r()})})})})}),n(\"require.js() JSON callback and chain calls\",function(){o(2);var t=e(\"setTimeout\")(function(){s(!1,\"JSONP call fails\"),r()},3e3);e(\"window\").someJsonHandler=function(n){s(n.ok,\"JSON called\"),e(\"window\").someJsonHandler=null,e(\"clearTimeout\")(t),r()};var n=e.js(\"./modules/loader/non_lmd_module.jsonp.js\"+l);s(typeof n==\"function\",\"require.js() must return require\")}),n(\"require.js() race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.js(\"./modules/loader_race/non_lmd_module.js\"+l,n),e.js(\"./modules/loader_race/non_lmd_module.js\"+l,n)}),n(\"require.css()\",function(){o(6),e.css(\"./modules/loader/some_css.css\"+l,function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"LINK\",\"should return link tag on success\"),s(h(a.getElementById(\"qunit-fixture\"),\"visibility\")===\"hidden\",\"css should be applied\"),s(e(\"./modules/loader/some_css.css\"+l)===t,\"should cache link tag on success\"),e.css(\"./modules/loader/some_css_404.css\"+l,function(t){s(typeof t==\"undefined\",\"should return undefined on error in 3 seconds\"),s(typeof e(\"./modules/loader/some_css_404.css\"+l)==\"undefined\",\"should not cache errorous modules\"),e.css(\"module_as_string\",function(t){e.async(\"module_as_string\",function(e){s(t===e,\"require.css() acts like require.async() if in-package/declared module passed\"),r()})})})})}),n(\"require.css() CSS loader without callback\",function(){o(1);var t=e.css(\"./modules/loader/some_css_callbackless.css\"+l).css(\"./modules/loader/some_css_callbackless.css\"+l+1);s(typeof t==\"function\",\"require.css() must return require\"),r()}),n(\"require.css() race calls\",function(){o(1);var t,n=function(e){typeof t==\"undefined\"?t=e:(s(t===e,\"Must perform one call. Results must be the same\"),r())};e.css(\"./modules/loader_race/some_css.css\"+l,n),e.css(\"./modules/loader_race/some_css.css\"+l,n)}),n(\"require.css() shortcut\",function(){o(4),e.css(\"sk_css_css\",function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"LINK\",\"should return link tag on success\"),s(e(\"sk_css_css\")===t,\"require should return the same result\"),e.css(\"sk_css_css\",function(n){s(n===t,\"should load once\"),s(e(\"sk_css_css\")===e(\"/modules/shortcuts/css.css\"),\"should be defined using path-to-module\"),r()})})}),n(\"require.js() shortcut\",function(){o(5),e.js(\"sk_js_js\",function(t){s(typeof t==\"object\"&&t.nodeName.toUpperCase()===\"SCRIPT\",\"should return script tag on success\"),s(e(\"sk_js_js\")===t,\"require should return the same result\"),e.js(\"sk_js_js\",function(n){s(n===t,\"should load once\"),s(e(\"sk_js_js\")===e(\"/modules/shortcuts/js.js\"),\"should be defined using path-to-module\"),s(typeof e(\"shortcuts_js\")==\"function\",\"Should create a global function shortcuts_js as in module function\"),r()})})})})",
+"testcase_lmd_coverage": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"asyncTest\"),i=e(\"start\"),s=e(\"module\"),o=e(\"ok\"),u=e(\"expect\"),a=e(\"$\"),f=e(\"raises\"),l=\"?\"+Math.random(),c=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\";s(\"LMD Stats coverage @ \"+c),t(\"Coverage\",function(){u(6),e(\"coverage_fully_covered\"),e(\"coverage_not_conditions\"),e(\"coverage_not_functions\"),e(\"coverage_not_statements\");var t=e.stats(),n;n=t.modules.coverage_fully_covered.coverage.report;for(var r in n)n.hasOwnProperty(r)&&o(!1,\"should be fully covered!\");n=t.modules.coverage_not_conditions.coverage.report,o(n[2].conditions,\"coverage_not_conditions: not 1 line\"),o(n[3].lines===!1,\"coverage_not_conditions: not 2 line\"),n=t.modules.coverage_not_functions.coverage.report,o(n[3].functions[0]===\"test\",\"coverage_not_functions: not 2 line\"),o(n[4].lines===!1,\"coverage_not_functions: not 3 line\"),n=t.modules.coverage_not_statements.coverage.report,o(n[11].lines===!1,\"coverage_not_statements: not 11 line\"),n=t.modules.coverage_not_covered.coverage.report,o(n[1]&&n[2]&&n[3]&&n[6]&&n[7],\"coverage_not_covered: not covered\")}),n(\"Coverage - Async: stats_coverage_async\",function(){u(2),e.async([\"coverage_fully_covered_async\",\"coverage_not_functions_async\"],function(){var t=e.stats(),n;n=t.modules.coverage_fully_covered_async.coverage.report;for(var r in n)n.hasOwnProperty(r)&&o(!1,\"should be fully covered!\");n=t.modules.coverage_not_functions_async.coverage.report,o(n[3].functions[0]===\"test\",\"coverage_not_functions: not 2 line\"),o(n[4].lines===!1,\"coverage_not_functions: not 3 line\"),i()})})})",
+"testcase_lmd_cache": "(function(e){var t=e(\"test\"),n=e(\"asyncTest\"),r=e(\"start\"),i=e(\"module\"),s=e(\"ok\"),o=e(\"expect\"),u=e(\"$\"),a=e(\"raises\"),f=e(\"localStorage\"),l=\"?\"+Math.random(),c=e(\"worker_some_global_var\")?\"Worker\":e(\"node_some_global_var\")?\"Node\":\"DOM\",h=\"latest\";if(!f)return;i(\"LMD cache @ \"+c),n(\"localStorage cache + cache_async test\",function(){o(10),s(typeof f.lmd==\"string\",\"LMD Should create cache\");var t=JSON.parse(f.lmd);s(t.version===h,\"Should save version\"),s(typeof t.modules==\"object\",\"Should save modules\"),s(typeof t.main==\"string\",\"Should save main function as string\"),s(typeof t.lmd==\"string\",\"Should save lmd source as string\"),s(typeof t.sandboxed==\"object\",\"Should save sandboxed modules\"),e.async(\"./modules/async/module_function_async.js\",function(t){var n=\"lmd:\"+h+\":\"+\"./modules/async/module_function_async.js\";s(t.some_function()===!0,\"should require async module-functions\"),s(typeof f[n]==\"string\",\"LMD Should cache async requests\"),f.removeItem(n),e.async(\"./modules/async/module_function_async.js\"),s(!f[n],\"LMD Should not recreate cache it was manually deleted key=\"+n),r()})})})"
 },{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true},"latest",{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"]},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[]},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"]},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"]},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"]}})

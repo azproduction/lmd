@@ -6,18 +6,9 @@
  * This plugin provides require.css() function
  */
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
+(function (sb) {
 
     /**
      * Loads any CSS file
@@ -29,44 +20,44 @@
      * @param {String|Array} moduleName path to css file
      * @param {Function}     [callback]   callback(result) undefined on error HTMLLinkElement on success
      */
-    require.css = function (moduleName, callback) {
-        callback = callback || global_noop;
+    sb.require.css = function (moduleName, callback) {
+        callback = callback || sb.noop;
 
         if (typeof moduleName !== "string") {
-            callback = lmd_trigger('*:request-parallel', moduleName, callback, require.css)[1];
+            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.css)[1];
             if (!callback) {
-                return require;
+                return sb.require;
             }
         }
 
-        var module = modules[moduleName],
+        var module = sb.modules[moduleName],
             isNotLoaded = 1,
             head;
 
-        var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
         if (replacement) {
             moduleName = replacement[0];
             module = replacement[1];
         }
 
-        lmd_trigger('css:before-check', moduleName, module);
+        sb.trigger('css:before-check', moduleName, module);
         // If module exists or its a worker or node.js environment
-        if (module || !global_document) {
-            callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return require;
+        if (module || !sb.document) {
+            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            return sb.require;
         }
 
-        lmd_trigger('css:before-init', moduleName, module);
+        sb.trigger('*:before-init', moduleName, module);
 
-        callback = lmd_trigger('*:request-race', moduleName, callback)[1];
+        callback = sb.trigger('*:request-race', moduleName, callback)[1];
         // if already called
         if (!callback) {
-            return require;
+            return sb.require;
         }
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
         // Create stylesheet link
-        var link = global_document.createElement("link"),
-            id = +new global.Date,
+        var link = sb.document.createElement("link"),
+            id = +new sb.global.Date,
             onload = function (e) {
                 if (isNotLoaded) {
                     isNotLoaded = 0;
@@ -74,9 +65,9 @@
                     link.removeAttribute('id');
 
                     if (!e) {
-                        lmd_trigger('css:request-error', moduleName, module);
+                        sb.trigger('*:request-error', moduleName, module);
                     }
-                    callback(e ? register_module(moduleName, link) : head.removeChild(link) && local_undefined); // e === undefined if error
+                    callback(e ? sb.register(moduleName, link) : head.removeChild(link) && sb.undefined); // e === undefined if error
                 }
             };
 
@@ -85,15 +76,15 @@
         link.rel = "stylesheet";
         link.id = id;
 
-        global.setTimeout(onload, 3000, 0);
+        sb.global.setTimeout(onload, 3000, 0);
 
-        head = global_document.getElementsByTagName("head")[0];
+        head = sb.document.getElementsByTagName("head")[0];
         head.insertBefore(link, head.firstChild);
 
         (function poll() {
             if (isNotLoaded) {
                 try {
-                    var sheets = global_document.styleSheets;
+                    var sheets = sb.document.styleSheets;
                     for (var j = 0, k = sheets.length; j < k; j++) {
                         if((sheets[j].ownerNode/*if ($P.IE) {*/ || sheets[j].owningElement/*}*/).id == id &&
                            (sheets[j].cssRules/*if ($P.IE) {*/ || sheets[j].rules/*}*/).length) {
@@ -106,11 +97,13 @@
                     throw 1;
                 } catch(e) {
                     // Keep polling
-                    global.setTimeout(poll, 90);
+                    sb.global.setTimeout(poll, 90);
                 }
             }
         }());
 
-        return require;
+        return sb.require;
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_ENDIF/*}*/
     };
+
+}(sandbox));

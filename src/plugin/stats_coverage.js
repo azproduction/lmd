@@ -1,19 +1,7 @@
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- * @name coverage_options
- * @name coverage_module
+ * @name sandbox
  */
-
+(function (sb) {
 
 /**
  * Calculate coverage total
@@ -21,7 +9,7 @@
  * @param moduleName
  */
 function stats_calculate_coverage(moduleName) {
-    var stats = stats_get(moduleName),
+    var stats = sb.trigger('*:stats-get', moduleName, null)[1],
         total,
         covered,
         lineId,
@@ -110,8 +98,8 @@ function stats_calculate_coverage(moduleName) {
  *
  * @private
  */
-require.coverage_line = function (moduleName, lineId) {
-    stats_results[moduleName].runLines[lineId] += 1;
+sb.require.coverage_line = function (moduleName, lineId) {
+    sb.trigger('*:stats-results', moduleName, null)[1].runLines[lineId] += 1;
 };
 
 /**
@@ -119,8 +107,8 @@ require.coverage_line = function (moduleName, lineId) {
  *
  * @private
  */
-require.coverage_function = function (moduleName, lineId) {
-    stats_results[moduleName].runFunctions[lineId] += 1;
+sb.require.coverage_function = function (moduleName, lineId) {
+    sb.trigger('*:stats-results', moduleName, null)[1].runFunctions[lineId] += 1;
 };
 
 /**
@@ -128,8 +116,8 @@ require.coverage_function = function (moduleName, lineId) {
  *
  * @private
  */
-require.coverage_condition = function (moduleName, lineId, condition) {
-    stats_results[moduleName].runConditions[lineId][condition ? 1 : 0] += 1;
+sb.require.coverage_condition = function (moduleName, lineId, condition) {
+    sb.trigger('*:stats-results', moduleName, null)[1].runConditions[lineId][condition ? 1 : 0] += 1;
     return condition;
 };
 
@@ -139,7 +127,7 @@ require.coverage_condition = function (moduleName, lineId, condition) {
  * @private
  */
 function coverage_module(moduleName, lines, conditions, functions) {
-    var stats = stats_get(moduleName);
+    var stats = sb.trigger('*:stats-get', moduleName, null)[1];
     if (stats.lines) {
         return;
     }
@@ -168,12 +156,16 @@ function coverage_module(moduleName, lines, conditions, functions) {
         if (coverage_options.hasOwnProperty(moduleName)) {
             moduleOption = coverage_options[moduleName];
             coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
-            stats_type(moduleName, 'in-package');
+            sb.trigger('*:stats-type', moduleName, 'in-package');
         }
     }
 })();
 
-lmd_on('lmd-register:call-sandboxed-module', function (event, moduleName, require) {
+sb.on('*:stats-coverage', function (moduleName, moduleOption) {
+    coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
+});
+
+sb.on('lmd-register:call-sandboxed-module', function (moduleName, require) {
     return [moduleName, {
         coverage_line: require.coverage_line,
         coverage_function: require.coverage_function,
@@ -181,7 +173,7 @@ lmd_on('lmd-register:call-sandboxed-module', function (event, moduleName, requir
     }];
 });
 
-lmd_on('stats:before-return-stats', function (event, moduleName, stats_results) {
+sb.on('stats:before-return-stats', function (moduleName, stats_results) {
     if (moduleName) {
         stats_calculate_coverage(moduleName);
         return [];
@@ -237,3 +229,5 @@ lmd_on('stats:before-return-stats', function (event, moduleName, stats_results) 
         return [moduleName, result];
     }
 });
+
+}(sandbox));

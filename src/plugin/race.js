@@ -6,7 +6,10 @@
  * This plugin provides private "race_callbacks" function
  */
 
-(function () {
+/**
+ * @name sandbox
+ */
+(function (sb) {
 
 var race_callbacks = {},
     /**
@@ -32,7 +35,7 @@ var race_callbacks = {},
         }
     };
 
-lmd_on('*:request-race', function (event, moduleName, callback) {
+sb.on('*:request-race', function (moduleName, callback) {
     callback = create_race(moduleName, callback);
     if (race_callbacks[moduleName].length > 1) {
         return [moduleName];
@@ -41,4 +44,4 @@ lmd_on('*:request-race', function (event, moduleName, callback) {
     }
 });
 
-}());
+}(sandbox));

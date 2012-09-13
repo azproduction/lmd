@@ -24,13 +24,13 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require = lmd_trigger(
-                    sandboxed_modules[moduleName] ?
-                        'lmd-register:call-sandboxed-module' :
-                        'lmd-register:call-module',
-                    moduleName,
-                    require
-                )[1];
+                var module_require;
+
+                if (sandboxed_modules[moduleName]) {
+                    module_require = lmd_trigger('lmd-register:call-sandboxed-module', moduleName, require)[1];
+                } else {
+                    module_require = lmd_trigger('lmd-register:call-module', moduleName, require)[1];
+                }
 
                 module = module(module_require, output.exports, output) || output.exports;
             }
@@ -51,7 +51,7 @@
 
             if (list) {
                 for (var i = 0, c = list.length; i < c; i++) {
-                    result = list[i](event, data, data2, data3) || result;
+                    result = list[i](data, data2, data3) || result;
                 }
             }
             return result || [data, data2, data3];
@@ -92,7 +92,32 @@
 
             return register_module(moduleName, module);
         },
-        output = {exports: {}};
+        output = {exports: {}},
+
+        /**
+         * Do not rename it!
+         */
+        sandbox = {
+            global: global,
+            modules: modules,
+            sandboxed: sandboxed_modules,
+
+            eval: global_eval,
+            register: register_module,
+            require: require,
+            initialized: initialized_modules,
+
+            /*if ($P.CSS || $P.JS || $P.ASYNC) {*/noop: global_noop,/*}*/
+            /*if ($P.CSS || $P.JS || $P.STATS_SENDTO) {*/document: global_document,/*}*/
+            /*if ($P.CACHE) {*/lmd: lmd,/*}*/
+            /*if ($P.CACHE) {*/main: main,/*}*/
+            /*if ($P.CACHE) {*/version: version,/*}*/
+            /*if ($P.STATS_COVERAGE) {*/coverage_options: coverage_options,/*}*/
+
+            on: lmd_on,
+            trigger: lmd_trigger,
+            undefined: local_undefined
+        };
 
     for (var moduleName in modules) {
         // reset module init flag in case of overwriting
@@ -116,4 +141,4 @@
 /*if ($P.CSS) include('css.js');*/
 /*if ($P.CACHE) include('cache.js');*/
     main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
-})
+})/*DO NOT ADD ; !*/

@@ -1,5 +1,7 @@
-
-(function () {
+/**
+ * @name sandbox
+ */
+(function (sb) {
 
 if ($P.ASYNC_PLAIN) {
 
@@ -80,15 +82,15 @@ var async_plain = function (module, contentTypeOrExtension) {
     return module;
 };
 
-lmd_on('*:wrap-module', function (event, moduleName, module, contentTypeOrExtension) {
+sb.on('*:wrap-module', function (moduleName, module, contentTypeOrExtension) {
     module = async_plain(module, contentTypeOrExtension);
     return [moduleName, module, contentTypeOrExtension];
 });
 
-lmd_on('*:is-plain-module', function (event, moduleName, module) {
+sb.on('*:is-plain-module', function (moduleName, module) {
     if (typeof async_is_plain_code === "function") {
         return [moduleName, module, async_is_plain_code(module)];
     }
 });
 
-}());
+}(sandbox));

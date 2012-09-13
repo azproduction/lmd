@@ -1,14 +1,17 @@
-(function () {
-    lmd_on('js:request-environment-module', function (event, moduleName, module) {
+/**
+ * @name sandbox
+ */
+(function (sb) {
+    sb.on('js:request-environment-module', function (moduleName, module) {
         try {
             // call importScripts or require
             // any of them can throw error if file not found or transmission error
-            module = register_module(moduleName, (global.importScripts || global.require)(moduleName) || {});
+            module = sb.register(moduleName, (sb.global.importScripts || sb.global.require)(moduleName) || {});
             return [moduleName, module];
         } catch (e) {
             // error -> default behaviour
-            lmd_trigger('worker_or_node:request-error', moduleName, module);
+            sb.trigger('*:request-error', moduleName, module);
             return [moduleName, module];
         }
     });
-}());
+}(sandbox));
