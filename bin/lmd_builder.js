@@ -254,6 +254,329 @@ LmdBuilder.prototype.compress = function (code) {
 };
 
 /**
+ * Optimizes lmd code
+ *
+ * @param {String} lmd_js_code
+ *
+ * @returns {String}
+ */
+LmdBuilder.prototype.optimizeLmdSource = function (lmd_js_code) {
+    var walker = uglify.ast_walker();
+
+    /**
+     * Uses variable sandbox for create replacement map
+     *
+     * @param {Object} ast toplevel AST
+     *
+     * @return {Object} {name: replaceName} map
+     */
+    function getSandboxMap(ast) {
+        var map = {};
+
+        walker.with_walkers({
+            // looking for first var with sandbox item;
+            "var" : function (vars) {
+                for (var i = 0, c = vars.length, varItem; i < c; i++) {
+                    varItem = vars[i];
+                    if (varItem[0] === 'sandbox') {
+                        varItem[1][1].forEach(function (objectVar) {
+                            map[objectVar[0]] = objectVar[1][1];
+                        });
+                        throw 0;
+                    }
+                }
+            }
+        }, function () {
+            try {
+                return walker.walk(ast);
+            } catch (e) {}
+        });
+
+        return map;
+    }
+
+    /**
+     * Brakes sendbox in one module
+     *
+     * @param {Object} ast
+     * @param {Object} replaceMap
+     *
+     * @return {Object} call AST
+     */
+    function breakSandbox(ast, replaceMap) {
+        var sandboxName = ast[2][0] || 'sb';
+
+        var newAst = walker.with_walkers({
+            // lookup for dot
+            // looking for this pattern
+            // ["dot", ["name", "sb"], "require"] -> ["name", map["require"]]
+            "dot" : function () {
+                if (this[1] && this[1][0] === "name" && this[1][1] === sandboxName) {
+                    var sourceName = this[2];
+                    return ["name", replaceMap[sourceName]];
+                }
+            }
+        }, function () {
+            return walker.walk(ast);
+        });
+
+        // remove IEFE's `sb` or whatever argument
+        newAst[1][2] = [];
+
+        return newAst;
+    }
+
+    /**
+     * Brake sandbox: Using UglifyJS AST and sandbox variable in lmd.js file
+     * replace all sb.smth with actual value of sandbox[smth]
+     * than delete sandbox variable from lmd.js and all modules
+     *
+     * @param {Object} ast
+     *
+     * @returns {Object} toplevel AST
+     */
+    function brakeSandboxes(ast) {
+        var map = getSandboxMap(ast),
+            isSandboxVariableWiped = false;
+
+        return walker.with_walkers({
+            // lookup for modules
+            // looking for this pattern
+            // [ 'call',
+            //  [ 'function', null, [ 'sb' ], [ [Object] ] ],
+            //  [ [ 'name', 'sandbox' ] ] ]
+            "call" : function (content) {
+                if (this[2] &&
+                    this[2].length > 0 &&
+                    this[2][0][0] === "name" &&
+                    this[2][0][1] === "sandbox" &&
+                    this[1] &&
+                    this[1][0] === "function"
+                    ) {
+                    // 1. remove sandbox argument
+                    this[2] = [];
+                    // 2. break sandbox in each module
+                    return breakSandbox(this, map);
+                }
+            },
+            // wipe sandobx variable
+            "var": function () {
+                if (isSandboxVariableWiped) {
+                    return;
+                }
+
+                for (var i = 0, c = this[1].length, varItem; i < c; i++) {
+                    varItem = this[1][i];
+                    if (varItem[0] === 'sandbox') {
+                        isSandboxVariableWiped = true;
+                        this[1].splice(i, 1);
+
+                        return this;
+                    }
+                }
+            }
+        }, function () {
+            return walker.walk(ast);
+        });
+    }
+
+    /**
+     * Collects all plugins events with usage and event index
+     *
+     *  {
+     *      eventIndex: 3, // relative event index
+     *      on: 1,         // number of listeners
+     *      trigger: 2     // number of triggers
+     *  }
+     *
+     * @param {Object} ast toplevel AST
+     *
+     * @return {Object} toplevel AST
+     */
+    function getEvents(ast) {
+        var usage = {},
+            eventIndex = 0;
+
+        walker.with_walkers({
+            // looking for first var with sandbox item;
+            "call" : function () {
+                if (this[1] && this[2][0]) {
+                    var functionName = this[1][1];
+                    switch (functionName) {
+                        case "lmd_on":
+                        case "lmd_trigger":
+                            var eventName = this[2][0][1];
+                            if (!usage[eventName]) {
+                                usage[eventName] = {
+                                    on: 0,
+                                    trigger: 0,
+                                    eventIndex: eventIndex
+                                };
+                                eventIndex++;
+                            }
+                            if (functionName === "lmd_on") {
+                                usage[eventName].on++;
+                            } else {
+                                usage[eventName].trigger++;
+                            }
+                            break;
+                    }
+                }
+            }
+        }, function () {
+            return walker.walk(ast);
+        });
+
+        return usage;
+    }
+
+    /**
+     * Wipes lmd_on, lmd_trigger, lmd_events variables from source
+     *
+     * @param {Object} ast
+     *
+     * @return {Object} modified ast
+     */
+    function wipeLmdEvents(ast) {
+        var itemsToWipe = ['lmd_on', 'lmd_trigger', 'lmd_events'];
+
+        return walker.with_walkers({
+            // wipe lmdEvents variables
+            "var": function () {
+                if (!itemsToWipe.length) {
+                    return;
+                }
+
+                for (var i = 0, c = this[1].length, varItem; i < c; i++) {
+                    varItem = this[1][i];
+                    if (varItem) {
+                        var itemIndex = itemsToWipe.indexOf(varItem[0]);
+                        if (itemIndex !== -1) {
+                            itemsToWipe.splice(itemIndex, 1);
+                            this[1].splice(i, 1);
+                            i--;
+                        }
+                    }
+                }
+            }
+        }, function () {
+            return walker.walk(ast);
+        });
+    }
+
+    /**
+     * Optimizes number of lmd_{on|trigger} calls
+     *
+     * @param {Object} ast toplevel AST
+     *
+     * @return {Object} loplevel AST
+     */
+    function reduceAndShortenLmdEvents(ast) {
+        var events = getEvents(ast),
+            isWipeLmdEvents = true;
+
+        for (var eventName in events) {
+            if (isWipeLmdEvents) {
+                if (events[eventName].on !== 0 && events[eventName].trigger !== 0) {
+                    // something is calling events
+                    isWipeLmdEvents = false;
+                }
+            }
+        }
+
+        // If no lmd_trigger and lmd_on calls
+        // than delete them plus lmd_events from lmd.js code
+        if (isWipeLmdEvents) {
+            ast = wipeLmdEvents(ast);
+        }
+
+        return walker.with_walkers({
+            // looking for first var with sandbox item;
+            "call" : function () {
+                if (this[1] && this[2][0]) {
+                    var functionName = this[1][1],
+                        eventName,
+                        eventDescriptor;
+
+                    switch (functionName) {
+                        case "lmd_on":
+                            eventName = this[2][0][1];
+                            eventDescriptor = events[eventName];
+
+                            // if no event triggers (no lmd_trigger(event_name,...))
+                            // delete all lmd_on(event_name,...) statements
+                            if (eventDescriptor.trigger === 0) {
+                                return ["name", "null"];
+                            }
+
+                            // Shorten event names: Using UglifyJS AST find all event names
+                            // from lmd_trigger and lmd_on and replace them with corresponding numbers
+                            this[2][0] = ["num", eventDescriptor.eventIndex];
+                            break;
+
+                        case "lmd_trigger":
+                            eventName = this[2][0][1];
+                            eventDescriptor = events[eventName];
+
+                            // if no event listeners (no lmd_on(event_name,...))
+                            // replace all lmd_trigger(event_name, argument, argument)
+                            // expressions with array [argument, argument]
+                            if (eventDescriptor.on === 0) {
+                                // if parent is statement -> return void
+                                // to prevent loony arrays eg ["pewpew", "ololo"];
+                                if (walker.parent()[0] === "stat") {
+                                    return ["name", "null"];
+                                }
+
+                                /*
+                                [
+                                    "call",
+                                    ["name", "lmd_trigger"],
+                                    [
+                                        ["string", "lmd-register:call-sandboxed-module"],
+                                        ["name", "moduleName"],
+                                        ["name", "require"]
+                                    ]
+                                ]
+
+                                  --->
+
+                                [
+                                    "array",
+                                    [
+                                        ["name", "moduleName"],
+                                        ["name", "require"]
+                                    ]
+                                ]
+                                */
+                                return ["array", this[2].slice(1)];
+                            }
+
+                            // Shorten event names: Using UglifyJS AST find all event names
+                            // from lmd_trigger and lmd_on and replace them with corresponding numbers
+                            this[2][0] = ["num", eventDescriptor.eventIndex];
+                            break;
+                    }
+                }
+            }
+        }, function () {
+            return walker.walk(ast);
+        });
+    }
+
+    var ast = parser.parse(lmd_js_code);
+    ast = brakeSandboxes(ast);
+    ast = reduceAndShortenLmdEvents(ast);
+
+    var code =  uglify.gen_code(ast, {beautify: true});
+
+    // wipe tail ;
+    code = code.replace(/;$/, '');
+
+    return code;
+};
+
+/**
  * Checks if code is plain module
  *
  * @param code
@@ -377,6 +700,9 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, san
 
     // Apply patch if LMD package in cache Mode
     lmd_js = this.patchLmdSource(lmd_js, config);
+    if (pack) {
+        lmd_js = this.optimizeLmdSource(lmd_js);
+    }
     lmd_modules = '{\n' + lmd_modules.join(',\n') + '\n}';
 
     result = this.template({

@@ -20,7 +20,7 @@
     "depends": "*.lmd.json",
 
     "lazy": false,
-    "pack": false,
+    "pack": true,
 
     "cache": true,
     "cache_async": true

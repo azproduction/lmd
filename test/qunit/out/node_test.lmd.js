@@ -5318,7 +5318,7 @@ sb.on('*:is-plain-module', function (moduleName, module) {
 }(sandbox));
 /*if ($P.CACHE) include('cache.js');*/
     main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
-})/*NO ; !*/(node_global_environment,(function (require) {
+})/*DO NOT ADD ; !*/(node_global_environment,(function (require) {
     // common for BOM Node and Worker Envs
     require('testcase_lmd_basic_features');
 
@@ -5464,7 +5464,7 @@ return window.uQuery_dep;
         return true;
     };
 }),
-"module_function_lazy": "(function(e,t,n){return e(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
+"module_function_lazy": "(function(a,b,c){return a(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
 "module_function_plain": (function (require, exports, module) { /* wrapped by builder */
 require('ok')(true, "plain module must be called once");
 
