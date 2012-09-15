@@ -40,10 +40,14 @@
         },
         /**
          * List of All lmd Events
+         *
+         * @important Do not rename it!
          */
         lmd_events = {},
         /**
          * LMD event trigger function
+         *
+         * @important Do not rename it!
          */
         lmd_trigger = function (event, data, data2, data3) {
             var list = lmd_events[event],
@@ -58,6 +62,8 @@
         },
         /**
          * LMD event register function
+         *
+         * @important Do not rename it!
          */
         lmd_on = function (event, callback) {
             if (!lmd_events[event]) {
@@ -73,17 +79,18 @@
         require = function (moduleName) {
             var module = modules[moduleName];
 
+            lmd_trigger('lmd-require:before-check', moduleName, module);
             // Already inited - return as is
             if (initialized_modules[moduleName] && module) {
-                lmd_trigger('lmd-require:from-cache', moduleName);
                 return module;
             }
-
-            var replacement = lmd_trigger('lmd-require:first-init', moduleName, module);
+            var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
             if (replacement) {
                 moduleName = replacement[0];
                 module = replacement[1];
             }
+
+            lmd_trigger('*:before-init', moduleName, module);
 
             // Lazy LMD module not a string
             if (typeof module === "string" && module.indexOf('(function(') === 0) {
@@ -95,7 +102,9 @@
         output = {exports: {}},
 
         /**
-         * Do not rename it!
+         * Sandbox object for plugins
+         *
+         * @important Do not rename it!
          */
         sandbox = {
             global: global,

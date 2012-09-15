@@ -55,6 +55,14 @@ return function (moduleName, file, content, isPlainModule) {
 
 } ());
 
+    /**
+     * @event *:coverage-apply applies code coverage for module
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns yes
+     */
 sb.on('*:coverage-apply', function (moduleName, module) {
     var isPlainModule = sb.trigger('*:is-plain-module', moduleName, module, false)[2];
     module = coverage_apply(moduleName, moduleName, module, isPlainModule);

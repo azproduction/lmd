@@ -66,6 +66,13 @@ function indexOf(item) {
     return -1;
 }
 
+    /**
+     * @event *:request-json requests JSON polifill with only stringify function!
+     *
+     * @param {Object|undefined} JSON default JSON value
+     *
+     * @retuns yes
+     */
 sb.on('*:request-json', function (JSON) {
     if (typeof JSON === "object") {
         return [JSON];
@@ -74,6 +81,13 @@ sb.on('*:request-json', function (JSON) {
     return [{stringify: stringify}];
 });
 
+    /**
+     * @event *:request-indexof requests indexOf polifill
+     *
+     * @param {Function|undefined} arrayIndexOf default indexOf value
+     *
+     * @retuns yes
+     */
 sb.on('*:request-indexof', function (arrayIndexOf) {
     if (typeof arrayIndexOf === "function") {
         return [arrayIndexOf];

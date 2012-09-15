@@ -82,12 +82,30 @@ var async_plain = function (module, contentTypeOrExtension) {
     return module;
 };
 
+    /**
+     * @event *:wrap-module Module wrap request
+     *
+     * @param {String} moduleName
+     * @param {String} module this module will be wrapped
+     * @param {String} contentTypeOrExtension file content type or extension to avoid wrapping json file
+     *
+     * @retuns yes
+     */
 sb.on('*:wrap-module', function (moduleName, module, contentTypeOrExtension) {
     module = async_plain(module, contentTypeOrExtension);
     return [moduleName, module, contentTypeOrExtension];
 });
 
-sb.on('*:is-plain-module', function (moduleName, module) {
+    /**
+     * @event *:is-plain-module code type check request: plain or lmd-module
+     *
+     * @param {String} moduleName
+     * @param {String} module
+     * @param {String} isPlainCode default value
+     *
+     * @retuns yes
+     */
+sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
     if (typeof async_is_plain_code === "function") {
         return [moduleName, module, async_is_plain_code(module)];
     }

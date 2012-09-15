@@ -161,10 +161,27 @@ function coverage_module(moduleName, lines, conditions, functions) {
     }
 })();
 
+    /**
+     * @event *:stats-coverage adds module parameters for statistics
+     *
+     * @param {String} moduleName
+     * @param {Object} moduleOption preprocessed data for lines, conditions and functions
+     *
+     * @retuns no
+     */
 sb.on('*:stats-coverage', function (moduleName, moduleOption) {
     coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
 });
 
+    /**
+     * @event lmd-register:call-sandboxed-module register_module is goint to call sandboxed module
+     *        and requests for require wrapper for sandboxed module
+     *
+     * @param {String}        moduleName
+     * @param {Function|Null} require default require
+     *
+     * @retuns yes creates fake require
+     */
 sb.on('lmd-register:call-sandboxed-module', function (moduleName, require) {
     return [moduleName, {
         coverage_line: require.coverage_line,
@@ -173,6 +190,15 @@ sb.on('lmd-register:call-sandboxed-module', function (moduleName, require) {
     }];
 });
 
+    /**
+     * @event stats:before-return-stats stats is going to return stats data
+     *        this event can modify that data
+     *
+     * @param {String|undefined} moduleName
+     * @param {Object}           stats_results default stats
+     *
+     * @retuns yes depend on moduleName value returns empty array or replaces stats_results
+     */
 sb.on('stats:before-return-stats', function (moduleName, stats_results) {
     if (moduleName) {
         stats_calculate_coverage(moduleName);

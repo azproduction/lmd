@@ -2,6 +2,15 @@
  * @name sandbox
  */
 (function (sb) {
+    /**
+     * @event async:require-environment-file requests file register using some environment functions non XHR
+     *
+     * @param {String}   moduleName
+     * @param {String}   module
+     * @param {Function} callback   this callback will be called when module inited
+     *
+     * @retuns no
+     */
     sb.on('async:require-environment-file', function (moduleName, module, callback) {
         sb.global.require('fs').readFile(moduleName, 'utf8', function (err, module) {
             if (err) {

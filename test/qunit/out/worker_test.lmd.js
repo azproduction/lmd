@@ -40,10 +40,14 @@
         },
         /**
          * List of All lmd Events
+         *
+         * @important Do not rename it!
          */
         lmd_events = {},
         /**
          * LMD event trigger function
+         *
+         * @important Do not rename it!
          */
         lmd_trigger = function (event, data, data2, data3) {
             var list = lmd_events[event],
@@ -58,6 +62,8 @@
         },
         /**
          * LMD event register function
+         *
+         * @important Do not rename it!
          */
         lmd_on = function (event, callback) {
             if (!lmd_events[event]) {
@@ -73,17 +79,18 @@
         require = function (moduleName) {
             var module = modules[moduleName];
 
+            lmd_trigger('lmd-require:before-check', moduleName, module);
             // Already inited - return as is
             if (initialized_modules[moduleName] && module) {
-                lmd_trigger('lmd-require:from-cache', moduleName);
                 return module;
             }
-
-            var replacement = lmd_trigger('lmd-require:first-init', moduleName, module);
+            var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
             if (replacement) {
                 moduleName = replacement[0];
                 module = replacement[1];
             }
+
+            lmd_trigger('*:before-init', moduleName, module);
 
             // Lazy LMD module not a string
             if (typeof module === "string" && module.indexOf('(function(') === 0) {
@@ -95,7 +102,9 @@
         output = {exports: {}},
 
         /**
-         * Do not rename it!
+         * Sandbox object for plugins
+         *
+         * @important Do not rename it!
          */
         sandbox = {
             global: global,
@@ -128,6 +137,15 @@
  * @name sandbox
  */
 (function (sb) {
+    /**
+     * @event js:request-environment-module js.js plugin requests for enviroment-based module init
+     *        (importScripts or node require)
+     *
+     * @param {String}   moduleName
+     * @param {String}   module
+     *
+     * @retuns yes
+     */
     sb.on('js:request-environment-module', function (moduleName, module) {
         try {
             // call importScripts or require
@@ -210,6 +228,13 @@ function indexOf(item) {
     return -1;
 }
 
+    /**
+     * @event *:request-json requests JSON polifill with only stringify function!
+     *
+     * @param {Object|undefined} JSON default JSON value
+     *
+     * @retuns yes
+     */
 sb.on('*:request-json', function (JSON) {
     if (typeof JSON === "object") {
         return [JSON];
@@ -218,6 +243,13 @@ sb.on('*:request-json', function (JSON) {
     return [{stringify: stringify}];
 });
 
+    /**
+     * @event *:request-indexof requests indexOf polifill
+     *
+     * @param {Function|undefined} arrayIndexOf default indexOf value
+     *
+     * @retuns yes
+     */
 sb.on('*:request-indexof', function (arrayIndexOf) {
     if (typeof arrayIndexOf === "function") {
         return [arrayIndexOf];
@@ -264,6 +296,14 @@ var race_callbacks = {},
         }
     };
 
+    /**
+     * @event *:request-race race module request eg for cases when some async modules are required simultaneously
+     *
+     * @param {String}   moduleName race for module name
+     * @param {Function} callback   this callback will be called when module inited
+     *
+     * @retuns yes returns callback if race is empty or only 1 item in it
+     */
 sb.on('*:request-race', function (moduleName, callback) {
     callback = create_race(moduleName, callback);
     if (race_callbacks[moduleName].length > 1) {
@@ -536,71 +576,167 @@ require.stats = function (moduleName) {
     return moduleName ? stats_results[moduleName] : stats_results;
 };
 
+    /**
+     * @event lmd-register:call-module request for fake require
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns yes wraps require
+     */
 sb.on('lmd-register:call-module', function (moduleName, require) {
     return [moduleName, stats_wrap_require(require, moduleName)];
 });
 
+    /**
+     * @event lmd-register:after-register after module register event
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('lmd-register:after-register', function (moduleName) {
     stats_initEnd(moduleName);
 });
 
+    /**
+     * @event lmd-register:before-register before module register event
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('lmd-register:before-register', function (moduleName, module) {
     stats_type(moduleName, !module ? 'global' : typeof sb.modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
 });
 
-sb.on('lmd-require:from-cache', function (moduleName) {
+
+    /**
+     * @event lmd-require:before-check before module cache check
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
+sb.on('lmd-require:before-check', function (moduleName) {
     stats_require(moduleName);
 });
 
-sb.on('lmd-require:first-init', function (moduleName) {
-    stats_require(moduleName);
-    stats_initStart(moduleName);
-});
-
-
-
+    /**
+     * @event css:before-check before module cache check in css()
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('css:before-check', function (moduleName, module) {
     if (!(module || !sb.document) || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
-
+    /**
+     * @event js:before-check before module cache check in js()
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('js:before-check', function (moduleName, module) {
     if (!module || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
+    /**
+     * @event async:before-check before module cache check in async()
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('async:before-check', function (moduleName) {
     if (!module || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
+    /**
+     * @event *:before-init calls when module is goint to eval or call
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('*:before-init', function (moduleName) {
     stats_initStart(moduleName);
 });
 
+    /**
+     * @event *:request-error module load error
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('*:request-error', function (moduleName) {
     stats_initEnd(moduleName);
 });
 
-
+    /**
+     * @event shortcuts:before-resolve moduleName is shortcut and its goint to resolve with actual name
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('shortcuts:before-resolve', function (moduleName, module) {
     // assign shortcut name for module
     stats_shortcut(module, moduleName);
 });
 
-sb.on('*:stats-get', function (moduleName) {
+    /**
+     * @event *:stats-get somethins is request raw module stats
+     *
+     * @param {String} moduleName
+     * @param {Object} result    default stats
+     *
+     * @retuns yes
+     */
+sb.on('*:stats-get', function (moduleName, result) {
     return [moduleName, stats_get(moduleName)];
 });
 
+    /**
+     * @event *:stats-type something tells stats to overwrite module type
+     *
+     * @param {String} moduleName
+     * @param {String} packageType
+     *
+     * @retuns no
+     */
 sb.on('*:stats-type', function (moduleName, packageType) {
     stats_type(moduleName, packageType);
 });
 
-sb.on('*:stats-results', function (moduleName) {
+    /**
+     * @event *:stats-results somethins is request processed module stats
+     *
+     * @param {String} moduleName
+     * @param {Object} result     default stats
+     *
+     * @retuns yes
+     */
+sb.on('*:stats-results', function (moduleName, result) {
     return [moduleName, stats_results[moduleName]];
 });
 
@@ -769,10 +905,27 @@ function coverage_module(moduleName, lines, conditions, functions) {
     }
 })();
 
+    /**
+     * @event *:stats-coverage adds module parameters for statistics
+     *
+     * @param {String} moduleName
+     * @param {Object} moduleOption preprocessed data for lines, conditions and functions
+     *
+     * @retuns no
+     */
 sb.on('*:stats-coverage', function (moduleName, moduleOption) {
     coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
 });
 
+    /**
+     * @event lmd-register:call-sandboxed-module register_module is goint to call sandboxed module
+     *        and requests for require wrapper for sandboxed module
+     *
+     * @param {String}        moduleName
+     * @param {Function|Null} require default require
+     *
+     * @retuns yes creates fake require
+     */
 sb.on('lmd-register:call-sandboxed-module', function (moduleName, require) {
     return [moduleName, {
         coverage_line: require.coverage_line,
@@ -781,6 +934,15 @@ sb.on('lmd-register:call-sandboxed-module', function (moduleName, require) {
     }];
 });
 
+    /**
+     * @event stats:before-return-stats stats is going to return stats data
+     *        this event can modify that data
+     *
+     * @param {String|undefined} moduleName
+     * @param {Object}           stats_results default stats
+     *
+     * @retuns yes depend on moduleName value returns empty array or replaces stats_results
+     */
 sb.on('stats:before-return-stats', function (moduleName, stats_results) {
     if (moduleName) {
         stats_calculate_coverage(moduleName);
@@ -4817,6 +4979,14 @@ return function (moduleName, file, content, isPlainModule) {
 
 } ());
 
+    /**
+     * @event *:coverage-apply applies code coverage for module
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns yes
+     */
 sb.on('*:coverage-apply', function (moduleName, module) {
     var isPlainModule = sb.trigger('*:is-plain-module', moduleName, module, false)[2];
     module = coverage_apply(moduleName, moduleName, module, isPlainModule);
@@ -4854,9 +5024,25 @@ function rewrite_shortcut(moduleName, module) {
     return [moduleName, module];
 }
 
-sb.on('lmd-require:first-init', rewrite_shortcut);
+    /**
+     * @event *:rewrite-shortcut request for shortcut rewrite
+     *
+     * @param {String} moduleName race for module name
+     * @param {String} module     this callback will be called when module inited
+     *
+     * @retuns yes returns modified moduleName and module itself
+     */
 sb.on('*:rewrite-shortcut', rewrite_shortcut);
 
+    /**
+     * @event *:rewrite-shortcut fires before stats plugin counts require same as *:rewrite-shortcut
+     *        but without triggering shortcuts:before-resolve event
+     *
+     * @param {String} moduleName race for module name
+     * @param {String} module     this callback will be called when module inited
+     *
+     * @retuns yes returns modified moduleName and module itself
+     */
 sb.on('stats:before-require-count', function (moduleName, module) {
     if (is_shortcut(moduleName, module)) {
         moduleName = module.replace('@', '');
@@ -4902,6 +5088,15 @@ function parallel(method, items, callback) {
     }
 }
 
+    /**
+     * @event *:request-parallel parallel module request for require.async(['a', 'b', 'c']) etc
+     *
+     * @param {Array}    moduleNames list of modules to init
+     * @param {Function} callback    this callback will be called when module inited
+     * @param {Function} method      method to call for init
+     *
+     * @retuns yes empty environment
+     */
 sb.on('*:request-parallel', function (moduleNames, callback, method) {
     parallel(method, moduleNames, callback);
     return [];
@@ -5084,12 +5279,30 @@ var async_plain = function (module, contentTypeOrExtension) {
     return module;
 };
 
+    /**
+     * @event *:wrap-module Module wrap request
+     *
+     * @param {String} moduleName
+     * @param {String} module this module will be wrapped
+     * @param {String} contentTypeOrExtension file content type or extension to avoid wrapping json file
+     *
+     * @retuns yes
+     */
 sb.on('*:wrap-module', function (moduleName, module, contentTypeOrExtension) {
     module = async_plain(module, contentTypeOrExtension);
     return [moduleName, module, contentTypeOrExtension];
 });
 
-sb.on('*:is-plain-module', function (moduleName, module) {
+    /**
+     * @event *:is-plain-module code type check request: plain or lmd-module
+     *
+     * @param {String} moduleName
+     * @param {String} module
+     * @param {String} isPlainCode default value
+     *
+     * @retuns yes
+     */
+sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
     if (typeof async_is_plain_code === "function") {
         return [moduleName, module, async_is_plain_code(module)];
     }
@@ -5451,7 +5664,7 @@ return window.uQuery_dep;
         return true;
     };
 }),
-"module_function_lazy": "(function(a,b,c){return a(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
+"module_function_lazy": "(function(e,t,n){return e(\"ok\")(!0,\"lazy function must be evaled and called once\"),function(){return!0}})",
 "module_function_plain": (function (require, exports, module) { /* wrapped by builder */
 require('ok')(true, "plain module must be called once");
 

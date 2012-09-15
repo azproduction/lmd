@@ -35,6 +35,14 @@ var race_callbacks = {},
         }
     };
 
+    /**
+     * @event *:request-race race module request eg for cases when some async modules are required simultaneously
+     *
+     * @param {String}   moduleName race for module name
+     * @param {Function} callback   this callback will be called when module inited
+     *
+     * @retuns yes returns callback if race is empty or only 1 item in it
+     */
 sb.on('*:request-race', function (moduleName, callback) {
     callback = create_race(moduleName, callback);
     if (race_callbacks[moduleName].length > 1) {

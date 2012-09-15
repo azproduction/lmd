@@ -17,7 +17,14 @@ function cache_async(moduleName, module) {
         } catch(e) {}
     }
 }
-
+    /**
+     * @event async:before-callback when async.js require is going to return module, uses for cache async module
+     *
+     * @param {String} moduleName
+     * @param {String} module     module content
+     *
+     * @retuns no
+     */
 sb.on('async:before-callback', function (moduleName, module) {
     cache_async(moduleName, module);
 });

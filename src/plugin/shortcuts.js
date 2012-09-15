@@ -27,9 +27,25 @@ function rewrite_shortcut(moduleName, module) {
     return [moduleName, module];
 }
 
-sb.on('lmd-require:first-init', rewrite_shortcut);
+    /**
+     * @event *:rewrite-shortcut request for shortcut rewrite
+     *
+     * @param {String} moduleName race for module name
+     * @param {String} module     this callback will be called when module inited
+     *
+     * @retuns yes returns modified moduleName and module itself
+     */
 sb.on('*:rewrite-shortcut', rewrite_shortcut);
 
+    /**
+     * @event *:rewrite-shortcut fires before stats plugin counts require same as *:rewrite-shortcut
+     *        but without triggering shortcuts:before-resolve event
+     *
+     * @param {String} moduleName race for module name
+     * @param {String} module     this callback will be called when module inited
+     *
+     * @retuns yes returns modified moduleName and module itself
+     */
 sb.on('stats:before-require-count', function (moduleName, module) {
     if (is_shortcut(moduleName, module)) {
         moduleName = module.replace('@', '');

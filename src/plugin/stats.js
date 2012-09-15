@@ -260,71 +260,167 @@ require.stats = function (moduleName) {
     return moduleName ? stats_results[moduleName] : stats_results;
 };
 
+    /**
+     * @event lmd-register:call-module request for fake require
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns yes wraps require
+     */
 sb.on('lmd-register:call-module', function (moduleName, require) {
     return [moduleName, stats_wrap_require(require, moduleName)];
 });
 
+    /**
+     * @event lmd-register:after-register after module register event
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('lmd-register:after-register', function (moduleName) {
     stats_initEnd(moduleName);
 });
 
+    /**
+     * @event lmd-register:before-register before module register event
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('lmd-register:before-register', function (moduleName, module) {
     stats_type(moduleName, !module ? 'global' : typeof sb.modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
 });
 
-sb.on('lmd-require:from-cache', function (moduleName) {
+
+    /**
+     * @event lmd-require:before-check before module cache check
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
+sb.on('lmd-require:before-check', function (moduleName) {
     stats_require(moduleName);
 });
 
-sb.on('lmd-require:first-init', function (moduleName) {
-    stats_require(moduleName);
-    stats_initStart(moduleName);
-});
-
-
-
+    /**
+     * @event css:before-check before module cache check in css()
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('css:before-check', function (moduleName, module) {
     if (!(module || !sb.document) || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
-
+    /**
+     * @event js:before-check before module cache check in js()
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('js:before-check', function (moduleName, module) {
     if (!module || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
+    /**
+     * @event async:before-check before module cache check in async()
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('async:before-check', function (moduleName) {
     if (!module || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }
 });
 
+    /**
+     * @event *:before-init calls when module is goint to eval or call
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('*:before-init', function (moduleName) {
     stats_initStart(moduleName);
 });
 
+    /**
+     * @event *:request-error module load error
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('*:request-error', function (moduleName) {
     stats_initEnd(moduleName);
 });
 
-
+    /**
+     * @event shortcuts:before-resolve moduleName is shortcut and its goint to resolve with actual name
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
 sb.on('shortcuts:before-resolve', function (moduleName, module) {
     // assign shortcut name for module
     stats_shortcut(module, moduleName);
 });
 
-sb.on('*:stats-get', function (moduleName) {
+    /**
+     * @event *:stats-get somethins is request raw module stats
+     *
+     * @param {String} moduleName
+     * @param {Object} result    default stats
+     *
+     * @retuns yes
+     */
+sb.on('*:stats-get', function (moduleName, result) {
     return [moduleName, stats_get(moduleName)];
 });
 
+    /**
+     * @event *:stats-type something tells stats to overwrite module type
+     *
+     * @param {String} moduleName
+     * @param {String} packageType
+     *
+     * @retuns no
+     */
 sb.on('*:stats-type', function (moduleName, packageType) {
     stats_type(moduleName, packageType);
 });
 
-sb.on('*:stats-results', function (moduleName) {
+    /**
+     * @event *:stats-results somethins is request processed module stats
+     *
+     * @param {String} moduleName
+     * @param {Object} result     default stats
+     *
+     * @retuns yes
+     */
+sb.on('*:stats-results', function (moduleName, result) {
     return [moduleName, stats_results[moduleName]];
 });
 
