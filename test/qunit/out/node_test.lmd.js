@@ -134,6 +134,329 @@
     }
 
 /**
+ * Async loader of off-package LMD modules (special LMD format file)
+ *
+ * @see /README.md near "LMD Modules types" for details
+ *
+ * Flag "async"
+ *
+ * This plugin provides require.async() function
+ */
+/**
+ * @name sandbox
+ */
+(function (sb) {
+    /**
+     * Load off-package LMD module
+     *
+     * @param {String|Array} moduleName same origin path to LMD module
+     * @param {Function}     [callback]   callback(result) undefined on error others on success
+     */
+    sb.require.async = function (moduleName, callback) {
+        callback = callback || sb.noop;
+
+        if (typeof moduleName !== "string") {
+            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.async)[1];
+            if (!callback) {
+                return sb.require;
+            }
+        }
+
+        var module = sb.modules[moduleName],
+            XMLHttpRequestConstructor = sb.global.XMLHttpRequest || sb.global.ActiveXObject;
+
+        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
+        if (replacement) {
+            moduleName = replacement[0];
+            module = replacement[1];
+        }
+
+        sb.trigger('async:before-check', moduleName, module);
+        // If module exists or its a node.js env
+        if (module) {
+            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            return sb.require;
+        }
+
+        sb.trigger('*:before-init', moduleName, module);
+
+        callback = sb.trigger('*:request-race', moduleName, callback)[1];
+        // if already called
+        if (!callback) {
+            return sb.require;
+        }
+
+        if (!XMLHttpRequestConstructor) {
+            sb.trigger('async:require-environment-file', moduleName, module, callback);
+            return sb.require;
+        }
+//#JSCOVERAGE_IF 0
+        // Optimized tiny ajax get
+        // @see https://gist.github.com/1625623
+        var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4) {
+                // 3. Check for correct status 200 or 0 - OK?
+                if (xhr.status < 201) {
+                    var contentType = xhr.getResponseHeader('content-type');
+                    module = xhr.responseText;
+                    if ((/script$|json$/).test(contentType)) {
+                        module = sb.trigger('*:wrap-module', moduleName, module, contentType)[1];
+                        if (!(/json$/).test(contentType)) {
+                            module = sb.trigger('*:coverage-apply', moduleName, module)[1];
+                        }
+
+                        module = sb.eval(module);
+                    }
+
+                    sb.trigger('async:before-callback', moduleName, typeof module === "function" ? xhr.responseText : module);
+                    // 4. Then callback it
+                    callback(sb.register(moduleName, module));
+                } else {
+                    sb.trigger('*:request-error', moduleName, module);
+                    callback();
+                }
+            }
+        };
+        xhr.open('get', moduleName);
+        xhr.send();
+
+        return sb.require;
+//#JSCOVERAGE_ENDIF
+    };
+
+}(sandbox));
+
+/**
+ * This plugin dumps modules content to localStorage
+ *
+ * Flag "cache"
+ */
+/**
+ * @name sandbox
+ */
+(function (sb) {
+
+    // If possible to dump and version passed (fallback mode)
+    // then dump application source
+    if (sb.global.localStorage && version) {
+        (function () {
+            try {
+                sb.global.localStorage['lmd'] = sb.global.JSON.stringify({
+                    version: sb.version,
+                    modules: sb.modules,
+                    // main module function
+                    main: '(' + sb.main + ')',
+                    // lmd function === arguments.callee
+                    lmd: '(' + sb.lmd + ')',
+                    sandboxed: sb.sandboxed
+                });
+            } catch(e) {}
+        }());
+    }
+
+}(sandbox));
+
+/**
+ * Async loader of js files (NOT LMD modules): jQuery, d3.js etc
+ *
+ * Flag "js"
+ *
+ * This plugin provides require.js() function
+ */
+
+/**
+ * @name sandbox
+ */
+(function (sb) {
+    /**
+     * Loads any JavaScript file a non-LMD module
+     *
+     * @param {String|Array} moduleName path to file
+     * @param {Function}     [callback]   callback(result) undefined on error HTMLScriptElement on success
+     */
+    sb.require.js = function (moduleName, callback) {
+        callback = callback || sb.noop;
+
+        if (typeof moduleName !== "string") {
+            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.js)[1];
+            if (!callback) {
+                return sb.require;
+            }
+        }
+
+        var module = sb.modules[moduleName],
+            readyState = 'readyState',
+            isNotLoaded = 1,
+            head;
+
+        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
+        if (replacement) {
+            moduleName = replacement[0];
+            module = replacement[1];
+        }
+
+        sb.trigger('js:before-check', moduleName, module);
+        // If module exists
+        if (module) {
+            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            return sb.require;
+        }
+
+        sb.trigger('*:before-init', moduleName, module);
+
+        callback = sb.trigger('*:request-race', moduleName, callback)[1];
+        // if already called
+        if (!callback) {
+            return sb.require;
+        }
+        // by default return undefined
+        if (!sb.document) {
+            module = sb.trigger('js:request-environment-module', moduleName, module)[1];
+            callback(module);
+            return sb.require;
+        }
+
+//#JSCOVERAGE_IF 0
+        var script = sb.document.createElement("script");
+        sb.global.setTimeout(script.onreadystatechange = script.onload = function (e) {
+            e = e || sb.global.event;
+            if (isNotLoaded &&
+                (!e ||
+                !script[readyState] ||
+                script[readyState] == "loaded" ||
+                script[readyState] == "complete")) {
+
+                isNotLoaded = 0;
+                // register or cleanup
+                if (!e) {
+                    sb.trigger('*:request-error', moduleName, module);
+                }
+                callback(e ? sb.register(moduleName, script) : head.removeChild(script) && sb.undefined); // e === undefined if error
+            }
+        }, 3000, 0);
+
+        script.src = moduleName;
+        head = sb.document.getElementsByTagName("head")[0];
+        head.insertBefore(script, head.firstChild);
+
+        return sb.require;
+//#JSCOVERAGE_ENDIF
+    };
+
+}(sandbox));
+
+/**
+ * Async loader of css files
+ *
+ * Flag "css"
+ *
+ * This plugin provides require.css() function
+ */
+/**
+ * @name sandbox
+ */
+(function (sb) {
+
+    /**
+     * Loads any CSS file
+     *
+     * Inspired by yepnope.css.js
+     *
+     * @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
+     *
+     * @param {String|Array} moduleName path to css file
+     * @param {Function}     [callback]   callback(result) undefined on error HTMLLinkElement on success
+     */
+    sb.require.css = function (moduleName, callback) {
+        callback = callback || sb.noop;
+
+        if (typeof moduleName !== "string") {
+            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.css)[1];
+            if (!callback) {
+                return sb.require;
+            }
+        }
+
+        var module = sb.modules[moduleName],
+            isNotLoaded = 1,
+            head;
+
+        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
+        if (replacement) {
+            moduleName = replacement[0];
+            module = replacement[1];
+        }
+
+        sb.trigger('css:before-check', moduleName, module);
+        // If module exists or its a worker or node.js environment
+        if (module || !sb.document) {
+            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            return sb.require;
+        }
+
+        sb.trigger('*:before-init', moduleName, module);
+
+        callback = sb.trigger('*:request-race', moduleName, callback)[1];
+        // if already called
+        if (!callback) {
+            return sb.require;
+        }
+//#JSCOVERAGE_IF 0
+        // Create stylesheet link
+        var link = sb.document.createElement("link"),
+            id = +new sb.global.Date,
+            onload = function (e) {
+                if (isNotLoaded) {
+                    isNotLoaded = 0;
+                    // register or cleanup
+                    link.removeAttribute('id');
+
+                    if (!e) {
+                        sb.trigger('*:request-error', moduleName, module);
+                    }
+                    callback(e ? sb.register(moduleName, link) : head.removeChild(link) && sb.undefined); // e === undefined if error
+                }
+            };
+
+        // Add attributes
+        link.href = moduleName;
+        link.rel = "stylesheet";
+        link.id = id;
+
+        sb.global.setTimeout(onload, 3000, 0);
+
+        head = sb.document.getElementsByTagName("head")[0];
+        head.insertBefore(link, head.firstChild);
+
+        (function poll() {
+            if (isNotLoaded) {
+                try {
+                    var sheets = sb.document.styleSheets;
+                    for (var j = 0, k = sheets.length; j < k; j++) {
+                        if((sheets[j].ownerNode || sheets[j].owningElement).id == id &&
+                           (sheets[j].cssRules || sheets[j].rules).length) {
+//#JSCOVERAGE_IF 0
+                            return onload(1);
+//#JSCOVERAGE_ENDIF
+                        }
+                    }
+                    // if we get here, its not in document.styleSheets (we never saw the ID)
+                    throw 1;
+                } catch(e) {
+                    // Keep polling
+                    sb.global.setTimeout(poll, 90);
+                }
+            }
+        }());
+
+        return sb.require;
+//#JSCOVERAGE_ENDIF
+    };
+
+}(sandbox));
+
+/**
  * @name sandbox
  */
 (function (sb) {
@@ -159,6 +482,7 @@
         }
     });
 }(sandbox));
+
 /**
  * @name sandbox
  */
@@ -192,6 +516,7 @@
         });
     });
 }(sandbox));
+
 /**
  * @name sandbox
  */
@@ -291,6 +616,7 @@ sb.on('*:request-indexof', function (arrayIndexOf) {
 });
 
 }(sandbox));
+
 /**
  * This plugin prevents from duplicate resource loading
  *
@@ -346,6 +672,150 @@ sb.on('*:request-race', function (moduleName, callback) {
 });
 
 }(sandbox));
+
+/**
+ * This plugin dumps off-package modules content to localStorage
+ *
+ * Flag "cache_async"
+ *
+ * Provides cache_async function
+ */
+/**
+ * @name sandbox
+ */
+(function (sb) {
+
+function cache_async(moduleName, module) {
+    if (sb.global.localStorage && sb.version) {
+        try {
+            sb.global.localStorage['lmd:' + sb.version + ':' + moduleName] = sb.global.JSON.stringify(module);
+        } catch(e) {}
+    }
+}
+    /**
+     * @event async:before-callback when async.js require is going to return module, uses for cache async module
+     *
+     * @param {String} moduleName
+     * @param {String} module     module content
+     *
+     * @retuns no
+     */
+sb.on('async:before-callback', function (moduleName, module) {
+    cache_async(moduleName, module);
+});
+
+}(sandbox));
+
+/**
+ * Parallel resource loader
+ *
+ * Flag "parallel"
+ *
+ * This plugin provides private "parallel" function
+ */
+
+/**
+ * @name sandbox
+ */
+(function (sb) {
+
+function parallel(method, items, callback) {
+    var i = 0,
+        j = 0,
+        c = items.length,
+        results = [];
+
+    var readyFactory = function (index) {
+        return function (data) {
+            // keep the order
+            results[index] = data;
+            j++;
+            if (j >= c) {
+                callback.apply(sb.global, results);
+            }
+        }
+    };
+
+    for (; i < c; i++) {
+        method(items[i], readyFactory(i));
+    }
+}
+
+    /**
+     * @event *:request-parallel parallel module request for require.async(['a', 'b', 'c']) etc
+     *
+     * @param {Array}    moduleNames list of modules to init
+     * @param {Function} callback    this callback will be called when module inited
+     * @param {Function} method      method to call for init
+     *
+     * @retuns yes empty environment
+     */
+sb.on('*:request-parallel', function (moduleNames, callback, method) {
+    parallel(method, moduleNames, callback);
+    return [];
+});
+
+}(sandbox));
+
+/**
+ * This plugin enables shortcuts
+ *
+ * Flag "shortcuts"
+ *
+ * This plugin provides private "is_shortcut" function
+ */
+
+/**
+ * @name sandbox
+ */
+(function (sb) {
+
+function is_shortcut(moduleName, moduleContent) {
+    return !sb.initialized[moduleName] &&
+           typeof moduleContent === "string" &&
+           moduleContent.charAt(0) == '@';
+}
+
+function rewrite_shortcut(moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        sb.trigger('shortcuts:before-resolve', moduleName, module);
+
+        moduleName = module.replace('@', '');
+        module = sb.modules[moduleName];
+    }
+    return [moduleName, module];
+}
+
+    /**
+     * @event *:rewrite-shortcut request for shortcut rewrite
+     *
+     * @param {String} moduleName race for module name
+     * @param {String} module     this callback will be called when module inited
+     *
+     * @retuns yes returns modified moduleName and module itself
+     */
+sb.on('*:rewrite-shortcut', rewrite_shortcut);
+
+    /**
+     * @event *:rewrite-shortcut fires before stats plugin counts require same as *:rewrite-shortcut
+     *        but without triggering shortcuts:before-resolve event
+     *
+     * @param {String} moduleName race for module name
+     * @param {String} module     this callback will be called when module inited
+     *
+     * @retuns yes returns modified moduleName and module itself
+     */
+sb.on('stats:before-require-count', function (moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        moduleName = module.replace('@', '');
+        module = sb.modules[moduleName];
+
+        return [moduleName, module];
+    }
+});
+
+}(sandbox));
+
 /**
  * Package usage statistics
  *
@@ -773,7 +1243,7 @@ sb.on('*:stats-results', function (moduleName, result) {
 });
 
 }(sandbox));
-/*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
+
 /**
  * @name sandbox
  */
@@ -1033,6 +1503,7 @@ sb.on('stats:before-return-stats', function (moduleName, stats_results) {
 });
 
 }(sandbox));
+
 /**
  * Coverage for off-package LMD modules
  *
@@ -5027,208 +5498,95 @@ sb.on('*:coverage-apply', function (moduleName, module) {
 });
 
 }(sandbox));
-/**
- * This plugin enables shortcuts
- *
- * Flag "shortcuts"
- *
- * This plugin provides private "is_shortcut" function
- */
 
 /**
- * @name sandbox
- */
-(function (sb) {
-
-function is_shortcut(moduleName, moduleContent) {
-    return !sb.initialized[moduleName] &&
-           typeof moduleContent === "string" &&
-           moduleContent.charAt(0) == '@';
-}
-
-function rewrite_shortcut(moduleName, module) {
-    if (is_shortcut(moduleName, module)) {
-        sb.trigger('shortcuts:before-resolve', moduleName, module);
-
-        moduleName = module.replace('@', '');
-        module = sb.modules[moduleName];
-    }
-    return [moduleName, module];
-}
-
-    /**
-     * @event *:rewrite-shortcut request for shortcut rewrite
-     *
-     * @param {String} moduleName race for module name
-     * @param {String} module     this callback will be called when module inited
-     *
-     * @retuns yes returns modified moduleName and module itself
-     */
-sb.on('*:rewrite-shortcut', rewrite_shortcut);
-
-    /**
-     * @event *:rewrite-shortcut fires before stats plugin counts require same as *:rewrite-shortcut
-     *        but without triggering shortcuts:before-resolve event
-     *
-     * @param {String} moduleName race for module name
-     * @param {String} module     this callback will be called when module inited
-     *
-     * @retuns yes returns modified moduleName and module itself
-     */
-sb.on('stats:before-require-count', function (moduleName, module) {
-    if (is_shortcut(moduleName, module)) {
-        moduleName = module.replace('@', '');
-        module = sb.modules[moduleName];
-
-        return [moduleName, module];
-    }
-});
-
-}(sandbox));
-/**
- * Parallel resource loader
+ * Coverage for off-package LMD modules
  *
- * Flag "parallel"
+ * Flag "stats_sendto"
  *
- * This plugin provides private "parallel" function
- */
-
-/**
- * @name sandbox
- */
-(function (sb) {
-
-function parallel(method, items, callback) {
-    var i = 0,
-        j = 0,
-        c = items.length,
-        results = [];
-
-    var readyFactory = function (index) {
-        return function (data) {
-            // keep the order
-            results[index] = data;
-            j++;
-            if (j >= c) {
-                callback.apply(sb.global, results);
-            }
-        }
-    };
-
-    for (; i < c; i++) {
-        method(items[i], readyFactory(i));
-    }
-}
-
-    /**
-     * @event *:request-parallel parallel module request for require.async(['a', 'b', 'c']) etc
-     *
-     * @param {Array}    moduleNames list of modules to init
-     * @param {Function} callback    this callback will be called when module inited
-     * @param {Function} method      method to call for init
-     *
-     * @retuns yes empty environment
-     */
-sb.on('*:request-parallel', function (moduleNames, callback, method) {
-    parallel(method, moduleNames, callback);
-    return [];
-});
-
-}(sandbox));
-/*if ($P.CACHE_ASYNC) include('cache_async.js');*/
-/**
- * Async loader of off-package LMD modules (special LMD format file)
+ * This plugin provides sendTo private function and require.stats.sendTo() public function
  *
- * @see /README.md near "LMD Modules types" for details
- *
- * Flag "async"
- *
- * This plugin provides require.async() function
+ * This plugin depends on stats
  */
 /**
  * @name sandbox
  */
 (function (sb) {
+
+/**
+  * XDomain post
+  *
+  * @param {String} host
+  * @param {String} method
+  * @param {Object} data
+  * @param {String} [reportName]
+  *
+  */
+var sendTo = function () {
+    var runId = function () {
+            var userAgent = navigator.userAgent,
+                rchrome = /(chrome)[ \/]([\w.]+)/i,
+                rwebkit = /(webkit)[ \/]([\w.]+)/i,
+                ropera = /(opera)(?:.*version)?[ \/]([\w.]+)/i,
+                rmsie = /(msie) ([\w.]+)/i,
+                rmozilla = /(mozilla)(?:.*? rv:([\w.]+))?/i;
+
+            userAgent = (userAgent.match(rchrome) ||
+                userAgent.match(rwebkit) ||
+                userAgent.match(ropera) ||
+                userAgent.match(rmsie) ||
+                userAgent.match(rmozilla)
+            );
+
+            return (userAgent ? userAgent.slice(1).join('-') : 'undefined-0') + '-' +
+                   (new Date+'').split(' ').slice(1, 5).join('_') + '-' +
+                   Math.random();
+        }();
+
     /**
-     * Load off-package LMD module
-     *
-     * @param {String|Array} moduleName same origin path to LMD module
-     * @param {Function}     [callback]   callback(result) undefined on error others on success
+     * @return {HTMLIFrameElement}
      */
-    sb.require.async = function (moduleName, callback) {
-        callback = callback || sb.noop;
+    return function (host, method, data, reportName) {
+        var JSON = sb.trigger('*:request-json', sb.global.JSON)[0];
 
-        if (typeof moduleName !== "string") {
-            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.async)[1];
-            if (!callback) {
-                return sb.require;
-            }
-        }
+        // Add the iframe with a unique name
+        var iframe = sb.document.createElement("iframe"),
+            uniqueString = sb.global.Math.random();
 
-        var module = sb.modules[moduleName],
-            XMLHttpRequestConstructor = sb.global.XMLHttpRequest || sb.global.ActiveXObject;
+        sb.document.body.appendChild(iframe);
+        iframe.style.visibility = "hidden";
+        iframe.style.position = "absolute";
+        iframe.style.left = "-1000px";
+        iframe.style.top = "-1000px";
+        iframe.contentWindow.name = uniqueString;
 
-        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
-        if (replacement) {
-            moduleName = replacement[0];
-            module = replacement[1];
-        }
+        // construct a form with hidden inputs, targeting the iframe
+        var form = sb.document.createElement("form");
+        form.target = uniqueString;
+        form.action = host + "/" + method + '/' + (reportName || runId).replace(/\/|\\|\./g, '_');
+        form.method = "POST";
+        form.setAttribute('accept-charset', 'utf-8');
 
-        sb.trigger('async:before-check', moduleName, module);
-        // If module exists or its a node.js env
-        if (module) {
-            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
-            return sb.require;
-        }
+        // repeat for each parameter
+        var input = sb.document.createElement("input");
+        input.type = "hidden";
+        input.name = "json";
+        input.value = JSON.stringify(data);
+        form.appendChild(input);
 
-        sb.trigger('*:before-init', moduleName, module);
+        document.body.appendChild(form);
+        form.submit();
 
-        callback = sb.trigger('*:request-race', moduleName, callback)[1];
-        // if already called
-        if (!callback) {
-            return sb.require;
-        }
+        return iframe;
+    }
+}();
 
-        if (!XMLHttpRequestConstructor) {
-            sb.trigger('async:require-environment-file', moduleName, module, callback);
-            return sb.require;
-        }
-//#JSCOVERAGE_IF 0
-        // Optimized tiny ajax get
-        // @see https://gist.github.com/1625623
-        var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState == 4) {
-                // 3. Check for correct status 200 or 0 - OK?
-                if (xhr.status < 201) {
-                    var contentType = xhr.getResponseHeader('content-type');
-                    module = xhr.responseText;
-                    if ((/script$|json$/).test(contentType)) {
-                        module = sb.trigger('*:wrap-module', moduleName, module, contentType)[1];
-                        if (!(/json$/).test(contentType)) {
-                            module = sb.trigger('*:coverage-apply', moduleName, module)[1];
-                        }
-
-                        module = sb.eval(module);
-                    }
-
-                    sb.trigger('async:before-callback', moduleName, typeof module === "function" ? xhr.responseText : module);
-                    // 4. Then callback it
-                    callback(sb.register(moduleName, module));
-                } else {
-                    sb.trigger('*:request-error', moduleName, module);
-                    callback();
-                }
-            }
-        };
-        xhr.open('get', moduleName);
-        xhr.send();
-
-        return sb.require;
-//#JSCOVERAGE_ENDIF
-    };
+sb.require.stats.sendTo = function (host) {
+    return sendTo(host, "stats", sb.require.stats());
+};
 
 }(sandbox));
+
 /**
  * @name sandbox
  */
@@ -5341,204 +5699,9 @@ sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
 });
 
 }(sandbox));
-/**
- * Async loader of js files (NOT LMD modules): jQuery, d3.js etc
- *
- * Flag "js"
- *
- * This plugin provides require.js() function
- */
 
-/**
- * @name sandbox
- */
-(function (sb) {
-    /**
-     * Loads any JavaScript file a non-LMD module
-     *
-     * @param {String|Array} moduleName path to file
-     * @param {Function}     [callback]   callback(result) undefined on error HTMLScriptElement on success
-     */
-    sb.require.js = function (moduleName, callback) {
-        callback = callback || sb.noop;
 
-        if (typeof moduleName !== "string") {
-            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.js)[1];
-            if (!callback) {
-                return sb.require;
-            }
-        }
 
-        var module = sb.modules[moduleName],
-            readyState = 'readyState',
-            isNotLoaded = 1,
-            head;
-
-        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
-        if (replacement) {
-            moduleName = replacement[0];
-            module = replacement[1];
-        }
-
-        sb.trigger('js:before-check', moduleName, module);
-        // If module exists
-        if (module) {
-            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
-            return sb.require;
-        }
-
-        sb.trigger('*:before-init', moduleName, module);
-
-        callback = sb.trigger('*:request-race', moduleName, callback)[1];
-        // if already called
-        if (!callback) {
-            return sb.require;
-        }
-        // by default return undefined
-        if (!sb.document) {
-            module = sb.trigger('js:request-environment-module', moduleName, module)[1];
-            callback(module);
-            return sb.require;
-        }
-
-//#JSCOVERAGE_IF 0
-        var script = sb.document.createElement("script");
-        sb.global.setTimeout(script.onreadystatechange = script.onload = function (e) {
-            e = e || sb.global.event;
-            if (isNotLoaded &&
-                (!e ||
-                !script[readyState] ||
-                script[readyState] == "loaded" ||
-                script[readyState] == "complete")) {
-
-                isNotLoaded = 0;
-                // register or cleanup
-                if (!e) {
-                    sb.trigger('*:request-error', moduleName, module);
-                }
-                callback(e ? sb.register(moduleName, script) : head.removeChild(script) && sb.undefined); // e === undefined if error
-            }
-        }, 3000, 0);
-
-        script.src = moduleName;
-        head = sb.document.getElementsByTagName("head")[0];
-        head.insertBefore(script, head.firstChild);
-
-        return sb.require;
-//#JSCOVERAGE_ENDIF
-    };
-
-}(sandbox));
-/**
- * Async loader of css files
- *
- * Flag "css"
- *
- * This plugin provides require.css() function
- */
-/**
- * @name sandbox
- */
-(function (sb) {
-
-    /**
-     * Loads any CSS file
-     *
-     * Inspired by yepnope.css.js
-     *
-     * @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
-     *
-     * @param {String|Array} moduleName path to css file
-     * @param {Function}     [callback]   callback(result) undefined on error HTMLLinkElement on success
-     */
-    sb.require.css = function (moduleName, callback) {
-        callback = callback || sb.noop;
-
-        if (typeof moduleName !== "string") {
-            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.css)[1];
-            if (!callback) {
-                return sb.require;
-            }
-        }
-
-        var module = sb.modules[moduleName],
-            isNotLoaded = 1,
-            head;
-
-        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
-        if (replacement) {
-            moduleName = replacement[0];
-            module = replacement[1];
-        }
-
-        sb.trigger('css:before-check', moduleName, module);
-        // If module exists or its a worker or node.js environment
-        if (module || !sb.document) {
-            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
-            return sb.require;
-        }
-
-        sb.trigger('*:before-init', moduleName, module);
-
-        callback = sb.trigger('*:request-race', moduleName, callback)[1];
-        // if already called
-        if (!callback) {
-            return sb.require;
-        }
-//#JSCOVERAGE_IF 0
-        // Create stylesheet link
-        var link = sb.document.createElement("link"),
-            id = +new sb.global.Date,
-            onload = function (e) {
-                if (isNotLoaded) {
-                    isNotLoaded = 0;
-                    // register or cleanup
-                    link.removeAttribute('id');
-
-                    if (!e) {
-                        sb.trigger('*:request-error', moduleName, module);
-                    }
-                    callback(e ? sb.register(moduleName, link) : head.removeChild(link) && sb.undefined); // e === undefined if error
-                }
-            };
-
-        // Add attributes
-        link.href = moduleName;
-        link.rel = "stylesheet";
-        link.id = id;
-
-        sb.global.setTimeout(onload, 3000, 0);
-
-        head = sb.document.getElementsByTagName("head")[0];
-        head.insertBefore(link, head.firstChild);
-
-        (function poll() {
-            if (isNotLoaded) {
-                try {
-                    var sheets = sb.document.styleSheets;
-                    for (var j = 0, k = sheets.length; j < k; j++) {
-                        if((sheets[j].ownerNode || sheets[j].owningElement).id == id &&
-                           (sheets[j].cssRules || sheets[j].rules).length) {
-//#JSCOVERAGE_IF 0
-                            return onload(1);
-//#JSCOVERAGE_ENDIF
-                        }
-                    }
-                    // if we get here, its not in document.styleSheets (we never saw the ID)
-                    throw 1;
-                } catch(e) {
-                    // Keep polling
-                    sb.global.setTimeout(poll, 90);
-                }
-            }
-        }());
-
-        return sb.require;
-//#JSCOVERAGE_ENDIF
-    };
-
-}(sandbox));
-/*if ($P.CACHE) include('cache.js');*/
     main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
 })/*DO NOT ADD ; !*/(node_global_environment,(function (require) {
     // common for BOM Node and Worker Envs

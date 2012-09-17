@@ -10,7 +10,7 @@ var fs = require('fs'),
     /*tryExtend = common.tryExtend,
     collectModules = common.collectModules,*/
     assembleLmdConfig = common.assembleLmdConfig,
-    flagToOptionNameMap = JSON.parse(fs.readFileSync('../../src/lmd_flags.json'));
+    flagToOptionNameMap = JSON.parse(fs.readFileSync('../../src/lmd_plugins.json'));
 
 var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
 

@@ -133,21 +133,7 @@
         initialized_modules[moduleName] = 0;
     }
 
-/*if ($P.WORKER || $P.NODE) include('worker_or_node.js')*/
-/*if ($P.NODE) include('node.js')*/
-/*if ($P.IE) include('ie.js');*/
-/*if ($P.RACE) include('race.js');*/
-/*if ($P.STATS) include('stats.js');*/
-/*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
-/*if ($P.STATS_COVERAGE) include('stats_coverage.js');*/
-/*if ($P.STATS_COVERAGE_ASYNC) include('stats_coverage_async.js');*/
-/*if ($P.SHORTCUTS) include('shortcuts.js');*/
-/*if ($P.PARALLEL) include('parallel.js');*/
-/*if ($P.CACHE_ASYNC) include('cache_async.js');*/
-/*if ($P.ASYNC) include('async.js');*/
-/*if ($P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY) include('async_plain.js');*/
-/*if ($P.JS) include('js.js');*/
-/*if ($P.CSS) include('css.js');*/
-/*if ($P.CACHE) include('cache.js');*/
+/*{{LMD_PLUGINS_LOCATION}}*/
+
     main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
 })/*DO NOT ADD ; !*/

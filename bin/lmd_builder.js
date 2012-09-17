@@ -122,7 +122,7 @@ var LmdBuilder = function (data) {
 
     this.configDir = fs.realpathSync(this.configFile);
     this.configDir = this.configDir.split(CROSS_PLATFORM_PATH_SPLITTER);
-    this.flagToOptionNameMap = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_flags.json'));
+    this.flagToOptionNameMap = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_plugins.json', 'utf8'));
     this.configDir.pop();
     this.configDir = this.configDir.join('/');
     if (this.configure()) {
@@ -834,8 +834,33 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
     };
 
     // Add plugins
+    var pluginsRequireList = {},
+        pluginsCode = '';
+
+    // Collect plugins code
     for (flagName in this.flagToOptionNameMap) {
-        optionNames = this.flagToOptionNameMap[flagName];
+        var plugins = this.flagToOptionNameMap[flagName].require;
+
+        if (typeof plugins !== "undefined") {
+            if (typeof plugins === "string") {
+                plugins = [plugins];
+            }
+
+            plugins.forEach(function (pluginName) {
+                // require once
+                if (!pluginsRequireList[pluginName]) {
+                    pluginsCode += fs.readFileSync(LMD_JS_SRC_PATH + 'plugin/' + pluginName, 'utf8') + "\n\n";
+                    pluginsRequireList[pluginName] = true;
+                }
+            });
+        }
+    }
+    // Apply plugins code
+    lmd_js = lmd_js.replace("/*{{LMD_PLUGINS_LOCATION}}*/", pluginsCode);
+
+    // Add includes
+    for (flagName in this.flagToOptionNameMap) {
+        optionNames = this.flagToOptionNameMap[flagName].preprocess || [];
 
         optionNames.forEach(function (optionName) {
             /*if ($P.STATS) include('stats.js');*/
@@ -850,7 +875,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
 
                     match = lmd_js.match(includePattern);
                     if (match && match[1]) {
-                        patchContent = fs.readFileSync(LMD_JS_SRC_PATH + 'plugin/' + match[1]);
+                        patchContent = fs.readFileSync(LMD_JS_SRC_PATH + 'plugin/' + match[1], 'utf8');
                     } else {
                         break;
                     }
@@ -864,7 +889,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
 
     // Apply IF statements
     for (flagName in this.flagToOptionNameMap) {
-        optionNames = this.flagToOptionNameMap[flagName];
+        optionNames = this.flagToOptionNameMap[flagName].preprocess || [];
 
         // first are inline
         optionNames.forEach(function (optionName) {
@@ -880,7 +905,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
 
     // Wipe IF statements
     for (flagName in this.flagToOptionNameMap) {
-        optionNames = this.flagToOptionNameMap[flagName];
+        optionNames = this.flagToOptionNameMap[flagName].preprocess || [];
 
         // first are inline
         optionNames.forEach(function (optionName) {
