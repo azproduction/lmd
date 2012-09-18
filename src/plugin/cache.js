@@ -4,28 +4,26 @@
  * Flag "cache"
  */
 /**
- * @name global
- * @name lmd
- * @name sandboxed_modules
- * @name modules
- * @name main
- * @name version
+ * @name sandbox
  */
+(function (sb) {
 
     // If possible to dump and version passed (fallback mode)
     // then dump application source
-    if (global.localStorage && version/*if ($P.OPERA_MOBILE) {*/ && /_/.test(function(_){}) /*}*/) {
+    if (sb.global.localStorage && version/*if ($P.OPERA_MOBILE) {*/ && /_/.test(function(_){}) /*}*/) {
         (function () {
             try {
-                global.localStorage['lmd'] = global.JSON.stringify({
-                    version: version,
-                    modules: modules,
+                sb.global.localStorage['lmd'] = sb.global.JSON.stringify({
+                    version: sb.version,
+                    modules: sb.modules,
                     // main module function
-                    main: '(' + main + ')',
+                    main: '(' + sb.main + ')',
                     // lmd function === arguments.callee
-                    lmd: '(' + lmd + ')',
-                    sandboxed: sandboxed_modules
+                    lmd: '(' + sb.lmd + ')',
+                    sandboxed: sb.sandboxed
                 });
             } catch(e) {}
         }());
     }
+
+}(sandbox));

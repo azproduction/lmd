@@ -9,20 +9,9 @@
  */
 
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- * @name coverage_options
- * @name coverage_module
+ * @name sandbox
  */
+(function (sb) {
 
 var coverage_apply = (function () {
 var mock_exports = {},
@@ -60,8 +49,25 @@ return function (moduleName, file, content, isPlainModule) {
     var coverageResult = interpret(moduleName, file, content, isPlainModule ? 0 : 1),
         moduleOption = coverageResult.options;
 
-    coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
+    sb.trigger('*:stats-coverage', moduleName, moduleOption);
     return coverageResult.code;
 };
 
 } ());
+
+    /**
+     * @event *:coverage-apply applies code coverage for module
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns yes
+     */
+sb.on('*:coverage-apply', function (moduleName, module) {
+    var isPlainModule = sb.trigger('*:is-plain-module', moduleName, module, false)[2];
+    module = coverage_apply(moduleName, moduleName, module, isPlainModule);
+
+    return [moduleName, module];
+});
+
+}(sandbox));

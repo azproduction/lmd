@@ -1,4 +1,5 @@
 {
+    "root": "../modules/",
     "extends": "./index.common.lmd.json",
     "modules": {
         "*": "*.js",

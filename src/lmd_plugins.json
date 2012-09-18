@@ -1,0 +1,73 @@
+{
+    "async": {
+        "preprocess": ["$P.ASYNC", "$P.CSS || $P.JS || $P.ASYNC"],
+        "require": "async.js"
+    },
+    "cache": {
+        "preprocess": ["$P.CACHE"],
+        "require": "cache.js"
+    },
+    "js": {
+        "preprocess": ["$P.JS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
+        "require": "js.js"
+    },
+    "css": {
+        "preprocess": ["$P.CSS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
+        "require": "css.js"
+    },
+    "node": {
+        "preprocess": ["$P.WORKER || $P.NODE", "$P.NODE"],
+        "require": ["worker_or_node.js", "node.js"]
+    },
+    "worker": {
+        "preprocess": ["$P.WORKER || $P.NODE"],
+        "require": "worker_or_node.js"
+    },
+    "ie": {
+        "preprocess": ["$P.IE"],
+        "require": "ie.js"
+    },
+    "opera_mobile": {
+        "preprocess": ["$P.OPERA_MOBILE"]
+    },
+    "race": {
+        "preprocess": ["$P.RACE"],
+        "require": "race.js"
+    },
+    "cache_async": {
+        "preprocess": ["$P.CACHE_ASYNC"],
+        "require": "cache_async.js"
+    },
+    "parallel": {
+        "preprocess": ["$P.PARALLEL"],
+        "require": "parallel.js"
+    },
+    "shortcuts": {
+        "preprocess": ["$P.SHORTCUTS"],
+        "require": "shortcuts.js"
+    },
+    "stats": {
+        "preprocess": ["$P.STATS"],
+        "require": "stats.js"
+    },
+    "stats_coverage": {
+        "preprocess": ["$P.STATS_COVERAGE"],
+        "require": "stats_coverage.js"
+    },
+    "stats_coverage_async": {
+        "preprocess": ["$P.STATS_COVERAGE_ASYNC"],
+        "require": "stats_coverage_async.js"
+    },
+    "stats_sendto": {
+        "preprocess": ["$P.STATS_SENDTO", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
+        "require": "stats_sendto.js"
+    },
+    "async_plain": {
+        "preprocess": ["$P.ASYNC_PLAIN", "$P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY"],
+        "require": "async_plain.js"
+    },
+    "async_plainonly": {
+        "preprocess": ["$P.ASYNC_PLAINONLY", "$P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY"],
+        "require": "async_plain.js"
+    }
+}

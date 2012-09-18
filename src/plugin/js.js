@@ -7,103 +7,61 @@
  */
 
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
-
+(function (sb) {
     /**
      * Loads any JavaScript file a non-LMD module
      *
      * @param {String|Array} moduleName path to file
      * @param {Function}     [callback]   callback(result) undefined on error HTMLScriptElement on success
      */
-    require.js = function (moduleName, callback) {
-        callback = callback || global_noop;
+    sb.require.js = function (moduleName, callback) {
+        callback = callback || sb.noop;
 
-        if ($P.PARALLEL) {
-            // expect that its an array
-            if (typeof moduleName !== "string") {
-                parallel(require.js, moduleName, callback);
-                return require;
+        if (typeof moduleName !== "string") {
+            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.js)[1];
+            if (!callback) {
+                return sb.require;
             }
         }
-        var module = modules[moduleName],
+
+        var module = sb.modules[moduleName],
             readyState = 'readyState',
             isNotLoaded = 1,
             head;
 
-        if ($P.SHORTCUTS) {
-            // Its an shortcut
-            if (is_shortcut(moduleName, module)) {
-                if ($P.STATS) {
-                    // assign shortcut name for module
-                    stats_shortcut(module, moduleName);
-                }
-                // rewrite module name
-                moduleName = module.replace('@', '');
-                module = modules[moduleName];
-            }
+        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
+        if (replacement) {
+            moduleName = replacement[0];
+            module = replacement[1];
         }
 
-        if ($P.STATS) {
-            if (!module || initialized_modules[moduleName]) {
-                stats_require(moduleName);
-            }
-        }
+        sb.trigger('js:before-check', moduleName, module);
         // If module exists
         if (module) {
-            callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return require;
+            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            return sb.require;
         }
 
-        if ($P.STATS) {
-            stats_initStart(moduleName);
-        }
+        sb.trigger('*:before-init', moduleName, module);
 
-        if ($P.RACE) {
-            callback = create_race(moduleName, callback);
-            // if already called
-            if (race_callbacks[moduleName].length > 1) {
-                return require;
-            }
+        callback = sb.trigger('*:request-race', moduleName, callback)[1];
+        // if already called
+        if (!callback) {
+            return sb.require;
         }
         // by default return undefined
-        if (!global_document) {
-
-            if ($P.WORKER || $P.NODE) {
-                // if no global try to require
-                // node or worker
-                try {
-                    // call importScripts or require
-                    // any of them can throw error if file not found or transmission error
-                    module = register_module(moduleName, (global.importScripts || global.require)(moduleName) || {});
-                } catch (e) {
-                    // error -> default behaviour
-                    if ($P.STATS) {
-                        // stop init on error
-                        stats_initEnd(moduleName);
-                    }
-                }
-            }
+        if (!sb.document) {
+            module = sb.trigger('js:request-environment-module', moduleName, module)[1];
             callback(module);
-            return require;
+            return sb.require;
         }
 
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
-        var script = global_document.createElement("script");
-        global.setTimeout(script.onreadystatechange = script.onload = function (e) {
-            if ($P.IE) {
-                e = e || global.event;
-            }
+        var script = sb.document.createElement("script");
+        sb.global.setTimeout(script.onreadystatechange = script.onload = function (e) {
+            e = e || sb.global.event;
             if (isNotLoaded &&
                 (!e ||
                 !script[readyState] ||
@@ -112,18 +70,19 @@
 
                 isNotLoaded = 0;
                 // register or cleanup
-                if ($P.STATS) {
-                    // stop init on error
-                    !e && stats_initEnd(moduleName);
+                if (!e) {
+                    sb.trigger('*:request-error', moduleName, module);
                 }
-                callback(e ? register_module(moduleName, script) : head.removeChild(script) && local_undefined); // e === undefined if error
+                callback(e ? sb.register(moduleName, script) : head.removeChild(script) && sb.undefined); // e === undefined if error
             }
         }, 3000, 0);
 
         script.src = moduleName;
-        head = global_document.getElementsByTagName("head")[0];
+        head = sb.document.getElementsByTagName("head")[0];
         head.insertBefore(script, head.firstChild);
 
-        return require;
+        return sb.require;
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_ENDIF/*}*/
     };
+
+}(sandbox));

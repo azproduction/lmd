@@ -13,9 +13,7 @@
          * @returns {*}
          */
         register_module = function (moduleName, module) {
-            if ($P.STATS) {
-                stats_type(moduleName, !module ? 'global' : typeof modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
-            }
+            lmd_trigger('lmd-register:before-register', moduleName, module);
             // Predefine in case of recursive require
             var output = {exports: {}};
             initialized_modules[moduleName] = 1;
@@ -26,19 +24,52 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                module = module(
-                    sandboxed_modules[moduleName] ?
-                        /*if ($P.STATS_COVERAGE) {*/{coverage_line: require.coverage_line, coverage_function: require.coverage_function, coverage_condition: require.coverage_condition} ||/*}*/
-                        local_undefined : /*if ($P.STATS) {*/stats_wrap_require(require, moduleName) ||/*}*/require,
-                    output.exports,
-                    output
-                ) || output.exports;
-            }
-            if ($P.STATS) {
-                stats_initEnd(moduleName);
+                var module_require;
+
+                if (sandboxed_modules[moduleName]) {
+                    module_require = lmd_trigger('lmd-register:call-sandboxed-module', moduleName, require)[1];
+                } else {
+                    module_require = lmd_trigger('lmd-register:call-module', moduleName, require)[1];
+                }
+
+                module = module(module_require, output.exports, output) || output.exports;
             }
 
+            lmd_trigger('lmd-register:after-register', moduleName, module);
             return modules[moduleName] = module;
+        },
+        /**
+         * List of All lmd Events
+         *
+         * @important Do not rename it!
+         */
+        lmd_events = {},
+        /**
+         * LMD event trigger function
+         *
+         * @important Do not rename it!
+         */
+        lmd_trigger = function (event, data, data2, data3) {
+            var list = lmd_events[event],
+                result;
+
+            if (list) {
+                for (var i = 0, c = list.length; i < c; i++) {
+                    result = list[i](data, data2, data3) || result;
+                }
+            }
+            return result || [data, data2, data3];
+        },
+        /**
+         * LMD event register function
+         *
+         * @important Do not rename it!
+         */
+        lmd_on = function (event, callback) {
+            if (!lmd_events[event]) {
+                lmd_events[event] = [];
+            }
+            lmd_events[event].push(callback);
         },
         /**
          * @param {String} moduleName module name or path to file
@@ -48,34 +79,19 @@
         require = function (moduleName) {
             var module = modules[moduleName];
 
+            lmd_trigger('lmd-require:before-check', moduleName, module);
             // Already inited - return as is
             if (initialized_modules[moduleName] && module) {
-                if ($P.STATS) {
-                    stats_require(moduleName);
-                }
                 return module;
             }
-
-            if ($P.SHORTCUTS) {
-                // Do not init shortcut as module!
-                // return shortcut as is
-                if (is_shortcut(moduleName, module)) {
-                    if ($P.STATS) {
-                        // assign shortcut name for module
-                        stats_shortcut(module, moduleName);
-                    }
-                    moduleName = module.replace('@', '');
-                    module = modules[moduleName];
-                }
+            var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+            if (replacement) {
+                moduleName = replacement[0];
+                module = replacement[1];
             }
 
-            if ($P.STATS) {
-                stats_require(moduleName);
-            }
-            
-            if ($P.STATS) {
-                stats_initStart(moduleName);
-            }
+            lmd_trigger('*:before-init', moduleName, module);
+
             // Lazy LMD module not a string
             if (typeof module === "string" && module.indexOf('(function(') === 0) {
                 module = global_eval(module);
@@ -83,23 +99,41 @@
 
             return register_module(moduleName, module);
         },
-        output = {exports: {}};
+        output = {exports: {}},
+
+        /**
+         * Sandbox object for plugins
+         *
+         * @important Do not rename it!
+         */
+        sandbox = {
+            global: global,
+            modules: modules,
+            sandboxed: sandboxed_modules,
+
+            eval: global_eval,
+            register: register_module,
+            require: require,
+            initialized: initialized_modules,
+
+            /*if ($P.CSS || $P.JS || $P.ASYNC) {*/noop: global_noop,/*}*/
+            /*if ($P.CSS || $P.JS || $P.STATS_SENDTO) {*/document: global_document,/*}*/
+            /*if ($P.CACHE) {*/lmd: lmd,/*}*/
+            /*if ($P.CACHE) {*/main: main,/*}*/
+            /*if ($P.CACHE) {*/version: version,/*}*/
+            /*if ($P.STATS_COVERAGE) {*/coverage_options: coverage_options,/*}*/
+
+            on: lmd_on,
+            trigger: lmd_trigger,
+            undefined: local_undefined
+        };
 
     for (var moduleName in modules) {
         // reset module init flag in case of overwriting
         initialized_modules[moduleName] = 0;
     }
 
-/*if ($P.STATS_SENDTO) include('stats_sendto.js');*/
-/*if ($P.RACE) include('race.js');*/
-/*if ($P.STATS) include('stats.js');*/
-/*if ($P.STATS_COVERAGE_ASYNC) include('stats_coverage_async.js');*/
-/*if ($P.SHORTCUTS) include('shortcuts.js');*/
-/*if ($P.PARALLEL) include('parallel.js');*/
-/*if ($P.CACHE_ASYNC) include('cache_async.js');*/
-/*if ($P.ASYNC) include('async.js');*/
-/*if ($P.JS) include('js.js');*/
-/*if ($P.CSS) include('css.js');*/
-/*if ($P.CACHE) include('cache.js');*/
-    main(/*if ($P.STATS) {*/stats_wrap_require(require, "main") ||/*}*/require, output.exports, output);
-})
+/*{{LMD_PLUGINS_LOCATION}}*/
+
+    main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
+})/*DO NOT ADD ; !*/

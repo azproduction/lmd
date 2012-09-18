@@ -1,289 +1,277 @@
-(function (global, main, modules, sandboxed_modules) {
-    var initialized_modules = {},
-        global_eval = global.eval,
-        global_noop = function () {},
-        global_document = global.document,
-        local_undefined,
-        /**
-         * @param {String} moduleName module name or path to file
-         * @param {*}      module module content
-         *
-         * @returns {*}
-         */
-        register_module = function (moduleName, module) {
-            // Predefine in case of recursive require
-            var output = {exports: {}};
-            initialized_modules[moduleName] = 1;
-            modules[moduleName] = output.exports;
-
-            if (!module) {
-                // if undefined - try to pick up module from globals (like jQuery)
-                module = global[moduleName];
-            } else if (typeof module === "function") {
-                // Ex-Lazy LMD module or unpacked module ("pack": false)
-                module = module(sandboxed_modules[moduleName] ? local_undefined : require, output.exports, output) || output.exports;
+(function(global, main, modules, sandboxed_modules) {
+    var initialized_modules = {}, global_eval = function(code) {
+        return global.Function("return " + code)();
+    }, global_noop = function() {}, global_document = global.document, local_undefined, register_module = function(moduleName, module) {
+        null;
+        var output = {
+            exports: {}
+        };
+        initialized_modules[moduleName] = 1;
+        modules[moduleName] = output.exports;
+        if (!module) {
+            module = global[moduleName];
+        } else if (typeof module === "function") {
+            var module_require;
+            if (sandboxed_modules[moduleName]) {
+                module_require = [ moduleName, require ][1];
+            } else {
+                module_require = [ moduleName, require ][1];
             }
-
-            return modules[moduleName] = module;
-        },
-        /**
-         * @param {String} moduleName module name or path to file
-         *
-         * @returns {*}
-         */
-        require = function (moduleName) {
-            var module = modules[moduleName];
-
-            // Already inited - return as is
-            if (initialized_modules[moduleName] && module) {
-                return module;
-            }
-            
-            // Lazy LMD module not a string
-            if (typeof module === "string" && module.indexOf('(function(') === 0) {
-                module = '(function(){return' + module + '})()';
-                module = global_eval(module);
-            }
-
-            return register_module(moduleName, module);
-        },
-        
-        
-        
-        output = {exports: {}};
-
+            module = module(module_require, output.exports, output) || output.exports;
+        }
+        null;
+        return modules[moduleName] = module;
+    }, require = function(moduleName) {
+        var module = modules[moduleName];
+        if (initialized_modules[moduleName] && module) {
+            null;
+            return module;
+        }
+        var replacement = [ moduleName, module ];
+        if (replacement) {
+            moduleName = replacement[0];
+            module = replacement[1];
+        }
+        if (typeof module === "string" && module.indexOf("(function(") === 0) {
+            module = global_eval(module);
+        }
+        return register_module(moduleName, module);
+    }, output = {
+        exports: {}
+    };
     for (var moduleName in modules) {
-        // reset module init flag in case of overwriting
         initialized_modules[moduleName] = 0;
     }
-
-
-
-
-/**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name global_noop
- * @name register_module
- * @name create_race
- * @name race_callbacks
- * @name cache_async
- * @name parallel
- */
-
-    /**
-     * Load off-package LMD module
-     *
-     * @param {String|Array} moduleName same origin path to LMD module
-     * @param {Function}     [callback]   callback(result) undefined on error others on success
-     */
-    require.async = function (moduleName, callback) {
-        callback = callback || global_noop;
-
-        var module = modules[moduleName],
-            XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
-
-        
-
-        // If module exists or its a node.js env
-        if (module) {
-            callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return require;
-        }
-
-
-
-
-
-
-        // Optimized tiny ajax get
-        // @see https://gist.github.com/1625623
-        var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState == 4) {
-                // 3. Check for correct status 200 or 0 - OK?
-                if (xhr.status < 201) {
-                    module = xhr.responseText;
-                    if ((/script$|json$/).test(xhr.getResponseHeader('content-type'))) {
-                        module = '(function(){return' + module + '})()';
-                        module = global_eval('(' + module + ')');
-                    }
-                    
-                    // 4. Then callback it
-                    callback(register_module(moduleName, module));
-                } else {
-                    callback();
+    (function() {
+        function stringify(object) {
+            var properties = [];
+            for (var key in object) {
+                if (object.hasOwnProperty(key)) {
+                    properties.push(quote(key) + ":" + getValue(object[key]));
                 }
             }
-        };
-        xhr.open('get', moduleName);
-        xhr.send();
-
-        return require;
-
-    };
-/**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- */
-
-    /**
-     * Loads any JavaScript file a non-LMD module
-     *
-     * @param {String|Array} moduleName path to file
-     * @param {Function}     [callback]   callback(result) undefined on error HTMLScriptElement on success
-     */
-    require.js = function (moduleName, callback) {
-        callback = callback || global_noop;
-
-        var module = modules[moduleName],
-            readyState = 'readyState',
-            isNotLoaded = 1,
-            head;
-
-        
-
-        // If module exists
-        if (module) {
-            callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return require;
+            return "{" + properties.join(",") + "}";
         }
-
-
-
-        // by default return undefined
-        if (!global_document) {
-
-            callback(module);
-            return require;
-        }
-
-
-        var script = global_document.createElement("script");
-        global.setTimeout(script.onreadystatechange = script.onload = function (e) {
-            e = e || global.event;
-            if (isNotLoaded &&
-                (!e ||
-                !script[readyState] ||
-                script[readyState] == "loaded" ||
-                script[readyState] == "complete")) {
-
-                isNotLoaded = 0;
-                // register or cleanup
-                callback(e ? register_module(moduleName, script) : head.removeChild(script) && local_undefined); // e === undefined if error
+        function getValue(value) {
+            if (typeof value === "string") {
+                return quote(value);
+            } else if (typeof value === "boolean") {
+                return "" + value;
+            } else if (value.join) {
+                if (value.length == 0) {
+                    return "[]";
+                } else {
+                    var flat = [];
+                    for (var i = 0, len = value.length; i < len; i += 1) {
+                        flat.push(getValue(value[i]));
+                    }
+                    return "[" + flat.join(",") + "]";
+                }
+            } else if (typeof value === "number") {
+                return value;
+            } else {
+                return stringify(value);
             }
-        }, 3000, 0);
-
-        script.src = moduleName;
-        head = global_document.getElementsByTagName("head")[0];
-        head.insertBefore(script, head.firstChild);
-
-        return require;
-
-    };
-/**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- */
-
-    /**
-     * Loads any CSS file
-     *
-     * Inspired by yepnope.css.js
-     *
-     * @see https://github.com/SlexAxton/yepnope.js/blob/master/plugins/yepnope.css.js
-     *
-     * @param {String|Array} moduleName path to css file
-     * @param {Function}     [callback]   callback(result) undefined on error HTMLLinkElement on success
-     */
-    require.css = function (moduleName, callback) {
-        callback = callback || global_noop;
-
-        var module = modules[moduleName],
-            isNotLoaded = 1,
-            head;
-
-        
-
-        // If module exists or its a worker or node.js environment
-        if (module || !global_document) {
-            callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return require;
         }
-
-
-
-
-
-        // Create stylesheet link
-        var link = global_document.createElement("link"),
-            id = +new global.Date,
-            onload = function (e) {
-                if (isNotLoaded) {
-                    isNotLoaded = 0;
-                    // register or cleanup
-                    link.removeAttribute('id');
-                    callback(e ? register_module(moduleName, link) : head.removeChild(link) && local_undefined); // e === undefined if error
+        function pad(s) {
+            return "0000".substr(s.length) + s;
+        }
+        function replacer(c) {
+            switch (c) {
+              case "\b":
+                return "\\b";
+              case "\f":
+                return "\\f";
+              case "\n":
+                return "\\n";
+              case "\r":
+                return "\\r";
+              case "\t":
+                return "\\t";
+              case '"':
+                return '\\"';
+              case "\\":
+                return "\\\\";
+              default:
+                return "\\u" + pad(c.charCodeAt(0).toString(16));
+            }
+        }
+        function quote(s) {
+            return '"' + s.replace(/[\u0000-\u001f"\\\u007f-\uffff]/g, replacer) + '"';
+        }
+        function indexOf(item) {
+            for (var i = this.length; i-- > 0; ) {
+                if (this[i] === item) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+        null;
+        null;
+    })();
+    (function() {
+        require.async = function(moduleName, callback) {
+            callback = callback || global_noop;
+            if (typeof moduleName !== "string") {
+                callback = [ moduleName, callback, require.async ][1];
+                if (!callback) {
+                    return require;
+                }
+            }
+            var module = modules[moduleName], XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
+            var replacement = [ moduleName, module ];
+            if (replacement) {
+                moduleName = replacement[0];
+                module = replacement[1];
+            }
+            null;
+            if (module) {
+                callback(initialized_modules[moduleName] ? module : require(moduleName));
+                return require;
+            }
+            null;
+            callback = [ moduleName, callback ][1];
+            if (!callback) {
+                return require;
+            }
+            if (!XMLHttpRequestConstructor) {
+                null;
+                return require;
+            }
+            var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4) {
+                    if (xhr.status < 201) {
+                        var contentType = xhr.getResponseHeader("content-type");
+                        module = xhr.responseText;
+                        if (/script$|json$/.test(contentType)) {
+                            module = [ moduleName, module, contentType ][1];
+                            if (!/json$/.test(contentType)) {
+                                module = [ moduleName, module ][1];
+                            }
+                            module = global_eval(module);
+                        }
+                        null;
+                        callback(register_module(moduleName, module));
+                    } else {
+                        null;
+                        callback();
+                    }
                 }
             };
-
-        // Add attributes
-        link.href = moduleName;
-        link.rel = "stylesheet";
-        link.id = id;
-
-        global.setTimeout(onload, 3000, 0);
-
-        head = global_document.getElementsByTagName("head")[0];
-        head.insertBefore(link, head.firstChild);
-
-        (function poll() {
-            if (isNotLoaded) {
-                try {
-                    var sheets = global_document.styleSheets;
-                    for (var j = 0, k = sheets.length; j < k; j++) {
-                        if((sheets[j].ownerNode || sheets[j].owningElement).id == id &&
-                           (sheets[j].cssRules || sheets[j].rules).length) {
-//#JSCOVERAGE_IF 0
-                            return onload(1);
-//#JSCOVERAGE_ENDIF
-                        }
-                    }
-                    // if we get here, its not in document.styleSheets (we never saw the ID)
-                    throw 1;
-                } catch(e) {
-                    // Keep polling
-                    global.setTimeout(poll, 90);
+            xhr.open("get", moduleName);
+            xhr.send();
+            return require;
+        };
+    })();
+    (function() {
+        require.js = function(moduleName, callback) {
+            callback = callback || global_noop;
+            if (typeof moduleName !== "string") {
+                callback = [ moduleName, callback, require.js ][1];
+                if (!callback) {
+                    return require;
                 }
             }
-        }());
-
-        return require;
-
-    };
-
-    main(require, output.exports, output);
+            var module = modules[moduleName], readyState = "readyState", isNotLoaded = 1, head;
+            var replacement = [ moduleName, module ];
+            if (replacement) {
+                moduleName = replacement[0];
+                module = replacement[1];
+            }
+            null;
+            if (module) {
+                callback(initialized_modules[moduleName] ? module : require(moduleName));
+                return require;
+            }
+            null;
+            callback = [ moduleName, callback ][1];
+            if (!callback) {
+                return require;
+            }
+            if (!global_document) {
+                module = [ moduleName, module ][1];
+                callback(module);
+                return require;
+            }
+            var script = global_document.createElement("script");
+            global.setTimeout(script.onreadystatechange = script.onload = function(e) {
+                e = e || global.event;
+                if (isNotLoaded && (!e || !script[readyState] || script[readyState] == "loaded" || script[readyState] == "complete")) {
+                    isNotLoaded = 0;
+                    if (!e) {
+                        null;
+                    }
+                    callback(e ? register_module(moduleName, script) : head.removeChild(script) && local_undefined);
+                }
+            }, 3e3, 0);
+            script.src = moduleName;
+            head = global_document.getElementsByTagName("head")[0];
+            head.insertBefore(script, head.firstChild);
+            return require;
+        };
+    })();
+    (function() {
+        require.css = function(moduleName, callback) {
+            callback = callback || global_noop;
+            if (typeof moduleName !== "string") {
+                callback = [ moduleName, callback, require.css ][1];
+                if (!callback) {
+                    return require;
+                }
+            }
+            var module = modules[moduleName], isNotLoaded = 1, head;
+            var replacement = [ moduleName, module ];
+            if (replacement) {
+                moduleName = replacement[0];
+                module = replacement[1];
+            }
+            null;
+            if (module || !global_document) {
+                callback(initialized_modules[moduleName] ? module : require(moduleName));
+                return require;
+            }
+            null;
+            callback = [ moduleName, callback ][1];
+            if (!callback) {
+                return require;
+            }
+            var link = global_document.createElement("link"), id = +(new global.Date), onload = function(e) {
+                if (isNotLoaded) {
+                    isNotLoaded = 0;
+                    link.removeAttribute("id");
+                    if (!e) {
+                        null;
+                    }
+                    callback(e ? register_module(moduleName, link) : head.removeChild(link) && local_undefined);
+                }
+            };
+            link.href = moduleName;
+            link.rel = "stylesheet";
+            link.id = id;
+            global.setTimeout(onload, 3e3, 0);
+            head = global_document.getElementsByTagName("head")[0];
+            head.insertBefore(link, head.firstChild);
+            (function poll() {
+                if (isNotLoaded) {
+                    try {
+                        var sheets = global_document.styleSheets;
+                        for (var j = 0, k = sheets.length; j < k; j++) {
+                            if ((sheets[j].ownerNode || sheets[j].owningElement).id == id && (sheets[j].cssRules || sheets[j].rules).length) {
+                                return onload(1);
+                            }
+                        }
+                        throw 1;
+                    } catch (e) {
+                        global.setTimeout(poll, 90);
+                    }
+                }
+            })();
+            return require;
+        };
+    })();
+    main([ "main", require ][1], output.exports, output);
 })(this,function main(require) {
     // Common Worker or Browser
     var i18n = require('i18n'),
@@ -383,4 +371,4 @@ module.exports = function(message) {
 "config": {
     "worker": "./out/index.development.lmd.js"
 }
-},{"depB":true})
+},{})

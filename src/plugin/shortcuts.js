@@ -7,21 +7,52 @@
  */
 
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
+(function (sb) {
 
 function is_shortcut(moduleName, moduleContent) {
-    return !initialized_modules[moduleName] &&
+    return !sb.initialized[moduleName] &&
            typeof moduleContent === "string" &&
            moduleContent.charAt(0) == '@';
 }
+
+function rewrite_shortcut(moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        sb.trigger('shortcuts:before-resolve', moduleName, module);
+
+        moduleName = module.replace('@', '');
+        module = sb.modules[moduleName];
+    }
+    return [moduleName, module];
+}
+
+    /**
+     * @event *:rewrite-shortcut request for shortcut rewrite
+     *
+     * @param {String} moduleName race for module name
+     * @param {String} module     this callback will be called when module inited
+     *
+     * @retuns yes returns modified moduleName and module itself
+     */
+sb.on('*:rewrite-shortcut', rewrite_shortcut);
+
+    /**
+     * @event *:rewrite-shortcut fires before stats plugin counts require same as *:rewrite-shortcut
+     *        but without triggering shortcuts:before-resolve event
+     *
+     * @param {String} moduleName race for module name
+     * @param {String} module     this callback will be called when module inited
+     *
+     * @retuns yes returns modified moduleName and module itself
+     */
+sb.on('stats:before-require-count', function (moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        moduleName = module.replace('@', '');
+        module = sb.modules[moduleName];
+
+        return [moduleName, module];
+    }
+});
+
+}(sandbox));

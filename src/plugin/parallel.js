@@ -7,18 +7,9 @@
  */
 
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
+ * @name sandbox
  */
+(function (sb) {
 
 function parallel(method, items, callback) {
     var i = 0,
@@ -32,7 +23,7 @@ function parallel(method, items, callback) {
             results[index] = data;
             j++;
             if (j >= c) {
-                callback.apply(global, results);
+                callback.apply(sb.global, results);
             }
         }
     };
@@ -41,3 +32,19 @@ function parallel(method, items, callback) {
         method(items[i], readyFactory(i));
     }
 }
+
+    /**
+     * @event *:request-parallel parallel module request for require.async(['a', 'b', 'c']) etc
+     *
+     * @param {Array}    moduleNames list of modules to init
+     * @param {Function} callback    this callback will be called when module inited
+     * @param {Function} method      method to call for init
+     *
+     * @retuns yes empty environment
+     */
+sb.on('*:request-parallel', function (moduleNames, callback, method) {
+    parallel(method, moduleNames, callback);
+    return [];
+});
+
+}(sandbox));

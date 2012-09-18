@@ -4,9 +4,7 @@ node_js:
 before_script:
   - "git submodule update --init"
   - "npm install http-server -g"
-  - "cd test"
   - "make"
-  - "cd .."
   - "http-server test/qunit -a 127.0.0.1 -p 8080 &"
   - "sleep 5"
 script: phantomjs test/qunit/phantomjs-index.js "http://localhost:8080/index.html"

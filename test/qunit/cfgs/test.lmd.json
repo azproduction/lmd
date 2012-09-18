@@ -20,7 +20,7 @@
     "depends": "*.lmd.json",
 
     "lazy": false,
-    "pack": false,
+    "pack": true,
     "pack_options": {
         "strict_semicolons": false,
         "mangle_options": {

@@ -13,5 +13,7 @@
     "cache": false,
     "cache_async": false,
 
+    "pack": false,
+
     "worker": true
 }
