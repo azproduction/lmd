@@ -785,6 +785,404 @@ new style `lmd [-m mode] -c config [-o output] [-l]`
  - `-l` `-log` print work log - default false
  - `-no-w` `-no-warn` disable warnings
 
+## Plugins and extending LMD
+
+Starts from 1.8.0 LMD rewritten it plugin system from Patch-Based to Event-Based Context Share (extended version of pub/sub pattern).
+Now you have event listeners and triggers `lmd_on` and `lmd_trigger` private functions. The idea is simple: subscriber
+can return some value to context in which it was called.
+
+Example: you have a plugin which provides indexOf polyfill for IE.
+
+**Your plugin: indexof_for_ie.js**
+```javascript
+(function (sb) {
+
+    function indexOf(item) {
+        for (var i = this.length; i --> 0;) {
+            if (this[i] === item) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // Subscribe
+    sb.on('request-for-indexOf', function (defaultIndexOf) {
+        // Check for real indexof
+        if (typeof defaultIndexOf === "function") {
+            return [defaultIndexOf];
+        }
+
+        return [indexOf]; // Share context! Return our indexof.
+    });
+}(sandbox));
+```
+
+**Your other plugin that uses indexof_for_ie.js**
+```javascript
+(function (sb) {
+    // trigger event and send part of our context
+    var sharedOrDefaultIndexOf = sb.trigger('request-for-indexOf', Array.prototype.indexOf)[0];
+    if (!sharedOrDefaultIndexOf) {
+        throw new Error('No Array#indexOf');
+    }
+
+    var index = sharedOrDefaultIndexOf.call([1, 2, 3, 4], 5);
+}(sandbox));
+```
+
+If plugin `indexof_for_ie.js` is not included (no event listeners for `request-for-indexOf` event) `sb.trigger` will return
+arguments as-is eg `[Array.prototype.indexOf]` in our case. `sb.trigger` will also return arguments as-is if all subscribers
+returns undefined (or returns nothing).
+
+### Optimisations
+
+  1. LMD highly optimises plugins source code and indexes all publishers and subscribers. If no subscribers (in our case
+plugin `indexof_for_ie.js` is not included) LMD will replace useless `sb.trigger` function call with array-expression.
+
+**Your other plugin that uses indexof_for_ie.js (optimized version)**
+```javascript
+(function (sb) {
+    // trigger event and send part of our context
+    var sharedOrDefaultIndexOf = [Array.prototype.indexOf][0];      // <<<
+    if (!sharedOrDefaultIndexOf) {
+        throw new Error('No Array#indexOf');
+    }
+
+    var index = sharedOrDefaultIndexOf.call([1, 2, 3, 4], 5);
+}(sandbox));
+```
+
+  2. If no publishers (no `sb.trigger` calls) LMD will remove all subscribers associated with that event name.
+  3. If no publishers nor subscribers at all LMD will wipe all related functions and objects.
+  4. LMD will also replace event names with corresponding event index (event name is not passed to listener).
+  5. LMD brakes sandbox: replaces all `sb.*` with names without dot operator (that code will be better compressed).
+  eg `sb.on(..) -> lmd_on(...)` `sb.document -> global_document` etc @see /src/lmd.js for details
+
+### Basic plugin code
+
+```javascript
+(function (sb) {
+
+    // Subscribe
+    sb.on('async:require-environment-file', function (moduleName, a) {
+        // Trigger
+        var sharedContext = sb.trigger('your:stuff', a);
+
+        return [moduleName, a * 2]; // Context share
+    });
+}(sandbox));
+```
+
+Where `sandbox` is
+
+```javascript
+var sandbox = {
+    global: global,                     // window, this or ... - depend on config
+    modules: modules,                   // map of modules content
+    sandboxed: sandboxed_modules,       // map of sandboxed modules module_name: true|false
+
+    eval: global_eval,                  // window.eval
+    register: register_module,          // register module function
+    require: require,                   // require module function
+    initialized: initialized_modules,   // map of initializd modules module_name: 0|1
+
+    noop: global_noop,                  // function () {}           if $P.CSS || $P.JS || $P.ASYNC
+    document: global_document,          // window.document          if $P.CSS || $P.JS || $P.STATS_SENDTO
+    lmd: lmd,                           // lmd function itself      if $P.CACHE
+    main: main,                         // main module code         if $P.CACHE
+    version: version,                   // module version           if $P.CACHE
+    coverage_options: coverage_options, // ...                      if $P.STATS_COVERAGE
+
+    on: lmd_on,                         // lmd_on
+    trigger: lmd_trigger,               // lmd_trigger
+
+    undefined: local_undefined          // void 0
+};
+```
+
+### Declare and use plugin
+
+ 1. Add record to `/src/lmd_plugins.json` file:
+
+```javascript
+    "your_plugin_name": {                // !!!
+        "require": "your_plugin_code.js" // may be an array of files
+    }
+```
+
+ 2. Put your plugin code `your_plugin_code.js` into the plugins dir `/src/plugin`
+ 3. Add `"your_plugin_name": true` record to your .lmd.json config file
+
+```javascript
+{
+    "root": "../modules/",
+    "modules": {
+        "*": "*.js"
+    },
+
+    "your_plugin_name": true        // <<<
+}
+```
+
+### List of events
+
+#### *:before-init
+
+ calls when module is goint to eval or call
+
+  * `{String}` moduleName
+  * `{Object}` module
+
+_Listener returns context:_ no
+
+#### *:coverage-apply
+
+ applies code coverage for module
+
+  * `{String}` moduleName
+  * `{Object}` module
+
+_Listener returns context:_ yes
+
+#### *:is-plain-module
+
+ code type check request: plain or lmd-module
+
+  * `{String}` moduleName
+  * `{String}` module
+  * `{String}` isPlainCode default value
+
+_Listener returns context:_ yes
+
+#### *:request-error
+
+ module load error
+
+  * `{String}` moduleName
+  * `{Object}` module
+
+_Listener returns context:_ no
+
+#### *:request-indexof
+
+ requests indexOf polifill
+
+  * `{Function|undefined}` arrayIndexOf default indexOf value
+
+_Listener returns context:_ yes
+
+#### *:request-json
+
+ requests JSON polifill with only stringify function!
+
+  * `{Object|undefined}` JSON default JSON value
+
+_Listener returns context:_ yes
+
+#### *:request-parallel
+
+ parallel module request for require.async(['a', 'b', 'c']) etc
+
+  * `{Array}`    moduleNames list of modules to init
+  * `{Function}` callback    this callback will be called when module inited
+  * `{Function}` method      method to call for init
+
+_Listener returns context:_ yes empty environment
+
+#### *:request-race
+
+ race module request eg for cases when some async modules are required simultaneously
+
+  * `{String}`   moduleName race for module name
+  * `{Function}` callback   this callback will be called when module inited
+
+_Listener returns context:_ yes returns callback if race is empty or only 1 item in it
+
+#### *:rewrite-shortcut
+
+ fires before stats plugin counts require same as *:rewrite-shortcut but without triggering shortcuts:before-resolve event
+
+  * `{String}` moduleName race for module name
+  * `{String}` module     this callback will be called when module inited
+
+_Listener returns context:_ yes returns modified moduleName and module itself
+
+#### *:rewrite-shortcut
+
+ request for shortcut rewrite
+
+  * `{String}` moduleName race for module name
+  * `{String}` module     this callback will be called when module inited
+
+_Listener returns context:_ yes returns modified moduleName and module itself
+
+#### *:stats-coverage
+
+ adds module parameters for statistics
+
+  * `{String}` moduleName
+  * `{Object}` moduleOption preprocessed data for lines, conditions and functions
+
+_Listener returns context:_ no
+
+#### *:stats-get
+
+ somethins is request raw module stats
+
+  * `{String}` moduleName
+  * `{Object}` result    default stats
+
+_Listener returns context:_ yes
+
+#### *:stats-results
+
+ somethins is request processed module stats
+
+  * `{String}` moduleName
+  * `{Object}` result     default stats
+
+_Listener returns context:_ yes
+
+#### *:stats-type
+
+ something tells stats to overwrite module type
+
+  * `{String}` moduleName
+  * `{String}` packageType
+
+_Listener returns context:_ no
+
+#### *:wrap-module
+
+ Module wrap request
+
+  * `{String}` moduleName
+  * `{String}` module this module will be wrapped
+  * `{String}` contentTypeOrExtension file content type or extension to avoid wrapping json file
+
+_Listener returns context:_ yes
+
+#### async:before-callback
+
+ when async.js require is going to return module, uses for cache async module
+
+  * `{String}` moduleName
+  * `{String}` module     module content
+
+_Listener returns context:_ no
+
+#### async:before-check
+
+ before module cache check in async()
+
+  * `{String}` moduleName
+  * `{Object}` module
+
+_Listener returns context:_ no
+
+#### async:require-environment-file
+
+ requests file register using some environment functions non XHR
+
+  * `{String}`   moduleName
+  * `{String}`   module
+  * `{Function}` callback   this callback will be called when module inited
+
+_Listener returns context:_ no
+
+#### css:before-check
+
+ before module cache check in css()
+
+  * `{String}` moduleName
+  * `{Object}` module
+
+_Listener returns context:_ no
+
+#### js:before-check
+
+ before module cache check in js()
+
+  * `{String}` moduleName
+  * `{Object}` module
+
+_Listener returns context:_ no
+
+#### js:request-environment-module
+
+ js.js plugin requests for enviroment-based module init (importScripts or node require)
+
+  * `{String}`   moduleName
+  * `{String}`   module
+
+_Listener returns context:_ yes
+
+#### lmd-register:after-register
+
+ after module register event
+
+  * `{String}` moduleName
+  * `{Object}` module
+
+_Listener returns context:_ no
+
+#### lmd-register:before-register
+
+ before module register event
+
+  * `{String}` moduleName
+  * `{Object}` module
+
+_Listener returns context:_ no
+
+#### lmd-register:call-module
+
+ request for fake require
+
+  * `{String}` moduleName
+  * `{Object}` module
+
+_Listener returns context:_ yes wraps require
+
+#### lmd-register:call-sandboxed-module
+
+ register_module is goint to call sandboxed module and requests for require wrapper for sandboxed module
+
+  * `{String}`        moduleName
+  * `{Function|Null}` require default require
+
+_Listener returns context:_ yes creates fake require
+
+#### lmd-require:before-check
+
+ before module cache check
+
+  * `{String}` moduleName
+  * `{Object}` module
+
+_Listener returns context:_ no
+
+#### shortcuts:before-resolve
+
+ moduleName is shortcut and its goint to resolve with actual name
+
+  * `{String}` moduleName
+  * `{Object}` module
+
+_Listener returns context:_ no
+
+#### stats:before-return-stats
+
+ stats is going to return stats data this event can modify that data
+
+  * `{String|undefined}` moduleName
+  * `{Object}`           stats_results default stats
+
+_Listener returns context:_ yes depend on moduleName value returns empty array or replaces stats_results
+
+
+
 ## Running tests
 
 see [test](/azproduction/lmd/tree/master/test) for details
@@ -859,6 +1257,10 @@ see [test](/azproduction/lmd/tree/master/test) for details
   - Module depends
   - off-package Code coverage. Flag `stats_coverage_async`
   - Phantom JS and Travis CI integration
+
+**v1.8.x**
+
+  - Plugins interface are totally rewritten
 
 ## Licence
 
