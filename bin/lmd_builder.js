@@ -50,8 +50,9 @@ var JSHINT_GLOBALS = {
 };
 
 var fs = require('fs'),
-    parser = require("uglify-js").parser,
-    uglify = require("uglify-js").uglify,
+    uglifyCompress = require("uglify-js"),
+    parser = uglifyCompress.parser,
+    uglify = uglifyCompress.uglify,
     JsHint = require('jshint').JSHINT,
     lmdCoverage = require(__dirname + '/../lib/coverage_apply.js'),
     common = require(__dirname + '/../lib/lmd_common.js'),
@@ -241,16 +242,18 @@ LmdBuilder.prototype.parseData = function (data) {
 /**
  * Compress code using UglifyJS
  * 
- * @param {String} code
+ * @param {String}  code
+ * @param {Object}  pack_options
+ * @param {Boolean} pack_options.strict_semicolons
+ * @param {Object}  pack_options.mangle_options
+ * @param {Object}  pack_options.squeeze_options
+ * @param {Object}  pack_options.gen_options
  *
  * @returns {String} compressed code
  */
-LmdBuilder.prototype.compress = function (code) {
-    var ast = parser.parse(code);
-    ast = uglify.ast_mangle(ast);
-    ast = uglify.ast_squeeze(ast);
-
-    return uglify.gen_code(ast);
+LmdBuilder.prototype.compress = function (code, pack_options) {
+    pack_options = typeof pack_options === "object" ? pack_options : {};
+    return uglifyCompress(code, pack_options);
 };
 
 /**
@@ -362,15 +365,16 @@ LmdBuilder.prototype.escape = function (file) {
 /**
  * Module code renderer
  * 
- * @param {String[]} lmd_modules
- * @param {String}   lmd_main
- * @param {Boolean}  pack
- * @param {String[]} sandboxed_modules
- * @param {Object}   [coverage_options]
+ * @param {Array}   lmd_modules
+ * @param {String}  lmd_main
+ * @param {Boolean} pack
+ * @parma {Object}  pack_options
+ * @param {Array}   sandboxed_modules
+ * @param {Object}  [coverage_options]
  *
  * @returns {String}
  */
-LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, sandboxed_modules, coverage_options) {
+LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, pack_options, sandboxed_modules, coverage_options) {
     sandboxed_modules = JSON.stringify(sandboxed_modules || {});
     var lmd_js = fs.readFileSync(LMD_JS_SRC_PATH + 'lmd.js', 'utf8'),
         result;
@@ -391,7 +395,7 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, san
     });
 
     if (pack) {
-        result = this.compress(result);
+        result = this.compress(result, pack_options);
     }
 
     return result;
@@ -587,7 +591,7 @@ LmdBuilder.prototype.configure = function () {
  *
  * @param modulesStruct
  *
- * @returns {Object}
+ * @returns {Array}
  */
 LmdBuilder.prototype.getSandboxedModules = function (modulesStruct, config) {
     // TODO(azproduction) Backward capability
@@ -853,7 +857,7 @@ LmdBuilder.prototype.build = function (callback) {
                 }
 
                 if (isModule && (module.is_lazy || pack)) {
-                    moduleContent = this.compress(moduleContent);
+                    moduleContent = this.compress(moduleContent, config.pack_options);
                 }
             }
 
@@ -901,7 +905,7 @@ LmdBuilder.prototype.build = function (callback) {
         }
 
         sandbox = this.getSandboxedModules(modules, config);
-        lmdFile = this.render(config, lmdModules, lmdMain, pack, sandbox, config.stats_coverage ? coverageOptions : void 0);
+        lmdFile = this.render(config, lmdModules, lmdMain, pack, config.pack_options, sandbox, config.stats_coverage ? coverageOptions : void 0);
 
         if (this.outputFile) {
             fs.writeFileSync(this.outputFile, lmdFile,'utf8')

@@ -169,6 +169,8 @@ For templates
     // # Modules output format
     "lazy": false,          // if true - all modules will be evaled on demand [default=false]
     "pack": false,          // if true - module will be packed using uglifyjs [default=true]
+    "pack_options": {},     // object with UglifyJS pack options @see UglifyJS documents or
+                            // /test/qunit/cfgs/test.lmd.json for details [default={}]
 
     // # Off-package LMD module loader
     "async": true,          // if modules uses off-package module set this to true [default=false]
@@ -860,6 +862,7 @@ see [test](/azproduction/lmd/tree/master/test) for details
   - off-package Code coverage. Flag `stats_coverage_async`
   - Phantom JS and Travis CI integration
   - Improved Stats Server: require timeline, require graph
+  - Pack options UglifyJS `pack_options` issue #41 parameter
 
 ## Licence
 
