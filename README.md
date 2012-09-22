@@ -1426,6 +1426,7 @@ _Listener returns context:_ yes depend on moduleName value returns empty array o
 **v1.8.x**
 
   - Plugins interface are totally rewritten
+  - Test runner via `npm test` or `make test` [Running tests](#running-tests)
 
 ## Licence
 
