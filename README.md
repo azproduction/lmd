@@ -224,6 +224,44 @@ For templates
  - You can extend config file with another using `"extends": "path/to/file.lmd.json"` parameter
  - You can also specify module depends by adding `"depends"` options see [Modules depends](#modules-depends)
 
+
+## Build LMD package
+
+`lmd examples/basic/cfgs/index.development.lmd.json examples/basic/out/index.development.lmd.js` or `node ./lmd/bin/lmd.js ... `
+
+Or print to `STDOUT`
+
+`lmd example/cfgs/index.development.lmd.json`
+
+See [LMD CLI](#lmd-cli)
+
+LMD will assemble your modules and LMD source itself into one file. This file is monolith, but it more than debugable!
+
+**index.development.lmd.js**
+
+```javascript
+(function (window) {
+    /* ... LMD content ... */
+}(window))({
+"depA": function depA(require){
+    return function(message) {
+        console.log(message);
+    }
+}
+})(function main(require) {
+    var depA = require('depA');
+    depA('ololo');
+})
+```
+
+**index.production.lmd.js**
+
+```javascript
+(function(a){/* ... LMD content ... */})(window)
+({depA:"(function(a){return function(a){console.log(a)}})"})
+(function(b){var c=b("depA");c("ololo")})
+```
+
 ## List of plugins
 
 
@@ -390,43 +428,6 @@ For templates
     </tr>
 </table>
 
-
-## Build LMD package
-
-`lmd examples/basic/cfgs/index.development.lmd.json examples/basic/out/index.development.lmd.js` or `node ./lmd/bin/lmd.js ... `
-
-Or print to `STDOUT`
-
-`lmd example/cfgs/index.development.lmd.json`
-
-See [LMD CLI](#lmd-cli)
-
-LMD will assemble your modules and LMD source itself into one file. This file is monolith, but it more than debugable!
-
-**index.development.lmd.js**
-
-```javascript
-(function (window) {
-    /* ... LMD content ... */
-}(window))({
-"depA": function depA(require){
-    return function(message) {
-        console.log(message);
-    }
-}
-})(function main(require) {
-    var depA = require('depA');
-    depA('ololo');
-})
-```
-
-**index.production.lmd.js**
-
-```javascript
-(function(a){/* ... LMD content ... */})(window)
-({depA:"(function(a){return function(a){console.log(a)}})"})
-(function(b){var c=b("depA");c("ololo")})
-```
 
 ## Plugins usage
 
