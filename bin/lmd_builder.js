@@ -1100,7 +1100,7 @@ LmdBuilder.prototype.build = function (callback) {
 
     var lazy = config.lazy || false,
         mainModuleName = config.main,
-        pack = lazy ? true : typeof config.pack === "undefined" ? true : config.pack,
+        pack = lazy ? true : (config.pack || false),
         moduleContent,
         lmdModules = [],
         sandbox,
