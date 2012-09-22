@@ -1,14 +1,53 @@
 # LMD: Lazy Module Declaration [![Build Status](https://secure.travis-ci.org/azproduction/lmd.png?branch=master)](http://travis-ci.org/azproduction/lmd)
 
 Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without
-touching any part of DOM. LMD is inspired by AMD and provides similar module interface. It evals module only when
-they are required. LMD is "Yet Another Loader" with all loader features: js, css, parallel... Why LMD?
-- it can initialize modules when they are required,
-- it tiny and flexible (minimal only 288bytes!),
-- you can write your [modules as Node.js](#lmd-modules) without define or require wrappers
-- but you can use all [other modules](#lmd-module-form-third-party-modules)), and more...
+touching any part of DOM. It evals module only when they are required.
+LMD is inspired by AMD and provides similar module interface
 
-## Features
+## Why LMD? Why not AMD (RequireJS)?
+
+ - Module design is similar to Node.js
+   - There is no define wrapper!
+   - You can use node modules without dirty hacks like `typeof exports ? :`
+   - But you can use old-school function-wrapped-modules. Like IEFE? - Good!
+   - You can use strings as string without any "template" plugins
+   - You can use JSON file as Object
+ - Total and honest isolation
+   - LMD package is fully-zero-isolated from globals (globals cant access LMD-pacakge, but LMD can)
+   - Modules are isolated from LMD and from each module
+   - Modules can be sandboxed (3-party modules, can exports only)
+   - Plugins are isolated from LMD and from each module
+ - Lazy interpretation and load
+   - LMD can load off-package modules (all loaders can do it =)
+   - It can interpret(eval) modules when they are required
+ - List of depends are located in separate .json file
+   - Well... list of 2 deps in file are ok, but 5+ are headache
+   - Module is isolated from file system
+   - You have to edit only 1 file if module path changes
+   - Possible to use dynamic require()
+ - Config inheritance
+   - Easy to setup development, testing and production builds
+ - Build watcher
+   - Watcher detects changes in your files and performs rebuild
+ - Flexible source
+   - Minimal only 288bytes
+   - High optimized own code
+   - LMD builder performs build-time optimisations
+ - Integrated code-coverage and source analytics tool
+   - Its easy to enable believe me!
+   - No extra servers or movements are required for off-package modules Code-Coverage
+ - Transparent localStorage cache
+   - Change config and html a bit and voila!
+ - require() is not overloaded
+   - Overloaded require is the way to mess in source
+   - require.css() for css
+   - require.js() for js (non LMD-modules)
+   - require.async() for async LMD-modules (objects, strings, modules)
+ - More
+   - Can load CSS
+   - Can work with Node.js and Worker environment
+
+## Other features
 
 1. Modules are similar to AMD: there is a require, but no define
 2. LMD does not create globals
