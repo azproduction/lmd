@@ -224,7 +224,7 @@ For templates
  - You can extend config file with another using `"extends": "path/to/file.lmd.json"` parameter
  - You can also specify module depends by adding `"depends"` options see [Modules depends](#modules-depends)
 
-## Plugins
+## List of plugins
 
 
 ### Off-package LMD module loader
@@ -428,7 +428,7 @@ LMD will assemble your modules and LMD source itself into one file. This file is
 (function(b){var c=b("depA");c("ololo")})
 ```
 
-## Features/Plugins
+## Plugins usage
 
 ### Asynchronous module require
 
