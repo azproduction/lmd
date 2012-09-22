@@ -21,9 +21,11 @@
         "uglify-js": ">= 1.2.0",
         "jshint": ">= 0.7.1",
         "jade": ">= 0.26.1",
-        "express": ">= 2.5.9"
+        "express": ">= 2.5.9",
+        "colors": ">= 0.6.0"
     },
     "devDependencies": {
-        "http-server": ">= 0.5.1"
+        "http-server": ">= 0.5.1",
+        "colors": ">= 0.6.0"
     }
 }

@@ -51,6 +51,7 @@ var JSHINT_GLOBALS = {
 
 var fs = require('fs'),
     uglifyCompress = require("uglify-js"),
+    colors = require('colors'),
     parser = uglifyCompress.parser,
     uglify = uglifyCompress.uglify,
     JsHint = require('jshint').JSHINT,
@@ -974,15 +975,15 @@ LmdBuilder.prototype.fsWatch = function () {
             if (self.isLog) {
                 filename = filename.split(CROSS_PLATFORM_PATH_SPLITTER).pop();
                 if (stat && filename) {
-                    process.stdout.write('\033[40mlmd\033[0m\tChange detected in \033[34m' + filename + '\033[0m at ' + stat.mtime);
+                    process.stdout.write('lmd'.inverse + ' Change detected in ' + filename.toString().green + ' at ' + stat.mtime.toString().blue);
                 } else if (stat) {
-                    process.stdout.write('\033[40mlmd\033[0m\tChange detected at ' + stat.mtime);
+                    process.stdout.write('lmd'.inverse + ' Change detected at ' + stat.mtime.toString().blue);
                 } else {
-                    process.stdout.write('\033[40mlmd\033[0m\tChange detected');
+                    process.stdout.write('lmd'.inverse + ' Change detected');
                 }
-                process.stdout.write(' \033[32mRebuilding...\033[0m');
+                process.stdout.write(' ' + 'Rebuilding...'.green);
                 self.build(function () {
-                    process.stdout.write(' \033[32m\033[1mDone!\033[0m\033[0m\n');
+                    process.stdout.write(' ' + 'Done!'.green + '\n');
                 });
             } else {
                 self.build();
@@ -1007,6 +1008,7 @@ LmdBuilder.prototype.fsWatch = function () {
         modules = config.modules;
         for (var index in modules) {
             module = modules[index];
+            if (module.path.charAt(0) === '@') continue;
             try {
                 // a mess....
                 fs.watchFile(module.path, { interval: 1000 }, function (curr, prev) {
@@ -1019,7 +1021,7 @@ LmdBuilder.prototype.fsWatch = function () {
         }
 
         if (this.isLog) {
-            console.log('\033[40mlmd\033[0m\tNow watching \033[37m%d\033[0m module files. Ctrl+C to stop', watchedModulesCount);
+            console.log('lmd'.inverse + ' Now watching ' + '%d'.green + ' module files. Ctrl+C to stop', watchedModulesCount);
         }
     }
 };
@@ -1031,9 +1033,8 @@ LmdBuilder.prototype.fsWatch = function () {
  * @return {*}
  */
 LmdBuilder.prototype.formatLog = function (text) {
-    return text.replace(/\*\*/g, function bold() {
-        bold.odd_even = !bold.odd_even;
-        return bold.odd_even ? '\033[32m' : '\033[0m';
+    return text.replace(/\*\*([^\*]*)\*\*/g, function (str) {
+        return str.replace(/^\*\*|\*\*$/g, '').green;
     });
 };
 
@@ -1047,7 +1048,7 @@ LmdBuilder.prototype.formatLog = function (text) {
  */
 LmdBuilder.prototype.error = function (text) {
     text = this.formatLog(text);
-    console.error('\033[40mlmd\033[0m \033[31m\033[40mERROR:\033[0m ' + text);
+    console.error('lmd'.inverse + ' ' + 'ERROR'.inverse.red + ' ' + text);
 };
 
 /**
@@ -1061,7 +1062,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text) {
     if (this.isWarn) {
         text = this.formatLog(text);
-        console.log('\033[40mlmd\033[0m \033[31mWarning:\033[0m ' + text);
+        console.error('lmd'.inverse + ' ' + 'Warning'.red + ' ' + text);
     }
 };
 
