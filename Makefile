@@ -2,12 +2,15 @@ LMD_BUILD = ./bin/lmd.js
 
 all: test
 
-test:
+test: build_test
+	node ./test/qunit/run-test.js
+
+build_test:
 	node $(LMD_BUILD) -m main -c ./test/qunit/cfgs/test.lmd.json -o ./test/qunit/out/test.lmd.js -l
 	node $(LMD_BUILD) -m main -c ./test/qunit/cfgs/node_test.lmd.json -o ./test/qunit/out/node_test.lmd.js -l
 	node $(LMD_BUILD) -m main -c ./test/qunit/cfgs/worker_test.lmd.json -o ./test/qunit/out/worker_test.lmd.js -l
 
-coverage: test
+coverage: build_test
 	rm -rf coverage/*
 	jscoverage --exclude=modules --exclude=vendors --exclude=mock ./test/qunit ./test/coverage
 	cp -R ./test/qunit/modules ./test/coverage/modules

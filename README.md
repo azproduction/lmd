@@ -1348,7 +1348,7 @@ _Listener returns context:_ yes depend on moduleName value returns empty array o
 
 ## Running tests
 
-see [test](/azproduction/lmd/tree/master/test) for details
+`phantomjs` is required to run test via `npm test` see [test](/azproduction/lmd/tree/master/test) for details
 
 ## Major versions changelog
 
