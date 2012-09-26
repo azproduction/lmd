@@ -50,6 +50,7 @@ var JSHINT_GLOBALS = {
 };
 
 var fs = require('fs'),
+    Stream = require('stream'),
     uglifyCompress = require("uglify-js"),
     colors = require('colors'),
     parser = uglifyCompress.parser,
@@ -63,14 +64,18 @@ var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
 
 /**
  * LmdBuilder
+ *
+ * LmdBuilder is readable stream
  * 
  * @constructor
+ *
+ * @inherits Stream
  *
  * @param {Object|String} data               lmd options or argv string
  *
  * If data is {Object}:
  * @param {Object}        data.config               path to config file
- * @param {Object}        [data.mode='main']        watch or main
+ * @param {Object}        [data.mode='stream']      stream, watch or main
  * @param {Object}        [data.output]             result file or STDOUT
  * @param {Object}        [data.version='lmd_tiny'] lmd version
  * @param {Boolean}       [data.log=false]          log?
@@ -86,7 +91,7 @@ var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
  *
  *      -c -config
  *      -m -mode       default main
- *      -o -output     default print to stdout
+ *      -o -output     default print to own stream
  *      -l -log        default false
  *      -no-w -no-warn disable warnings
  *
@@ -107,7 +112,8 @@ var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
  *      new LmdBuilder("node lmd_builder.js -m main -c path/to/config.lmd.json -r result.js -v lmd_tiny -l");
  */
 var LmdBuilder = function (data) {
-    var args = this.parseData(data);
+    var args = this.parseData(data),
+        self = this;
 
     // apply config
     this.mode = args.mode || 'main';
@@ -117,7 +123,19 @@ var LmdBuilder = function (data) {
     this.isWarn = this.isLog && !args['no-warn'];
 
     if (LmdBuilder.availableModes.indexOf(this.mode) === -1) {
-        throw new Error('No such LMD run mode - ' + this.mode);
+        throw new Error(('No such LMD run mode - ' + this.mode).red);
+    }
+
+    if (!this.configFile) {
+        throw new Error('Config file is required: -config path/to/lmd.json'.red);
+    }
+
+    if (!this.outputFile) {
+        if (this.mode === "watch") {
+            throw new Error('Watch mode requires output file name: -output path/to/output/lmd.js'.red);
+        }
+        this.isLog = false;
+        this.isWarn = false;
     }
 
     this.configDir = fs.realpathSync(this.configFile);
@@ -125,10 +143,23 @@ var LmdBuilder = function (data) {
     this.flagToOptionNameMap = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_plugins.json', 'utf8'));
     this.configDir.pop();
     this.configDir = this.configDir.join('/');
-    if (this.configure()) {
-        this.runMode(this.mode);
-    }
+
+    // LmdBuilder is readable stream
+    this.readable = true;
+    process.on('exit', function () {
+        self.emit('end');
+        self.readable = false;
+    });
+
+    // Let return instance before build
+    process.nextTick(function () {
+        if (self.configure()) {
+            self.runMode(self.mode);
+        }
+    });
 };
+
+LmdBuilder.prototype = new Stream();
 
 /**
  * LMD template
@@ -162,7 +193,14 @@ LmdBuilder.prototype.runMode = function (mode) {
             break;
 
         case 'main':
-            this.build();
+            var buildResult = this.build();
+            if (this.outputFile) {
+                fs.writeFileSync(this.outputFile, buildResult, 'utf8');
+            } else {
+                this.emit('data', buildResult);
+            }
+            this.emit('end');
+            this.readable = false;
             break;
     }
 };
@@ -940,7 +978,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
  */
 LmdBuilder.prototype.configure = function () {
     if (!this.configFile) {
-        console.log('lmd usage:\n\t    lmd config.lmd.json [output.lmd.js]');
+        this.emit('data', 'lmd usage:\n\t    lmd config.lmd.json [output.lmd.js]\n');
         return false;
     }
     return true;
@@ -983,18 +1021,26 @@ LmdBuilder.prototype.fsWatch = function () {
             if (self.isLog) {
                 filename = filename.split(CROSS_PLATFORM_PATH_SPLITTER).pop();
                 if (stat && filename) {
-                    process.stdout.write('lmd'.inverse + ' Change detected in ' + filename.toString().green + ' at ' + stat.mtime.toString().blue);
+                    self.emit('data', 'lmd'.inverse + ' Change detected in ' + filename.toString().green + ' at ' + stat.mtime.toString().blue);
                 } else if (stat) {
-                    process.stdout.write('lmd'.inverse + ' Change detected at ' + stat.mtime.toString().blue);
+                    self.emit('data', 'lmd'.inverse + ' Change detected at ' + stat.mtime.toString().blue);
                 } else {
-                    process.stdout.write('lmd'.inverse + ' Change detected');
+                    self.emit('data', 'lmd'.inverse + ' Change detected');
                 }
-                process.stdout.write(' ' + 'Rebuilding...'.green);
-                self.build(function () {
-                    process.stdout.write(' ' + 'Done!'.green + '\n');
-                });
-            } else {
-                self.build();
+                self.emit('data', ' ' + 'Rebuilding...'.green);
+                if (self.isWarn) {
+                    self.emit('data', '\n');
+                }
+            }
+
+            fs.writeFileSync(self.outputFile, self.build(), 'utf8');
+
+            if (self.isLog) {
+                if (!self.isWarn) {
+                    self.emit('data', ' ' + 'Done!'.green + '\n');
+                } else {
+                    self.emit('data', 'lmd'.inverse + ' Rebuilding done!'.green + '\n');
+                }
             }
         },
         watch = function (event, filename) {
@@ -1029,7 +1075,7 @@ LmdBuilder.prototype.fsWatch = function () {
         }
 
         if (this.isLog) {
-            console.log('lmd'.inverse + ' Now watching ' + '%d'.green + ' module files. Ctrl+C to stop', watchedModulesCount);
+            this.emit('data', 'lmd'.inverse + ' Now watching ' + watchedModulesCount.toString().green + ' module files. Ctrl+C to stop\n');
         }
     }
 };
@@ -1056,7 +1102,7 @@ LmdBuilder.prototype.formatLog = function (text) {
  */
 LmdBuilder.prototype.error = function (text) {
     text = this.formatLog(text);
-    console.error('lmd'.inverse + ' ' + 'ERROR'.inverse.red + ' ' + text);
+    this.emit('data', 'lmd'.inverse + ' ' + 'ERROR'.inverse.red + ' ' + text + '\n');
 };
 
 /**
@@ -1070,7 +1116,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text) {
     if (this.isWarn) {
         text = this.formatLog(text);
-        console.error('lmd'.inverse + ' ' + 'Warning'.red + ' ' + text);
+        this.emit('data', 'lmd'.inverse + ' ' + 'Warning'.red + ' ' + text + '\n');
     }
 };
 
@@ -1098,9 +1144,9 @@ LmdBuilder.prototype.checkForDirectGlobalsAccess = function (moduleName, moduleC
 /**
  * Main builder
  *
- * @param [callback] {Function}
+ * @returns {String}
  */
-LmdBuilder.prototype.build = function (callback) {
+LmdBuilder.prototype.build = function () {
     var config = assembleLmdConfig(this.configFile, Object.keys(this.flagToOptionNameMap));
 
     for (var i = 0, c = config.errors.length; i < c; i++) {
@@ -1272,16 +1318,7 @@ LmdBuilder.prototype.build = function (callback) {
         sandbox = this.getSandboxedModules(modules, config);
         lmdFile = this.render(config, lmdModules, lmdMain, pack, config.pack_options, sandbox, config.stats_coverage ? coverageOptions : void 0);
 
-        if (this.outputFile) {
-            fs.writeFileSync(this.outputFile, lmdFile,'utf8')
-        } else {
-            process.stdout.write(lmdFile);
-        }
-    }
-
-    // callback must be called anyway
-    if (typeof callback === 'function') {
-        callback();
+        return lmdFile;
     }
 };
 
