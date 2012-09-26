@@ -575,9 +575,19 @@ LmdBuilder.prototype.optimizeLmdSource = function (lmd_js_code) {
     var code =  uglify.gen_code(ast, {beautify: true});
 
     // wipe tail ;
-    code = code.replace(/;$/, '');
-
+    code = this.removeTailSemicolons(code);
     return code;
+};
+
+/**
+ * Removes tail semicolons
+ *
+ * @param {String} code
+ *
+ * @return {String}
+ */
+LmdBuilder.prototype.removeTailSemicolons = function (code) {
+    return code.replace(/\n*;$/, '');
 };
 
 /**
@@ -1178,9 +1188,14 @@ LmdBuilder.prototype.build = function (callback) {
                             this.error('Your module "**' + module.path + '**" have to require() some deps, but it sandboxed. ' +
                                       'Remove sandbox flag to allow module require().');
                         }
-                    } else if (isPlainModule) {
-                        // wrap plain module
-                        moduleContent = this.wrapPlainModule(moduleContent);
+                    } else {
+                        if (isPlainModule) {
+                            // wrap plain module
+                            moduleContent = this.wrapPlainModule(moduleContent);
+                        } else {
+                            // wipe tail ;
+                            moduleContent = this.removeTailSemicolons(moduleContent);
+                        }
                     }
                 }
 
