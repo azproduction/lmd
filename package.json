@@ -9,6 +9,7 @@
     "bin": {
         "lmd": "./bin/lmd"
     },
+    "main": "./bin/lmd_builder.js",
     "scripts": {
         "test": "make test"
     },

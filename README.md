@@ -264,7 +264,7 @@ For templates
  - You can also specify module depends by adding `"depends"` options see [Modules depends](#modules-depends)
 
 
-## Build LMD package
+## Build LMD package from Console
 
 `lmd examples/basic/cfgs/index.development.lmd.json examples/basic/out/index.development.lmd.js` or `node ./lmd/bin/lmd.js ... `
 
@@ -299,6 +299,19 @@ LMD will assemble your modules and LMD source itself into one file. This file is
 (function(a){/* ... LMD content ... */})(window)
 ({depA:"(function(a){return function(a){console.log(a)}})"})
 (function(b){var c=b("depA");c("ololo")})
+```
+
+## Build LMD package from Node.js
+
+```javascript
+var Lmd = require('lmd');
+new Lmd({
+    "config":  "path/to/lmd.json",     // required field!   [required]
+    "mode":    "main",                 // "main" or "watch" [default=main]
+    "output":  "path/to/result/lmd.js" // if blank - STDOUT [optional]
+    "log":     false,                  // print log?        [default=false]
+    "no-warn": false                   // disable warnings? [default=false]
+});
 ```
 
 ## List of plugins

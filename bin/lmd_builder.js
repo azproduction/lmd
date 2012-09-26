@@ -82,21 +82,19 @@ var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
  *      node lmd_builder.js [mode] path/to/config.lmd.json [result.js]
  *
  * data new format
- *      node lmd_builder.js [-m main] -c path/to/config.lmd.json [-r result.js] [-v lmd_tiny] [-l]
+ *      node lmd_builder.js [-m main] -c path/to/config.lmd.json [-r result.js] [-l]
  *
  *      -c -config
  *      -m -mode       default main
  *      -o -output     default print to stdout
  *      -l -log        default false
- *      -v -version    default lmd_tiny
  *      -no-w -no-warn disable warnings
  *
  * @example
  *      // pass and object
  *      new LmdBuilder({
  *          config: "config.json",
- *          output: "result.js", // optional
- *          version: "lmd_tiny" // optional - default=lmd_tiny
+ *          output: "result.js" // optional
  *      });
  *
  *      // pass string
