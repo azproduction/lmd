@@ -303,52 +303,44 @@ LMD will assemble your modules and LMD source itself into one file. This file is
 
 ## Build LMD package from Node.js
 
-Lmd is Readable Stream. It prints logs or build result to own stream.
-If `output` parameter passed Lmd will print logs to own stream and file content to `output` file.
-If `output` is undefined - Lmd will print only file content to own stream.
+`Lmd` is **Readable Stream**. It also provides `log` readable stream.
 
 ```javascript
+// Example: Print result to STDOUT, ignore logs
 var Lmd = require('lmd');
 
-// Example: Print result to specified file, logs to own stream
-var logsStream = new Lmd({
-    "config":  "path/to/lmd.json",     // required field!        [required]
-    "mode":    "main",                 // "main" or "watch"      [default=main]
-    "output":  "path/to/result/lmd.js" // if blank to own stream [optional]
-    "log":     false,                  // print log?             [default=false]
-    "no-warn": false                   // disable warnings?      [default=false]
+new Lmd("path/to/lmd.json", {
+    noWarn: false // disable warnings?
 });
-logsStream.pipe(process.stdout); // redirect build logs to STDOUT
+.pipe(process.stdout);
 ```
 
 ```javascript
+// Example: Print result file, log to STDOUT
 var Lmd = require('lmd'),
     fs = require('fs');
 
-// Example: Print result to own stream than output to specific file
-var lmdModule = new Lmd({
-    "config":  "path/to/lmd.json"
-});
+var lmdModule = new Lmd("path/to/lmd.json");
 
 // default ws options are {flags: 'w', encoding: null, mode: 0666}
-var stream = fs.createWriteStream("path/to/result/lmd.js");
+var fileStream = fs.createWriteStream("path/to/result/lmd.js");
 
 // write result to file stream
-lmdModule.pipe(stream);
+lmdModule.pipe(fileStream);
+lmdModule.log.pipe(process.stdout);
+lmdModule.on('end', function () {
+    console.log('Build done!');
+});
 ```
 
+`Lmd.watch` is non readable nor writable Stream, but it provides `log` too too.
+
 ```javascript
+// Example: Run watch mode
 var Lmd = require('lmd');
 
-// Example: Run watch mode
-new Lmd({
-    "config":  "path/to/lmd.json",     // required field!
-    "mode":    "watch",
-    "output":  "path/to/result/lmd.js" // required in watch mode!
-    "log":     true,
-    "no-warn": false
-})
-.pipe(process.stdout); // redirect watch and build logs to STDOUT
+new Lmd.watch("path/to/lmd.json", "path/to/result/lmd.js")
+.log.pipe(process.stdout); // redirect watch and build logs to STDOUT
 ```
 
 
