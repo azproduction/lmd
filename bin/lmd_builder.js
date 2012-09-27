@@ -80,20 +80,6 @@ var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
  * @param {Object}        [data.version='lmd_tiny'] lmd version
  * @param {Boolean}       [data.log=false]          log?
  *
- * If data is {String}:
- * @format
- *
- * data old format
- *      node lmd_builder.js [mode] path/to/config.lmd.json [result.js]
- *
- * data new format
- *      node lmd_builder.js [-m main] -c path/to/config.lmd.json [-r result.js] [-l]
- *
- *      -c -config
- *      -m -mode       default main
- *      -o -output     default print to own stream
- *      -l -log        default false
- *      -no-w -no-warn disable warnings
  *
  * @example
  *      // pass and object
@@ -111,55 +97,107 @@ var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
  *      // new argv format
  *      new LmdBuilder("node lmd_builder.js -m main -c path/to/config.lmd.json -r result.js -v lmd_tiny -l");
  */
-var LmdBuilder = function (data) {
-    var args = this.parseData(data),
+
+
+/**
+ *
+ * @param {String} configFile
+ * @param {Object} [options]
+ * @param {Object} [options.noWarn = false]
+ *
+ * @constructor
+ */
+var LmdBuilder = function (configFile, options) {
+    options = options || {};
+    var //args = this.parseData(data),
         self = this;
 
     // apply config
-    this.mode = args.mode || 'main';
-    this.configFile = args.config;
-    this.outputFile = args.output;
-    this.isLog = args.log || false;
-    this.isWarn = this.isLog && !args['no-warn'];
+    // this.mode = args.mode || 'main';
+    this.configFile = configFile;
+    // this.outputFile = args.output;
+    // this.isLog = args.log || false;
+    this.isWarn = !options.noWarn;
 
-    if (LmdBuilder.availableModes.indexOf(this.mode) === -1) {
+    /*if (LmdBuilder.availableModes.indexOf(this.mode) === -1) {
         throw new Error(('No such LMD run mode - ' + this.mode).red);
-    }
+    }*/
 
-    if (!this.configFile) {
-        throw new Error('Config file is required: -config path/to/lmd.json'.red);
-    }
-
-    if (!this.outputFile) {
+    /*if (!this.outputFile) {
         if (this.mode === "watch") {
             throw new Error('Watch mode requires output file name: -output path/to/output/lmd.js'.red);
         }
         this.isLog = false;
         this.isWarn = false;
-    }
+    }*/
 
+    this.init();
+
+    // Let return instance before build
+    process.nextTick(function () {
+        if (configFile) {
+            self.emit('data', self.build());
+        } else {
+            self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.json'.green + ' [output.lmd.js]\n');
+        }
+        process.exit();
+    });
+};
+
+/**
+ * @constructor
+ *
+ * @param configFile
+ * @param outputFile
+ * @param options
+ */
+LmdBuilder.watch = function (configFile, outputFile, options) {
+    options = options || {};
+    var self = this;
+
+    this.configFile = configFile;
+    this.outputFile = outputFile;
+    this.isWarn = !options.noWarn;
+
+    this.init();
+    this.log.writeable = true;
+    this.readable = false;
+
+    // Let return instance before build
+    process.nextTick(function () {
+        if (configFile && outputFile) {
+            self.fsWatch();
+        } else {
+            self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.json'.green + ' ' + 'output.lmd.js'.green + '\n');
+            process.exit();
+        }
+    });
+};
+
+LmdBuilder.watch.prototype =
+LmdBuilder.prototype = new Stream();
+
+LmdBuilder.prototype.init = function () {
+    var self = this;
     this.configDir = fs.realpathSync(this.configFile);
     this.configDir = this.configDir.split(CROSS_PLATFORM_PATH_SPLITTER);
     this.flagToOptionNameMap = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_plugins.json', 'utf8'));
     this.configDir.pop();
     this.configDir = this.configDir.join('/');
 
+    this.log = new Stream();
+    this.log.readable = true;
+
     // LmdBuilder is readable stream
     this.readable = true;
     process.on('exit', function () {
         self.emit('end');
         self.readable = false;
-    });
 
-    // Let return instance before build
-    process.nextTick(function () {
-        if (self.configure()) {
-            self.runMode(self.mode);
-        }
+        self.log.emit('end');
+        self.log.readable = false;
     });
 };
-
-LmdBuilder.prototype = new Stream();
 
 /**
  * LMD template
@@ -174,107 +212,6 @@ LmdBuilder.prototype.template = function (data) {
     ')';
 };
 
-/**
- *
- *
- * @type {String[]}
- */
-LmdBuilder.availableModes = ['main', 'watch'];
-
-/**
- * Run LMD builder in specific mode
- *
- * @param {String} mode
- */
-LmdBuilder.prototype.runMode = function (mode) {
-    switch (mode) {
-        case 'watch':
-            this.fsWatch();
-            break;
-
-        case 'main':
-            var buildResult = this.build();
-            if (this.outputFile) {
-                fs.writeFileSync(this.outputFile, buildResult, 'utf8');
-            } else {
-                this.emit('data', buildResult);
-            }
-            this.emit('end');
-            this.readable = false;
-            break;
-    }
-};
-
-/**
- * Simple argv parser
- *
- * @see https://gist.github.com/1497865
- *
- * @param {String} a an argv string
- *
- * @returns {Object}
- */
-LmdBuilder.prototype.parseArgv = function (a,b,c,d) {
-    c={};for(a=a.split(/\s*\B[-]+([\w-]+)[\s=]*/),d=1;b=a[d++];c[b]=a[d++]||!0);return c
-};
-
-/**
- * Formats lmd config
- *
- * @param  {String|Object} data
- *
- * @return {Object}
- */
-LmdBuilder.prototype.parseData = function (data) {
-    var config;
-
-    // case data is argv string
-    if (typeof data === "string") {
-        // try to parse new version
-        config = this.parseArgv(data);
-
-        // its new config argv string
-        if (Object.keys(config).length) {
-            // translate short params to long one
-            config.version = config.version || config.v;
-            config.mode = config.mode || config.m;
-            config.output = config.output || config.o;
-            config.log = config.log || config.l;
-            config.config = config.config || config.c;
-            config['no-warn'] = config['no-warn'] || config['no-w'];
-        } else {
-            // an old argv format, split argv and parse manually
-            data = data.split(' ');
-
-            // without mode
-            if (LmdBuilder.availableModes.indexOf(data[2]) === -1) {
-                config = {
-                    mode: 'main',
-                    config: data[2],
-                    output: data[3]
-                };
-            } else { // with mode
-                config = {
-                    mode: data[2],
-                    config: data[3],
-                    output: data[4]
-                };
-            }
-        }
-
-    // case data is config object
-    } else if (typeof config === "object") {
-        // use as is
-        config = data;
-
-    // case else
-    } else {
-        // wut?
-        throw new Error('Bad config data');
-    }
-
-    return config;
-};
 
 /**
  * Compress code using UglifyJS
@@ -978,7 +915,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
  */
 LmdBuilder.prototype.configure = function () {
     if (!this.configFile) {
-        this.emit('data', 'lmd usage:\n\t    lmd config.lmd.json [output.lmd.js]\n');
+        this.log.emit('data', 'lmd usage:\n\t    lmd config.lmd.json [output.lmd.js]\n');
         return false;
     }
     return true;
@@ -1018,29 +955,27 @@ LmdBuilder.prototype.fsWatch = function () {
     var module,
         modules,
         watchBuilder = function (stat, filename) {
-            if (self.isLog) {
-                filename = filename.split(CROSS_PLATFORM_PATH_SPLITTER).pop();
-                if (stat && filename) {
-                    self.emit('data', 'lmd'.inverse + ' Change detected in ' + filename.toString().green + ' at ' + stat.mtime.toString().blue);
-                } else if (stat) {
-                    self.emit('data', 'lmd'.inverse + ' Change detected at ' + stat.mtime.toString().blue);
-                } else {
-                    self.emit('data', 'lmd'.inverse + ' Change detected');
-                }
-                self.emit('data', ' ' + 'Rebuilding...'.green);
-                if (self.isWarn) {
-                    self.emit('data', '\n');
-                }
+            filename = filename.split(CROSS_PLATFORM_PATH_SPLITTER).pop();
+            if (stat && filename) {
+                self.log.emit('data', 'lmd'.inverse + ' Change detected in ' + filename.toString().green + ' at ' + stat.mtime.toString().blue);
+            } else if (stat) {
+                self.log.emit('data', 'lmd'.inverse + ' Change detected at ' + stat.mtime.toString().blue);
+            } else {
+                self.log.emit('data', 'lmd'.inverse + ' Change detected');
+            }
+
+            self.log.emit('data', ' ' + 'Rebuilding...'.green);
+
+            if (self.isWarn) {
+                self.log.emit('data', '\n');
             }
 
             fs.writeFileSync(self.outputFile, self.build(), 'utf8');
 
-            if (self.isLog) {
-                if (!self.isWarn) {
-                    self.emit('data', ' ' + 'Done!'.green + '\n');
-                } else {
-                    self.emit('data', 'lmd'.inverse + ' Rebuilding done!'.green + '\n');
-                }
+            if (!self.isWarn) {
+                self.log.emit('data', ' ' + 'Done!'.green + '\n');
+            } else {
+                self.log.emit('data', 'lmd'.inverse + ' Rebuilding done!'.green + '\n');
             }
         },
         watch = function (event, filename) {
@@ -1074,9 +1009,7 @@ LmdBuilder.prototype.fsWatch = function () {
             watchedModulesCount++;
         }
 
-        if (this.isLog) {
-            this.emit('data', 'lmd'.inverse + ' Now watching ' + watchedModulesCount.toString().green + ' module files. Ctrl+C to stop\n');
-        }
+        this.log.emit('data', 'lmd'.inverse + ' Now watching ' + watchedModulesCount.toString().green + ' module files. Ctrl+C to stop\n');
     }
 };
 
@@ -1102,7 +1035,7 @@ LmdBuilder.prototype.formatLog = function (text) {
  */
 LmdBuilder.prototype.error = function (text) {
     text = this.formatLog(text);
-    this.emit('data', 'lmd'.inverse + ' ' + 'ERROR'.inverse.red + ' ' + text + '\n');
+    this.log.emit('data', 'lmd'.inverse + ' ' + 'ERROR'.inverse.red + ' ' + text + '\n');
 };
 
 /**
@@ -1116,7 +1049,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text) {
     if (this.isWarn) {
         text = this.formatLog(text);
-        this.emit('data', 'lmd'.inverse + ' ' + 'Warning'.red + ' ' + text + '\n');
+        this.log.emit('data', 'lmd'.inverse + ' ' + 'Warning'.red + ' ' + text + '\n');
     }
 };
 
