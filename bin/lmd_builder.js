@@ -899,7 +899,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
 
             plugins.forEach(function (pluginName) {
                 // require once
-                if (!pluginsRequireList[pluginName]) {
+                if (config[flagName] && !pluginsRequireList[pluginName]) {
                     pluginsCode += fs.readFileSync(LMD_JS_SRC_PATH + 'plugin/' + pluginName, 'utf8') + "\n\n";
                     pluginsRequireList[pluginName] = true;
                 }
