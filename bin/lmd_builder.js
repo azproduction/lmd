@@ -63,7 +63,7 @@ var fs = require('fs'),
 var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
 
 /**
- * LmdBuilder
+ * LmdBuilder LMD Package Builder
  *
  * LmdBuilder is readable stream
  * 
@@ -71,65 +71,24 @@ var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
  *
  * @inherits Stream
  *
- * @param {Object|String} data               lmd options or argv string
- *
- * If data is {Object}:
- * @param {Object}        data.config               path to config file
- * @param {Object}        [data.mode='stream']      stream, watch or main
- * @param {Object}        [data.output]             result file or STDOUT
- * @param {Object}        [data.version='lmd_tiny'] lmd version
- * @param {Boolean}       [data.log=false]          log?
- *
- *
- * @example
- *      // pass and object
- *      new LmdBuilder({
- *          config: "config.json",
- *          output: "result.js" // optional
- *      });
- *
- *      // pass string
- *      new LmdBuilder(process.argv.join(' '));
- *
- *      // old argv format
- *      new LmdBuilder("node lmd_builder.js watch path/to/config.lmd.json result.js");
- *
- *      // new argv format
- *      new LmdBuilder("node lmd_builder.js -m main -c path/to/config.lmd.json -r result.js -v lmd_tiny -l");
- */
-
-
-/**
- *
  * @param {String} configFile
  * @param {Object} [options]
  * @param {Object} [options.noWarn = false]
  *
- * @constructor
+ * @example
+ *
+ *      new LmdBuilder("config.json", {
+ *          noWarn: true
+ *      })
+ *      .pipe(process.stdout);
  */
 var LmdBuilder = function (configFile, options) {
     options = options || {};
-    var //args = this.parseData(data),
-        self = this;
+    var self = this;
 
     // apply config
-    // this.mode = args.mode || 'main';
     this.configFile = configFile;
-    // this.outputFile = args.output;
-    // this.isLog = args.log || false;
     this.isWarn = !options.noWarn;
-
-    /*if (LmdBuilder.availableModes.indexOf(this.mode) === -1) {
-        throw new Error(('No such LMD run mode - ' + this.mode).red);
-    }*/
-
-    /*if (!this.outputFile) {
-        if (this.mode === "watch") {
-            throw new Error('Watch mode requires output file name: -output path/to/output/lmd.js'.red);
-        }
-        this.isLog = false;
-        this.isWarn = false;
-    }*/
 
     this.init();
 
@@ -140,16 +99,28 @@ var LmdBuilder = function (configFile, options) {
         } else {
             self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.json'.green + ' [output.lmd.js]\n');
         }
-        process.exit();
+        self.closeStreams();
     });
 };
 
 /**
+ * LMD Package Watcher
+ *
  * @constructor
  *
- * @param configFile
- * @param outputFile
- * @param options
+ * @inherits Stream
+ *
+ * @param {String} configFile
+ * @param {String} outputFile
+ * @param {Object} [options]
+ * @param {Object} [options.noWarn = false]
+ *
+ * @example
+ *
+ *      new LmdBuilder.watch("config.json", "result.js", {
+ *          noWarn: true
+ *      })
+ *      .log.pipe(process.stdout);
  */
 LmdBuilder.watch = function (configFile, outputFile, options) {
     options = options || {};
@@ -160,6 +131,7 @@ LmdBuilder.watch = function (configFile, outputFile, options) {
     this.isWarn = !options.noWarn;
 
     this.init();
+    // make Stream writeable to forward build logs
     this.log.writeable = true;
     this.readable = false;
 
@@ -169,14 +141,18 @@ LmdBuilder.watch = function (configFile, outputFile, options) {
             self.fsWatch();
         } else {
             self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.json'.green + ' ' + 'output.lmd.js'.green + '\n');
-            process.exit();
+            self.closeStreams();
         }
     });
 };
 
+// Share prototype
 LmdBuilder.watch.prototype =
 LmdBuilder.prototype = new Stream();
 
+/**
+ * Common init for LmdBuilder and LmdBuilder.watch
+ */
 LmdBuilder.prototype.init = function () {
     var self = this;
     this.configDir = fs.realpathSync(this.configFile);
@@ -185,18 +161,30 @@ LmdBuilder.prototype.init = function () {
     this.configDir.pop();
     this.configDir = this.configDir.join('/');
 
+    /**
+     * Build log
+     *
+     * @type {Stream}
+     */
     this.log = new Stream();
     this.log.readable = true;
 
     // LmdBuilder is readable stream
     this.readable = true;
     process.on('exit', function () {
-        self.emit('end');
-        self.readable = false;
-
-        self.log.emit('end');
-        self.log.readable = false;
+        self.closeStreams();
     });
+};
+
+/**
+ * Closes all streams and make it unreadable
+ */
+LmdBuilder.prototype.closeStreams = function () {
+    this.emit('end');
+    this.readable = false;
+
+    this.log.emit('end');
+    this.log.readable = false;
 };
 
 /**
