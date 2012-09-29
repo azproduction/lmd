@@ -942,43 +942,57 @@ LmdBuilder.prototype.fsWatch = function () {
 
     var module,
         modules,
-        watchBuilder = function (stat, filename) {
-            filename = filename.split(CROSS_PLATFORM_PATH_SPLITTER).pop();
+        log = function (test) {
+            self.log.emit('data', test);
+        },
+        rebuild = function (stat, filename) {
             if (stat && filename) {
-                self.log.emit('data', 'lmd'.inverse + ' Change detected in ' + filename.toString().green + ' at ' + stat.mtime.toString().blue);
+                filename = filename.split(CROSS_PLATFORM_PATH_SPLITTER).pop();
+                log('lmd'.inverse + ' Change detected in ' + filename.toString().green + ' at ' + stat.mtime.toString().blue);
             } else if (stat) {
-                self.log.emit('data', 'lmd'.inverse + ' Change detected at ' + stat.mtime.toString().blue);
+                log('lmd'.inverse + ' Change detected at ' + stat.mtime.toString().blue);
             } else {
-                self.log.emit('data', 'lmd'.inverse + ' Change detected');
+                log('lmd'.inverse);
             }
 
-            self.log.emit('data', ' ' + 'Rebuilding...'.green);
+            log(' ' + 'Rebuilding...'.green);
 
             if (self.isWarn) {
-                self.log.emit('data', '\n');
+                log('\n');
             }
 
             fs.writeFileSync(self.outputFile, self.build(), 'utf8');
 
             if (!self.isWarn) {
-                self.log.emit('data', ' ' + 'Done!'.green + '\n');
+                log(' ' + 'Done!'.green + '\n');
             } else {
-                self.log.emit('data', 'lmd'.inverse + ' Rebuilding done!'.green + '\n');
+                log('lmd'.inverse + ' Rebuilding done!'.green + '\n');
             }
         },
         watch = function (event, filename) {
             if (event === 'change') {
                 if (filename) {
-                    watchBuilder(fs.stat(filename), filename);
+                    rebuild(fs.stat(filename), filename);
                 } else {
-                    watchBuilder();
+                    rebuild();
                 }
             }
         },
         watchFile = function (curr, prev, filename) {
             if (curr.mtime > prev.mtime) {
-                watchBuilder(curr, filename);
+                rebuild(curr, filename);
             }
+        },
+        addWatcherFor = function (modulePath) {
+            try {
+                // a mess....
+                fs.watchFile(modulePath, { interval: 1000 }, function (curr, prev) {
+                    watchFile(curr, prev, modulePath);
+                });
+            } catch (e) {
+                fs.watch(modulePath, watch);
+            }
+            watchedModulesCount++;
         };
 
     if (config.modules) {
@@ -986,18 +1000,15 @@ LmdBuilder.prototype.fsWatch = function () {
         for (var index in modules) {
             module = modules[index];
             if (module.path.charAt(0) === '@') continue;
-            try {
-                // a mess....
-                fs.watchFile(module.path, { interval: 1000 }, function (curr, prev) {
-                    watchFile(curr, prev, this);
-                }.bind(module.path));
-            } catch (e) {
-                fs.watch(module.path, watch);
-            }
-            watchedModulesCount++;
+            addWatcherFor(module.path);
         }
+        // add lmd.json too
+        addWatcherFor(this.configFile);
 
-        this.log.emit('data', 'lmd'.inverse + ' Now watching ' + watchedModulesCount.toString().green + ' module files. Ctrl+C to stop\n');
+        log('lmd'.inverse + ' Now watching ' + watchedModulesCount.toString().green + ' module files. Ctrl+C to stop\n');
+
+        // Rebuild at startup
+        rebuild();
     }
 };
 
