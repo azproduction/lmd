@@ -1511,6 +1511,7 @@ _Listener returns context:_ yes depend on moduleName value returns empty array o
   - Test runner via `npm test` or `make test` [Running tests](#running-tests)
   - Tail semicolons cleanup
   - Lmd is Readable Stream
+  - Lmd Watch upstart rebuild, watch for lmd.json
 
 ## Licence
 
