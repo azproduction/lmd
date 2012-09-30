@@ -1,0 +1,10 @@
+{
+    "root": "../../amd/",
+
+    "modules": {
+        "amd_*": "*.(?:js|json|html)"
+    },
+    "depends": false,
+
+    "amd": true
+}

@@ -72,4 +72,8 @@
             start();
         });
     });
-})
+
+    test("AMD Coverage", function () {
+        ok(false);
+    });
+});

@@ -37,7 +37,7 @@
                 module = module(module_require, output.exports, output) || output.exports;
             }
 
-            lmd_trigger('lmd-register:after-register', moduleName, module);
+            module = lmd_trigger('lmd-register:after-register', moduleName, module)[1];
             return modules[moduleName] = module;
         },
         /**
@@ -5558,6 +5558,92 @@ sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
 
 }(sandbox));
 
+/**
+ * @name sandbox
+ */
+(function (sb) {
+
+var amdModules = {},
+    currentModule,
+    currentRequire;
+
+/**
+ * RequireJS & AMD-style define
+ *
+ * (function (require) {
+ *     var define = require.define;
+ *
+ *     define(["a"], function (a) {
+ *          return a + 2;
+ *     });
+ * })
+ *
+ * @param name
+ * @param deps
+ * @param module
+ */
+sb.require.define = function (name, deps, module) {
+    switch (arguments.length) {
+        case 1: // define(function () {})
+            module = name;
+            deps = name = sb.undefined;
+            break;
+
+        case 2: // define(['a', 'b'], function () {})
+            module = deps;
+            deps = name;
+            name = sb.undefined;
+            break;
+
+        case 3: // define('name', ['a', 'b'], function () {})
+    }
+
+    if (typeof module !== "function") {
+        amdModules[currentModule] = module;
+        return;
+    }
+
+    var output = {exports: {}};
+    if (!deps) {
+        deps = ["require", "exports", "module"];
+    }
+    for (var i = 0, c = deps.length; i < c; i++) {
+        switch (deps[i]) {
+            case "require":
+                deps[i] = currentRequire;
+                break;
+            case "module":
+                deps[i] = output;
+                break;
+            case "exports":
+                deps[i] = output.exports;
+                break;
+            default:
+                deps[i] = currentRequire(deps[i]);
+        }
+    }
+    amdModules[currentModule] = module.apply(this, deps) || output.exports;
+};
+
+// First called this than called few of define
+sb.on('lmd-register:decorate-module', function (moduleName, require) {
+    // grab current require and module name
+    currentRequire = require;
+    currentModule = moduleName;
+});
+
+// Than called this
+sb.on('lmd-register:after-register', function (moduleName, module) {
+    if (amdModules.hasOwnProperty(currentModule)) {
+        module = amdModules[currentModule];
+        delete amdModules[currentModule];
+
+        return [moduleName, module];
+    }
+});
+
+}(sandbox));
+
 
 
     main(lmd_trigger('lmd-register:decorate-require', "main", require)[1], output.exports, output);
@@ -5565,7 +5651,8 @@ sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
     // common for BOM Node and Worker Envs
     require('testcase_lmd_basic_features');
 
-    // common for BOM and Worker Envs, Node uses testcase_lmd_async_require.node.js
+    // common for BOM and Worker Envs
+    // Node uses testcase_lmd_async_require.node.js
     require('testcase_lmd_async_require');
 
     // BOM uses testcase_lmd_loader.js,
@@ -5578,7 +5665,95 @@ sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
 
     // Coverage
     require('testcase_lmd_coverage');
+
+    // AMD Modules
+    require('testcase_lmd_amd');
 }),{
+"amd_amd_function_deps": (function (require) { /* wrapped by builder */
+var define = require.define;
+define(["module", "require", "amd_object"],
+function (module, require, amd_object) {
+
+    module.exports = {
+        amd_string: require("amd_string"),
+        amd_object: amd_object
+    };
+});
+}),
+"amd_amd_function_name": (function (require) { /* wrapped by builder */
+var define = require.define;
+define("amd_function_name!!!", ["module", "require", "amd_object"],
+function (module, require, amd_object) {
+
+    module.exports = {
+        amd_string: require("amd_string"),
+        amd_object: amd_object
+    };
+});
+}),
+"amd_amd_function_nodeps": (function (require) { /* wrapped by builder */
+var define = require.define;
+define(function (require, exports, module) {
+
+    return {
+        amd_string: require('amd_function_deps').amd_string,
+        some_extra_number: 1
+    };
+});
+}),
+"amd_amd_multi_define": (function (require) { /* wrapped by builder */
+var define = require.define;
+define({});
+
+define("not ok");
+
+define(function () {
+
+    return "ok";
+});
+}),
+"amd_amd_object": (function (require) { /* wrapped by builder */
+var define = require.define;
+define({
+    "string": "1",
+    "function": function () {
+        return true;
+    },
+    "object": {}
+});
+}),
+"amd_amd_require_lmd_module": (function (require) { /* wrapped by builder */
+var define = require.define;
+define(function (require) {
+
+    return {
+        lmd_fe: require('lmd_fe'),
+        lmd_fd: require('lmd_fd'),
+        lmd_json: require('lmd_json'),
+        lmd_string: require('lmd_string')
+    };
+});
+}),
+"amd_amd_string": (function (require) { /* wrapped by builder */
+var define = require.define;
+define('amd_string');
+}),
+"amd_lmd_fd": function lmd_fd(require) {
+
+    return function () {
+        return "ok";
+    }
+},
+"amd_lmd_fe": (function (require) {
+
+    return function () {
+        return "ok";
+    }
+}),
+"amd_lmd_json": {
+    "ok": 1
+},
+"amd_lmd_string": "<b>LMD</b>",
 "coverage_fully_covered": (function(require, exports, module) {
     var require = arguments[0];
     require.coverage_function("coverage_fully_covered", "(?):0:1");
@@ -5656,6 +5831,19 @@ sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
         require.coverage_line("coverage_not_covered", "7");
         var b = test();
     }
+}),
+"coverage_amd_fully_covered": (function (require) { /* wrapped by builder */
+var define = require.define;
+define(function () {
+    var a = '123';
+    function test() {
+        return a;
+    }
+
+    if (typeof true === "boolean") {
+        var b = test();
+    }
+});
 }),
 "coverage_fully_covered_async": "@/modules/coverage/fully_covered_async.js",
 "coverage_not_functions_async": "@/modules/coverage/not_functions_async.js",
@@ -6220,6 +6408,11 @@ return {
             start();
         });
     });
+
+    test("AMD Coverage", function () {
+        // coverage_amd_fully_covered
+        ok(false);
+    });
 }),
 "testcase_lmd_cache": (function (require) {
     var test = require('test'),
@@ -6273,6 +6466,45 @@ return {
             start();
         });
     });
+}),
+"testcase_lmd_amd": (function (require) {
+    var test = require('test'),
+        asyncTest = require('asyncTest'),
+        start = require('start'),
+        module = require('module'),
+        ok = require('ok'),
+        expect = require('expect'),
+        $ = require('$'),
+        raises = require('raises'),
+
+        ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
+
+    module('LMD AMD module adaptor @ ' + ENV_NAME);
+
+    test("object and strings", function () {
+        ok(false);
+    });
+
+    test("depends", function () {
+        ok(false);
+    });
+
+    test("no depends", function () {
+        ok(false);
+    });
+
+    test("module name", function () {
+        ok(false);
+    });
+
+    test("multi define", function () {
+        ok(false);
+    });
+
+    test("require LMD module from AMD", function () {
+        ok(false);
+    });
+
 }),
 "sk_css_css": "@/modules/shortcuts/css.css",
 "sk_js_js": "@/modules/shortcuts/js.js",

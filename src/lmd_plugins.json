@@ -69,5 +69,8 @@
     "async_plainonly": {
         "preprocess": ["$P.ASYNC_PLAINONLY", "$P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY"],
         "require": "async_plain.js"
+    },
+    "amd": {
+        "require": "amd.js"
     }
 }

@@ -2,7 +2,8 @@
     // common for BOM Node and Worker Envs
     require('testcase_lmd_basic_features');
 
-    // common for BOM and Worker Envs, Node uses testcase_lmd_async_require.node.js
+    // common for BOM and Worker Envs
+    // Node uses testcase_lmd_async_require.node.js
     require('testcase_lmd_async_require');
 
     // BOM uses testcase_lmd_loader.js,
@@ -15,4 +16,7 @@
 
     // Coverage
     require('testcase_lmd_coverage');
-})
+
+    // AMD Modules
+    require('testcase_lmd_amd');
+});

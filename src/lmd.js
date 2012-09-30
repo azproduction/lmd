@@ -37,7 +37,7 @@
                 module = module(module_require, output.exports, output) || output.exports;
             }
 
-            lmd_trigger('lmd-register:after-register', moduleName, module);
+            module = lmd_trigger('lmd-register:after-register', moduleName, module)[1];
             return modules[moduleName] = module;
         },
         /**
