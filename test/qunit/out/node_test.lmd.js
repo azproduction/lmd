@@ -1,4 +1,4 @@
-(function (global, main, modules, sandboxed_modules, coverage_options) {
+(function (global, main, modules, modules_options) {
     var initialized_modules = {},
         global_eval = function (code) {
             return global.Function('return ' + code)();
@@ -24,12 +24,14 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require;
+                var module_require = lmd_trigger('lmd-register:decorate-module', moduleName, require)[1];
 
-                if (sandboxed_modules[moduleName]) {
-                    module_require = lmd_trigger('lmd-register:call-sandboxed-module', moduleName, require)[1];
-                } else {
-                    module_require = lmd_trigger('lmd-register:call-module', moduleName, require)[1];
+                // Make sure that sandboxed modules cant require
+                if (modules_options[moduleName] &&
+                    modules_options[moduleName].sandbox &&
+                    typeof module_require === "function") {
+
+                    module_require = local_undefined;
                 }
 
                 module = module(module_require, output.exports, output) || output.exports;
@@ -56,6 +58,12 @@
             if (list) {
                 for (var i = 0, c = list.length; i < c; i++) {
                     result = list[i](data, data2, data3) || result;
+                    if (result) {
+                        // enable decoration
+                        data = result[0] || data;
+                        data2 = result[1] || data2;
+                        data3 = result[2] || data3;
+                    }
                 }
             }
             return result || [data, data2, data3];
@@ -109,7 +117,7 @@
         sandbox = {
             global: global,
             modules: modules,
-            sandboxed: sandboxed_modules,
+            modules_options: modules_options,
 
             eval: global_eval,
             register: register_module,
@@ -121,7 +129,6 @@
             
             
             
-            coverage_options: coverage_options,
 
             on: lmd_on,
             trigger: lmd_trigger,
@@ -1016,14 +1023,18 @@ require.stats = function (moduleName) {
 };
 
     /**
-     * @event lmd-register:call-module request for fake require
+     * @event lmd-register:decorate-require request for fake require
      *
      * @param {String} moduleName
      * @param {Object} module
      *
      * @retuns yes wraps require
      */
-sb.on('lmd-register:call-module', function (moduleName, require) {
+sb.on('lmd-register:decorate-require', function (moduleName, require) {
+    var options = sb.modules_options[moduleName] || {};
+    if (options.sandbox) {
+        return;
+    }
     return [moduleName, stats_wrap_require(require, moduleName)];
 });
 
@@ -1335,9 +1346,12 @@ function coverage_module(moduleName, lines, conditions, functions) {
 
 (function () {
     var moduleOption;
-    for (var moduleName in coverage_options) {
-        if (coverage_options.hasOwnProperty(moduleName)) {
-            moduleOption = coverage_options[moduleName];
+    for (var moduleName in sb.modules_options) {
+        if (sb.modules_options.hasOwnProperty(moduleName)) {
+            moduleOption = sb.modules_options[moduleName];
+            if (!moduleOption.coverage) {
+                continue;
+            }
             coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
             sb.trigger('*:stats-type', moduleName, 'in-package');
         }
@@ -1356,16 +1370,11 @@ sb.on('*:stats-coverage', function (moduleName, moduleOption) {
     coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
 });
 
-    /**
-     * @event lmd-register:call-sandboxed-module register_module is goint to call sandboxed module
-     *        and requests for require wrapper for sandboxed module
-     *
-     * @param {String}        moduleName
-     * @param {Function|Null} require default require
-     *
-     * @retuns yes creates fake require
-     */
-sb.on('lmd-register:call-sandboxed-module', function (moduleName, require) {
+sb.on('lmd-register:decorate-require', function (moduleName, require) {
+    var options = sb.modules_options[moduleName] || {};
+    if (!options.sandbox) {
+        return;
+    }
     return [moduleName, {
         coverage_line: require.coverage_line,
         coverage_function: require.coverage_function,
@@ -5551,7 +5560,7 @@ sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
 
 
 
-    main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
+    main(lmd_trigger('lmd-register:decorate-require', "main", require)[1], output.exports, output);
 })/*DO NOT ADD ; !*/(node_global_environment,(function (require) {
     // common for BOM Node and Worker Envs
     require('testcase_lmd_basic_features');
@@ -6246,7 +6255,7 @@ return {
         ok(typeof lmd.modules === 'object', 'Should save modules');
         ok(typeof lmd.main === 'string', 'Should save main function as string');
         ok(typeof lmd.lmd === 'string', 'Should save lmd source as string');
-        ok(typeof lmd.sandboxed === 'object', 'Should save sandboxed modules');
+        ok(typeof lmd.options === 'object', 'Should save modules options');
 
         require.async('./modules/async/module_function_async.js', function (module_function_async) {
             var key = 'lmd:' + PACKAGE_VERSION + ':' + './modules/async/module_function_async.js';
@@ -6277,4 +6286,4 @@ return {
 "sk_async_html": "@/modules/shortcuts/async.html",
 "sk_async_js": "@/modules/shortcuts/async.js",
 "sk_async_json": "@/modules/shortcuts/async.json"
-},{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true},{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"]},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[]},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"]},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"]},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"]}})
+},{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"],"coverage":1},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[],"coverage":1},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"],"coverage":1},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"],"coverage":1},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"],"coverage":1},"module_function_fd_sandboxed":{"sandbox":1},"module_function_fe_sandboxed":{"sandbox":1},"module_function_plain_sandboxed":{"sandbox":1}})

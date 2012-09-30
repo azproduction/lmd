@@ -20,7 +20,7 @@
                     main: '(' + sb.main + ')',
                     // lmd function === arguments.callee
                     lmd: '(' + sb.lmd + ')',
-                    sandboxed: sb.sandboxed
+                    options: sb.modules_options
                 });
             } catch(e) {}
         }());

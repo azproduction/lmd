@@ -1,4 +1,4 @@
-(function /*if ($P.CACHE) {*/lmd/*}*/(global, main, modules, sandboxed_modules/*if ($P.CACHE) {*/, version/*}*//*if ($P.STATS_COVERAGE) {*/, coverage_options/*}*/) {
+(function /*if ($P.CACHE) {*/lmd/*}*/(global, main, modules, modules_options/*if ($P.CACHE) {*/, version/*}*/) {
     var initialized_modules = {},
         global_eval = function (code) {
             return global.Function('return ' + code)();
@@ -24,12 +24,14 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require;
+                var module_require = lmd_trigger('lmd-register:decorate-module', moduleName, require)[1];
 
-                if (sandboxed_modules[moduleName]) {
-                    module_require = lmd_trigger('lmd-register:call-sandboxed-module', moduleName, require)[1];
-                } else {
-                    module_require = lmd_trigger('lmd-register:call-module', moduleName, require)[1];
+                // Make sure that sandboxed modules cant require
+                if (modules_options[moduleName] &&
+                    modules_options[moduleName].sandbox &&
+                    typeof module_require === "function") {
+
+                    module_require = local_undefined;
                 }
 
                 module = module(module_require, output.exports, output) || output.exports;
@@ -56,6 +58,12 @@
             if (list) {
                 for (var i = 0, c = list.length; i < c; i++) {
                     result = list[i](data, data2, data3) || result;
+                    if (result) {
+                        // enable decoration
+                        data = result[0] || data;
+                        data2 = result[1] || data2;
+                        data3 = result[2] || data3;
+                    }
                 }
             }
             return result || [data, data2, data3];
@@ -109,7 +117,7 @@
         sandbox = {
             global: global,
             modules: modules,
-            sandboxed: sandboxed_modules,
+            modules_options: modules_options,
 
             eval: global_eval,
             register: register_module,
@@ -121,7 +129,6 @@
             /*if ($P.CACHE) {*/lmd: lmd,/*}*/
             /*if ($P.CACHE) {*/main: main,/*}*/
             /*if ($P.CACHE) {*/version: version,/*}*/
-            /*if ($P.STATS_COVERAGE) {*/coverage_options: coverage_options,/*}*/
 
             on: lmd_on,
             trigger: lmd_trigger,
@@ -135,5 +142,5 @@
 
 /*{{LMD_PLUGINS_LOCATION}}*/
 
-    main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
+    main(lmd_trigger('lmd-register:decorate-require', "main", require)[1], output.exports, output);
 })/*DO NOT ADD ; !*/

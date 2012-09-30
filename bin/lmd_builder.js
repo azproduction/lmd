@@ -193,10 +193,9 @@ LmdBuilder.prototype.closeStreams = function () {
  * @param {Object} data
  */
 LmdBuilder.prototype.template = function (data) {
-    return data.lmd_js + '(' + data.global + ',' + data.lmd_main + ',' + data.lmd_modules + ',' + data.sandboxed_modules +
+    return data.lmd_js + '(' + data.global + ',' + data.lmd_main + ',' + data.lmd_modules + ',' + data.modules_options +
         // if version passed
         (data.version ? ',' + data.version : '') +
-        (data.coverage_options ? ',' + data.coverage_options : '') +
     ')';
 };
 
@@ -664,13 +663,11 @@ LmdBuilder.prototype.escape = function (file) {
  * @param {String}  lmd_main
  * @param {Boolean} pack
  * @parma {Object}  pack_options
- * @param {Array}   sandboxed_modules
- * @param {Object}  [coverage_options]
+ * @param {Object}  modules_options
  *
  * @returns {String}
  */
-LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, pack_options, sandboxed_modules, coverage_options) {
-    sandboxed_modules = JSON.stringify(sandboxed_modules || {});
+LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, pack_options, modules_options) {
     var lmd_js = fs.readFileSync(LMD_JS_SRC_PATH + 'lmd.js', 'utf8'),
         result;
 
@@ -686,8 +683,7 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, pac
         global: config.global || 'this',
         lmd_main: lmd_main,
         lmd_modules: lmd_modules,
-        sandboxed_modules: sandboxed_modules,
-        coverage_options: coverage_options ? JSON.stringify(coverage_options) : false,
+        modules_options: JSON.stringify(modules_options),
         // if version passed -> module will be cached
         version: config.cache ? JSON.stringify(config.version) : false
     });
@@ -1090,7 +1086,6 @@ LmdBuilder.prototype.build = function () {
         pack = lazy ? true : (config.pack || false),
         moduleContent,
         lmdModules = [],
-        sandbox,
         lmdMain,
         lmdFile,
         isJson,
@@ -1098,7 +1093,7 @@ LmdBuilder.prototype.build = function () {
         isPlainModule,
         coverageResult,
         globalsObjects,
-        coverageOptions = {},
+        modulesOptions = {},
         is_using_shortcuts = false,
         module,
         modules;
@@ -1178,7 +1173,8 @@ LmdBuilder.prototype.build = function () {
                 // #26 Code coverage
                 if (isModule && module.is_coverage) {
                     coverageResult = lmdCoverage.interpret(module.name, module.path, moduleContent, isPlainModule ? 0 : 1);
-                    coverageOptions[module.name] = coverageResult.options;
+                    modulesOptions[module.name] = coverageResult.options;
+                    modulesOptions[module.name].coverage = 1;
                     moduleContent = coverageResult.code;
 
                     // Check for different require name (first argument)
@@ -1247,8 +1243,14 @@ LmdBuilder.prototype.build = function () {
             this.warn('You are using `stats_coverage_async` but not using `async`. Disable `stats_coverage_async` flag.');
         }
 
-        sandbox = this.getSandboxedModules(modules, config);
-        lmdFile = this.render(config, lmdModules, lmdMain, pack, config.pack_options, sandbox, config.stats_coverage ? coverageOptions : void 0);
+        var sandboxedModules = this.getSandboxedModules(modules, config);
+        for (var moduleName in sandboxedModules) {
+            if (!modulesOptions[moduleName]) {
+                modulesOptions[moduleName] = {};
+            }
+            modulesOptions[moduleName].sandbox = 1;
+        }
+        lmdFile = this.render(config, lmdModules, lmdMain, pack, config.pack_options, modulesOptions);
 
         return lmdFile;
     }

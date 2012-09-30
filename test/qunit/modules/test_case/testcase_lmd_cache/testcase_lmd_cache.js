@@ -32,7 +32,7 @@
         ok(typeof lmd.modules === 'object', 'Should save modules');
         ok(typeof lmd.main === 'string', 'Should save main function as string');
         ok(typeof lmd.lmd === 'string', 'Should save lmd source as string');
-        ok(typeof lmd.sandboxed === 'object', 'Should save sandboxed modules');
+        ok(typeof lmd.options === 'object', 'Should save modules options');
 
         require.async('./modules/async/module_function_async.js', function (module_function_async) {
             var key = 'lmd:' + PACKAGE_VERSION + ':' + './modules/async/module_function_async.js';

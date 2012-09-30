@@ -261,14 +261,18 @@ require.stats = function (moduleName) {
 };
 
     /**
-     * @event lmd-register:call-module request for fake require
+     * @event lmd-register:decorate-require request for fake require
      *
      * @param {String} moduleName
      * @param {Object} module
      *
      * @retuns yes wraps require
      */
-sb.on('lmd-register:call-module', function (moduleName, require) {
+sb.on('lmd-register:decorate-require', function (moduleName, require) {
+    var options = sb.modules_options[moduleName] || {};
+    if (options.sandbox) {
+        return;
+    }
     return [moduleName, stats_wrap_require(require, moduleName)];
 });
 
