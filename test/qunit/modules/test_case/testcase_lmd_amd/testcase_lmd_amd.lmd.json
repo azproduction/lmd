@@ -2,9 +2,12 @@
     "root": "../../amd/",
 
     "modules": {
-        "amd_*": "*.(?:js|json|html)"
+        "amd_*": "*.(?:js|json|html)",
+
+        "amd_shortcut": "@amd_amd_string"
     },
     "depends": false,
 
-    "amd": true
+    "amd": true,
+    "shortcuts": true
 }

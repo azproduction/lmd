@@ -74,6 +74,15 @@
     });
 
     test("AMD Coverage", function () {
-        ok(false);
+        expect(3);
+
+        require("coverage_amd_fully_covered");
+
+        var stats = require.stats(),
+            coverage = stats.modules["coverage_amd_fully_covered"].coverage;
+
+        ok(coverage.conditions.percentage === 100, "conditions OK");
+        ok(coverage.functions.percentage === 100, "functions OK");
+        ok(coverage.lines.percentage === 100, "lines OK");
     });
 });

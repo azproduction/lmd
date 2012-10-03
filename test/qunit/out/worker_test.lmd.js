@@ -5588,7 +5588,8 @@ sb.require.define = function (name, deps, module) {
                 deps[i] = currentRequire(deps[i]);
         }
     }
-    amdModules[currentModule] = module.apply(this, deps) || output.exports;
+    module = module.apply(this, deps) || output.exports;
+    amdModules[currentModule] = module;
 };
 
 // First called this than called few of define
@@ -5637,22 +5638,22 @@ sb.on('lmd-register:after-register', function (moduleName, module) {
 }),{
 "amd_amd_function_deps": (function (require) { /* wrapped by builder */
 var define = require.define;
-define(["module", "require", "amd_object"],
+define(["module", "require", "amd_amd_object"],
 function (module, require, amd_object) {
 
     module.exports = {
-        amd_string: require("amd_string"),
+        amd_string: require("amd_amd_string"),
         amd_object: amd_object
     };
 });
 }),
 "amd_amd_function_name": (function (require) { /* wrapped by builder */
 var define = require.define;
-define("amd_function_name!!!", ["module", "require", "amd_object"],
+define("amd_function_name!!!", ["module", "require", "amd_amd_object"],
 function (module, require, amd_object) {
 
     module.exports = {
-        amd_string: require("amd_string"),
+        amd_string: require("amd_amd_string"),
         amd_object: amd_object
     };
 });
@@ -5662,8 +5663,11 @@ var define = require.define;
 define(function (require, exports, module) {
 
     return {
-        amd_string: require('amd_function_deps').amd_string,
-        some_extra_number: 1
+        amd_string: require('amd_amd_function_deps').amd_string,
+        some_extra_number: 1,
+        typeof_exports: typeof exports,
+        typeof_module: typeof module,
+        module_eq_module_exports: module.exports === exports
     };
 });
 }),
@@ -5693,10 +5697,20 @@ var define = require.define;
 define(function (require) {
 
     return {
-        lmd_fe: require('lmd_fe'),
-        lmd_fd: require('lmd_fd'),
-        lmd_json: require('lmd_json'),
-        lmd_string: require('lmd_string')
+        lmd_fe: require('amd_lmd_fe'),
+        lmd_fd: require('amd_lmd_fd'),
+        lmd_json: require('amd_lmd_json'),
+        lmd_string: require('amd_lmd_string')
+    };
+});
+}),
+"amd_amd_shortcut": (function (require) { /* wrapped by builder */
+var define = require.define;
+define(["amd_shortcut", "require"], function (amd_shortcut, require) {
+
+    return {
+        amd_shortcut: amd_shortcut,
+        require_amd_shortcut: require('amd_shortcut')
     };
 });
 }),
@@ -5720,6 +5734,7 @@ define('amd_string');
     "ok": 1
 },
 "amd_lmd_string": "<b>LMD</b>",
+"amd_shortcut": "@amd_amd_string",
 "coverage_fully_covered": (function(require, exports, module) {
     var require = arguments[0];
     require.coverage_function("coverage_fully_covered", "(?):0:1");
@@ -5798,18 +5813,28 @@ define('amd_string');
         var b = test();
     }
 }),
-"coverage_amd_fully_covered": (function (require) { /* wrapped by builder */
-var define = require.define;
-define(function () {
-    var a = '123';
-    function test() {
-        return a;
-    }
-
-    if (typeof true === "boolean") {
-        var b = test();
-    }
-});
+"coverage_amd_fully_covered": (function(require) {
+    var require = arguments[0];
+    require.coverage_function("coverage_amd_fully_covered", "(?):0:1");
+    require.coverage_line("coverage_amd_fully_covered", "1");
+    var define = require.define;
+    require.coverage_line("coverage_amd_fully_covered", "2");
+    define(function() {
+        require.coverage_function("coverage_amd_fully_covered", "(?):2:83");
+        require.coverage_line("coverage_amd_fully_covered", "3");
+        var a = "123";
+        require.coverage_line("coverage_amd_fully_covered", "4");
+        function test() {
+            require.coverage_function("coverage_amd_fully_covered", "test:4:120");
+            require.coverage_line("coverage_amd_fully_covered", "5");
+            return a;
+        }
+        require.coverage_line("coverage_amd_fully_covered", "8");
+        if (require.coverage_condition("coverage_amd_fully_covered", "if:8:171", typeof true === "boolean")) {
+            require.coverage_line("coverage_amd_fully_covered", "9");
+            var b = test();
+        }
+    });
 }),
 "coverage_fully_covered_async": "@/modules/coverage/fully_covered_async.js",
 "coverage_not_functions_async": "@/modules/coverage/not_functions_async.js",
@@ -6409,8 +6434,16 @@ return {
     });
 
     test("AMD Coverage", function () {
-        // coverage_amd_fully_covered
-        ok(false);
+        expect(3);
+
+        require("coverage_amd_fully_covered");
+
+        var stats = require.stats(),
+            coverage = stats.modules["coverage_amd_fully_covered"].coverage;
+
+        ok(coverage.conditions.percentage === 100, "conditions OK");
+        ok(coverage.functions.percentage === 100, "functions OK");
+        ok(coverage.lines.percentage === 100, "lines OK");
     });
 }),
 "testcase_lmd_cache": (function (require) {
@@ -6473,6 +6506,7 @@ return {
         module = require('module'),
         ok = require('ok'),
         expect = require('expect'),
+        equal = require('equal'),
         $ = require('$'),
         raises = require('raises'),
 
@@ -6481,30 +6515,101 @@ return {
     module('LMD AMD module adaptor @ ' + ENV_NAME);
 
     test("object and strings", function () {
-        ok(false);
+        expect(6);
+
+        var amd_object = require('amd_amd_object'),
+            amd_string = require('amd_amd_string');
+
+        equal('amd_string', amd_string, 'Should define strings');
+        /*{
+            "string": "1",
+            "function": function () {
+                return true;
+            },
+            "object": {}
+        }*/
+        equal("object", typeof amd_object, 'Should define objects');
+        equal("object", typeof amd_object.object, 'Should define objects in object');
+        equal(true, amd_object.function(), 'Should define functions in object');
+        equal("1", amd_object.string, 'Should define strings in object');
+        equal(amd_object, require('amd_amd_object'), 'Should init once');
     });
 
     test("depends", function () {
-        ok(false);
+        expect(4);
+        var amd_function_deps = require('amd_amd_function_deps');
+
+        /*{
+            amd_string: require("amd_string"),
+            amd_object: amd_object
+        }*/
+        equal("object", typeof amd_function_deps, 'Should be an object');
+        equal('amd_string', amd_function_deps.amd_string, 'Should require directly');
+        equal('object', typeof amd_function_deps.amd_object, 'Should require using deps');
+        equal(amd_function_deps.amd_object, require('amd_amd_object'), 'Should init once');
     });
 
     test("no depends", function () {
-        ok(false);
+        expect(4);
+        var amd_function_nodeps = require('amd_amd_function_nodeps');
+
+        /*{
+            amd_string: require('amd_amd_function_deps').amd_string,
+            some_extra_number: 1,
+            typeof_exports: typeof exports,
+            typeof_module: typeof module
+        }*/
+        equal("string", typeof amd_function_nodeps.amd_string, 'Can require');
+        equal('object', amd_function_nodeps.typeof_exports, 'Should pass exports');
+        equal('object', amd_function_nodeps.typeof_module, 'Should pass module');
+        equal(true, amd_function_nodeps.module_eq_module_exports, 'module.exports = exports');
+
     });
 
     test("module name", function () {
-        ok(false);
+        expect(5);
+        var amd_function_name = require('amd_amd_function_name');
+
+        /*{
+            amd_string: require("amd_string"),
+            amd_object: amd_object
+        }*/
+        equal("object", typeof amd_function_name, 'Should be an object');
+        equal('amd_string', amd_function_name.amd_string, 'Should require directly');
+        equal('object', typeof amd_function_name.amd_object, 'Should require using deps');
+        equal(amd_function_name.amd_object, require('amd_amd_object'), 'Should init once');
+        equal("undefined", typeof require("amd_function_name!!!"), "Should not define objects using define(name)");
     });
 
     test("multi define", function () {
-        ok(false);
+        var amd_multi_define = require('amd_amd_multi_define');
+
+        equal("ok", amd_multi_define, "Should overwrite defines in one module");
     });
 
     test("require LMD module from AMD", function () {
-        ok(false);
+        var amd_require_lmd_module = require('amd_amd_require_lmd_module');
+
+        /*{
+            lmd_fe: require('lmd_fe'),
+            lmd_fd: require('lmd_fd'),
+            lmd_json: require('lmd_json'),
+            lmd_string: require('lmd_string')
+        }*/
+        equal(require('amd_lmd_fe'), amd_require_lmd_module.lmd_fe, 'Should require LMD FE');
+        equal(require('amd_lmd_fd'), amd_require_lmd_module.lmd_fd, 'Should require LMD FD');
+        equal(require('amd_lmd_json'), amd_require_lmd_module.lmd_json, 'Should require LMD JSON');
+        equal(require('amd_lmd_string'), amd_require_lmd_module.lmd_string, 'Should require LMD String');
+    });
+
+    test("AMD shortcuts", function () {
+        var amd_shortcut = require('amd_amd_shortcut');
+
+        equal(require("amd_amd_string"), amd_shortcut.amd_shortcut, "Should follow shortcut by deps");
+        equal(require("amd_amd_string"), amd_shortcut.require_amd_shortcut, "Should follow shortcut by require");
     });
 
 }),
 "sk_css_css": "@/modules/shortcuts/css.css",
 "sk_js_js": "@/modules/shortcuts/js.js"
-},{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"],"coverage":1},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[],"coverage":1},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"],"coverage":1},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"],"coverage":1},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"],"coverage":1},"module_function_fd_sandboxed":{"sandbox":1},"module_function_fe_sandboxed":{"sandbox":1},"module_function_plain_sandboxed":{"sandbox":1}})
+},{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"],"coverage":1},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[],"coverage":1},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"],"coverage":1},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"],"coverage":1},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"],"coverage":1},"coverage_amd_fully_covered":{"lines":["1","2","3","4","5","8","9"],"conditions":["if:8:171"],"functions":["(?):0:1","(?):2:83","test:4:120"],"coverage":1},"module_function_fd_sandboxed":{"sandbox":1},"module_function_fe_sandboxed":{"sandbox":1},"module_function_plain_sandboxed":{"sandbox":1}})

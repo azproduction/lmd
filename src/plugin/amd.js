@@ -62,7 +62,8 @@ sb.require.define = function (name, deps, module) {
                 deps[i] = currentRequire(deps[i]);
         }
     }
-    amdModules[currentModule] = module.apply(this, deps) || output.exports;
+    module = module.apply(this, deps) || output.exports;
+    amdModules[currentModule] = module;
 };
 
 // First called this than called few of define

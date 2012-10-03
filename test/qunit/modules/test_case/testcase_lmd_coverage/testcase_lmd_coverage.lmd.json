@@ -26,7 +26,8 @@
         "coverage_not_conditions",
         "coverage_not_functions",
         "coverage_not_statements",
-        "coverage_not_covered"
+        "coverage_not_covered",
+        "coverage_amd_fully_covered"
     ],
     "stats_coverage_async": true
 }
