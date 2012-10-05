@@ -25,13 +25,17 @@ mock_modules["./squeeze-more"] = {};
 
 mock_modules["./parse-js"] = (function () {
 var exports = {};
+//#JSCOVERAGE_IF 0
 /*if ($P.STATS_COVERAGE_ASYNC) include('../vendors/parse-js.js');*/
+//#JSCOVERAGE_ENDIF
 return exports;
 }());
 
 mock_modules["./process"] = (function (require) {
 var exports = {};
+//#JSCOVERAGE_IF 0
 /*if ($P.STATS_COVERAGE_ASYNC) include('../vendors/process.js');*/
+//#JSCOVERAGE_ENDIF
 return exports;
 }(mock_require));
 
@@ -41,7 +45,9 @@ mock_modules["uglify-js"] = {
 };
 
 (function (require, exports) {
+//#JSCOVERAGE_IF 0
 /*if ($P.STATS_COVERAGE_ASYNC) include('../../lib/coverage_apply.js');*/
+//#JSCOVERAGE_ENDIF
 } (mock_require, mock_exports));
 
 var interpret = mock_exports.interpret;

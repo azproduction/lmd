@@ -13,9 +13,9 @@ build_test:
 coverage: build_test
 	rm -rf coverage/*
 	jscoverage --exclude=modules --exclude=vendors --exclude=mock ./test/qunit ./test/coverage
-	cp -R ./test/qunit/modules ./test/coverage/modules
-	cp -R ./test/qunit/mock ./test/coverage/mock
-	cp -R ./test/qunit/vendors ./test/coverage/vendors
+	cp -R ./test/qunit/modules ./test/coverage
+	cp -R ./test/qunit/mock ./test/coverage
+	cp -R ./test/qunit/vendors ./test/coverage
 
 run_qunit:
 	http-server ./test/qunit/

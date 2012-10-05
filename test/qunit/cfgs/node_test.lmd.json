@@ -5,7 +5,8 @@
 
     "modules": {
         "testcase_lmd_async_require": "test_case/testcase_lmd_async_require/testcase_lmd_async_require.node.js",
-        "testcase_lmd_loader": "test_case/testcase_lmd_loader/testcase_lmd_loader.node.js"
+        "testcase_lmd_loader": "test_case/testcase_lmd_loader/testcase_lmd_loader.node.js",
+        "testcase_lmd_cache": "test_case/testcase_lmd_cache/testcase_lmd_cache.noop.js"
     },
 
     "global": "node_global_environment",
@@ -16,5 +17,6 @@
 
     "pack": false,
 
-    "node": true
+    "node": true,
+    "ie": false
 }

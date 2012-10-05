@@ -1,4 +1,5 @@
 .idea/
 node_modules/
 test/coverage/*
+test/qunit/out/*.js
 examples/mock_chat/logs/*
