@@ -706,12 +706,12 @@ require.js("jquery", function () {
 
  - Flag `amd`
 
-If your project is using AMD (RequireJS) modules and you want to play with LMD - you can just anable flag `amd` and use your
+If your project is using AMD (RequireJS) modules and you want to play with LMD - you can just enable flag `amd` and use your
 AMD modules without any changes!
 
 #### Example
 
-1. This is your RequireJS config
+  * This is your RequireJS config
 
 ```javascript
 requirejs.config({
@@ -724,7 +724,7 @@ requirejs.config({
 });
 ```
 
-2. Transform it to LMD `config.json`. Do not forget to add `.js` tail to your paths.
+  * First transform it to LMD `config.json`. Do not forget to add `.js` tail to your paths.
 
 `"main"` module will be called first.
 
@@ -742,17 +742,17 @@ requirejs.config({
 }
 ```
 
-3. Than make lmd package `lmd config.json result.js`
+  * Than build lmd package `lmd config.json result.js`
 
-4. Yahoo! - now you can use all LMD features (code coverage, stats) with your AMD modules!
+  * Yahoo! - now you can use all LMD features (code coverage, stats) with your AMD modules!
 
 see [examples/mock_chat/js/amd](/azproduction/lmd/tree/master/examples/mock_chat/js/amd) for real example
 
 #### Limitations
 
-  1. All your AMD modules and adpends should be declard in `modules` section
-  2. Name filed in `define('name')` is ignored
-  3. All your modules files whould contain only one `define()`
+  1. All your AMD modules and depends should be declared in `modules` section (only in-package AMD modules are allowed)
+  2. Name parameter in `define('name')` is ignored (anonymous defines only)
+  3. All your modules files should contain only one `define()` (last one will be declared)
 
 ## Module features
 
