@@ -49,6 +49,7 @@ var node_global_environment = {
     start: this.start,
     module: this.module,
     ok: this.ok,
+    equal: this.equal,
     expect: this.expect,
     $: this.$,
     raises: this.raises

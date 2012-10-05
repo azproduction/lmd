@@ -4,13 +4,12 @@ var system = require('system'),
 
 page.onConsoleMessage = function (msg) {
 	console.log(msg);
-	if (/^Tests completed in/.test(msg) || /^\s+Assertion failed/.test(msg)) {
-		phantom.exit(page.evaluate(function () {
-			if (window.QUnit && QUnit.config && QUnit.config.stats) {
-				return QUnit.config.stats.bad || 0;
-			}
-			return 1;
-		}));
+    if (/^\s+Assertion failed/.test(msg)) {
+        phantom.exit(1);
+    }
+
+	if (/^Tests completed in/.test(msg)) {
+        phantom.exit(0);
 	}
 };
 

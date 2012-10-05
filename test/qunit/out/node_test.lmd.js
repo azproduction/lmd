@@ -1,4 +1,4 @@
-(function (global, main, modules, sandboxed_modules, coverage_options) {
+(function (global, main, modules, modules_options) {
     var initialized_modules = {},
         global_eval = function (code) {
             return global.Function('return ' + code)();
@@ -24,18 +24,20 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require;
+                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, require)[1];
 
-                if (sandboxed_modules[moduleName]) {
-                    module_require = lmd_trigger('lmd-register:call-sandboxed-module', moduleName, require)[1];
-                } else {
-                    module_require = lmd_trigger('lmd-register:call-module', moduleName, require)[1];
+                // Make sure that sandboxed modules cant require
+                if (modules_options[moduleName] &&
+                    modules_options[moduleName].sandbox &&
+                    typeof module_require === "function") {
+
+                    module_require = local_undefined;
                 }
 
                 module = module(module_require, output.exports, output) || output.exports;
             }
 
-            lmd_trigger('lmd-register:after-register', moduleName, module);
+            module = lmd_trigger('lmd-register:after-register', moduleName, module)[1];
             return modules[moduleName] = module;
         },
         /**
@@ -56,6 +58,12 @@
             if (list) {
                 for (var i = 0, c = list.length; i < c; i++) {
                     result = list[i](data, data2, data3) || result;
+                    if (result) {
+                        // enable decoration
+                        data = result[0] || data;
+                        data2 = result[1] || data2;
+                        data3 = result[2] || data3;
+                    }
                 }
             }
             return result || [data, data2, data3];
@@ -109,7 +117,7 @@
         sandbox = {
             global: global,
             modules: modules,
-            sandboxed: sandboxed_modules,
+            modules_options: modules_options,
 
             eval: global_eval,
             register: register_module,
@@ -121,7 +129,6 @@
             
             
             
-            coverage_options: coverage_options,
 
             on: lmd_on,
             trigger: lmd_trigger,
@@ -930,24 +937,28 @@ function stats_require_module(moduleName, byModuleName) {
 
 function stats_wrap_require_method(method, thisObject, byModuleName) {
     return function (moduleName) {
-        var moduleNames = [];
-        if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
-            moduleNames = [moduleName];
-        } else {
-            moduleNames = moduleName;
-        }
-
-        for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
-            moduleNamesItem = moduleNames[i];
-            module = sb.modules[moduleNamesItem];
-
-            var replacement = sb.trigger('stats:before-require-count', moduleNamesItem, module);
-            if (replacement) {
-                moduleNamesItem = replacement[0];
-            }
-            stats_require_module(moduleNamesItem, byModuleName);
-        }
+        stats_require_modules(moduleName, byModuleName);
         return method.apply(thisObject, arguments);
+    }
+}
+
+function stats_require_modules(moduleName, byModuleName) {
+    var moduleNames = [];
+    if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
+        moduleNames = [moduleName];
+    } else {
+        moduleNames = moduleName;
+    }
+
+    for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
+        moduleNamesItem = moduleNames[i];
+        module = sb.modules[moduleNamesItem];
+
+        var replacement = sb.trigger('stats:before-require-count', moduleNamesItem, module);
+        if (replacement) {
+            moduleNamesItem = replacement[0];
+        }
+        stats_require_module(moduleNamesItem, byModuleName);
     }
 }
 
@@ -1016,14 +1027,18 @@ require.stats = function (moduleName) {
 };
 
     /**
-     * @event lmd-register:call-module request for fake require
+     * @event lmd-register:decorate-require request for fake require
      *
      * @param {String} moduleName
      * @param {Object} module
      *
      * @retuns yes wraps require
      */
-sb.on('lmd-register:call-module', function (moduleName, require) {
+sb.on('lmd-register:decorate-require', function (moduleName, require) {
+    var options = sb.modules_options[moduleName] || {};
+    if (options.sandbox) {
+        return;
+    }
     return [moduleName, stats_wrap_require(require, moduleName)];
 });
 
@@ -1335,9 +1350,12 @@ function coverage_module(moduleName, lines, conditions, functions) {
 
 (function () {
     var moduleOption;
-    for (var moduleName in coverage_options) {
-        if (coverage_options.hasOwnProperty(moduleName)) {
-            moduleOption = coverage_options[moduleName];
+    for (var moduleName in sb.modules_options) {
+        if (sb.modules_options.hasOwnProperty(moduleName)) {
+            moduleOption = sb.modules_options[moduleName];
+            if (!moduleOption.coverage) {
+                continue;
+            }
             coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
             sb.trigger('*:stats-type', moduleName, 'in-package');
         }
@@ -1356,16 +1374,11 @@ sb.on('*:stats-coverage', function (moduleName, moduleOption) {
     coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
 });
 
-    /**
-     * @event lmd-register:call-sandboxed-module register_module is goint to call sandboxed module
-     *        and requests for require wrapper for sandboxed module
-     *
-     * @param {String}        moduleName
-     * @param {Function|Null} require default require
-     *
-     * @retuns yes creates fake require
-     */
-sb.on('lmd-register:call-sandboxed-module', function (moduleName, require) {
+sb.on('lmd-register:decorate-require', function (moduleName, require) {
+    var options = sb.modules_options[moduleName] || {};
+    if (!options.sandbox) {
+        return;
+    }
     return [moduleName, {
         coverage_line: require.coverage_line,
         coverage_function: require.coverage_function,
@@ -5548,14 +5561,116 @@ sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
 
 }(sandbox));
 
+/**
+ * @name sandbox
+ */
+(function (sb) {
+
+var amdModules = {},
+    currentModule,
+    currentRequire;
+
+/**
+ * RequireJS & AMD-style define
+ *
+ * (function (require) {
+ *     var define = require.define;
+ *
+ *     define(["a"], function (a) {
+ *          return a + 2;
+ *     });
+ * })
+ *
+ * @param name
+ * @param deps
+ * @param module
+ */
+var define = function (name, deps, module) {
+    switch (arguments.length) {
+        case 1: // define(function () {})
+            module = name;
+            deps = name = sb.undefined;
+            break;
+
+        case 2: // define(['a', 'b'], function () {})
+            module = deps;
+            deps = name;
+            name = sb.undefined;
+            break;
+
+        case 3: // define('name', ['a', 'b'], function () {})
+    }
+
+    if (typeof module !== "function") {
+        amdModules[currentModule] = module;
+        return;
+    }
+
+    var output = {exports: {}};
+    if (!deps) {
+        deps = ["require", "exports", "module"];
+    }
+    for (var i = 0, c = deps.length; i < c; i++) {
+        switch (deps[i]) {
+            case "require":
+                deps[i] = currentRequire;
+                break;
+            case "module":
+                deps[i] = output;
+                break;
+            case "exports":
+                deps[i] = output.exports;
+                break;
+            default:
+                deps[i] = currentRequire && currentRequire(deps[i]);
+        }
+    }
+    module = module.apply(this, deps) || output.exports;
+    amdModules[currentModule] = module;
+};
+
+sb.require.define = define;
+
+// First called this than called few of define
+sb.on('lmd-register:decorate-require', function (moduleName, require) {
+    var options = sb.modules_options[moduleName] || {};
+    // grab current require and module name
+    currentModule = moduleName;
+
+    if (options.sandbox) {
+        currentRequire = sb.undefined;
+        if (typeof require === "function") {
+            require = {};
+        }
+        require.define = define;
+    } else {
+        currentRequire = require;
+    }
+
+    return [moduleName, require];
+});
+
+// Than called this
+sb.on('lmd-register:after-register', function (moduleName, module) {
+    if (amdModules.hasOwnProperty(currentModule)) {
+        module = amdModules[currentModule];
+        delete amdModules[currentModule];
+
+        return [moduleName, module];
+    }
+});
+
+}(sandbox));
 
 
-    main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
+
+    main(lmd_trigger('lmd-register:decorate-require', "main", require)[1], output.exports, output);
 })/*DO NOT ADD ; !*/(node_global_environment,(function (require) {
     // common for BOM Node and Worker Envs
     require('testcase_lmd_basic_features');
 
-    // common for BOM and Worker Envs, Node uses testcase_lmd_async_require.node.js
+    // common for BOM and Worker Envs
+    // Node uses testcase_lmd_async_require.node.js
     require('testcase_lmd_async_require');
 
     // BOM uses testcase_lmd_loader.js,
@@ -5568,7 +5683,116 @@ sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
 
     // Coverage
     require('testcase_lmd_coverage');
+
+    // AMD Modules
+    require('testcase_lmd_amd');
 }),{
+"amd_amd_function_deps": (function (require) { /* wrapped by builder */
+var define = require.define;
+define(["module", "require", "amd_amd_object"],
+function (module, require, amd_object) {
+
+    module.exports = {
+        amd_string: require("amd_amd_string"),
+        amd_object: amd_object
+    };
+});
+}),
+"amd_amd_function_name": (function (require) { /* wrapped by builder */
+var define = require.define;
+define("amd_function_name!!!", ["module", "require", "amd_amd_object"],
+function (module, require, amd_object) {
+
+    module.exports = {
+        amd_string: require("amd_amd_string"),
+        amd_object: amd_object
+    };
+});
+}),
+"amd_amd_function_nodeps": (function (require) { /* wrapped by builder */
+var define = require.define;
+define(function (require, exports, module) {
+
+    return {
+        amd_string: require('amd_amd_function_deps').amd_string,
+        some_extra_number: 1,
+        typeof_exports: typeof exports,
+        typeof_module: typeof module,
+        module_eq_module_exports: module.exports === exports
+    };
+});
+}),
+"amd_amd_multi_define": (function (require) { /* wrapped by builder */
+var define = require.define;
+define({});
+
+define("not ok");
+
+define(function () {
+
+    return "ok";
+});
+}),
+"amd_amd_object": (function (require) { /* wrapped by builder */
+var define = require.define;
+define({
+    "string": "1",
+    "function": function () {
+        return true;
+    },
+    "object": {}
+});
+}),
+"amd_amd_require_lmd_module": (function (require) { /* wrapped by builder */
+var define = require.define;
+define(function (require) {
+
+    return {
+        lmd_fe: require('amd_lmd_fe'),
+        lmd_fd: require('amd_lmd_fd'),
+        lmd_json: require('amd_lmd_json'),
+        lmd_string: require('amd_lmd_string')
+    };
+});
+}),
+"amd_amd_sandbox": (function (require) { /* wrapped by builder */
+var define = require.define;
+define(["require", "amd_amd_string"], function (require, amd_string) {
+
+    return typeof require === "undefined" && typeof amd_string === "undefined";
+});
+}),
+"amd_amd_shortcut": (function (require) { /* wrapped by builder */
+var define = require.define;
+define(["amd_shortcut", "require"], function (amd_shortcut, require) {
+
+    return {
+        amd_shortcut: amd_shortcut,
+        require_amd_shortcut: require('amd_shortcut')
+    };
+});
+}),
+"amd_amd_string": (function (require) { /* wrapped by builder */
+var define = require.define;
+define('amd_string');
+}),
+"amd_lmd_fd": function lmd_fd(require) {
+
+    return function () {
+        return "ok";
+    }
+},
+"amd_lmd_fe": (function (require) {
+
+    return function () {
+        return "ok";
+    }
+}),
+"amd_lmd_json": {
+    "ok": 1
+},
+"amd_lmd_string": "<b>LMD</b>",
+"amd_shortcut": "@amd_amd_string",
 "coverage_fully_covered": (function(require, exports, module) {
     var require = arguments[0];
     require.coverage_function("coverage_fully_covered", "(?):0:1");
@@ -5646,6 +5870,29 @@ sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
         require.coverage_line("coverage_not_covered", "7");
         var b = test();
     }
+}),
+"coverage_amd_fully_covered": (function(require) {
+    var require = arguments[0];
+    require.coverage_function("coverage_amd_fully_covered", "(?):-1:1");
+    require.coverage_line("coverage_amd_fully_covered", "0");
+    var define = require.define;
+    require.coverage_line("coverage_amd_fully_covered", "1");
+    define(function() {
+        require.coverage_function("coverage_amd_fully_covered", "(?):1:83");
+        require.coverage_line("coverage_amd_fully_covered", "2");
+        var a = "123";
+        require.coverage_line("coverage_amd_fully_covered", "3");
+        function test() {
+            require.coverage_function("coverage_amd_fully_covered", "test:3:120");
+            require.coverage_line("coverage_amd_fully_covered", "4");
+            return a;
+        }
+        require.coverage_line("coverage_amd_fully_covered", "7");
+        if (require.coverage_condition("coverage_amd_fully_covered", "if:7:171", typeof true === "boolean")) {
+            require.coverage_line("coverage_amd_fully_covered", "8");
+            var b = test();
+        }
+    });
 }),
 "coverage_fully_covered_async": "@/modules/coverage/fully_covered_async.js",
 "coverage_not_functions_async": "@/modules/coverage/not_functions_async.js",
@@ -6210,6 +6457,19 @@ return {
             start();
         });
     });
+
+    test("AMD Coverage & Coverage under sandbox", function () {
+        expect(3);
+
+        require("coverage_amd_fully_covered");
+
+        var stats = require.stats(),
+            coverage = stats.modules["coverage_amd_fully_covered"].coverage;
+
+        ok(coverage.conditions.percentage === 100, "conditions OK");
+        ok(coverage.functions.percentage === 100, "functions OK");
+        ok(coverage.lines.percentage === 100, "lines OK");
+    });
 }),
 "testcase_lmd_cache": (function (require) {
     var test = require('test'),
@@ -6245,7 +6505,7 @@ return {
         ok(typeof lmd.modules === 'object', 'Should save modules');
         ok(typeof lmd.main === 'string', 'Should save main function as string');
         ok(typeof lmd.lmd === 'string', 'Should save lmd source as string');
-        ok(typeof lmd.sandboxed === 'object', 'Should save sandboxed modules');
+        ok(typeof lmd.options === 'object', 'Should save modules options');
 
         require.async('./modules/async/module_function_async.js', function (module_function_async) {
             var key = 'lmd:' + PACKAGE_VERSION + ':' + './modules/async/module_function_async.js';
@@ -6264,6 +6524,123 @@ return {
         });
     });
 }),
+"testcase_lmd_amd": (function (require) {
+    var test = require('test'),
+        asyncTest = require('asyncTest'),
+        start = require('start'),
+        module = require('module'),
+        ok = require('ok'),
+        expect = require('expect'),
+        equal = require('equal'),
+        $ = require('$'),
+        raises = require('raises'),
+
+        ENV_NAME = require('worker_some_global_var') ? 'Worker' : require('node_some_global_var') ? 'Node' : 'DOM';
+
+    module('LMD AMD module adaptor @ ' + ENV_NAME);
+
+    test("AMD object and strings", function () {
+        expect(6);
+
+        var amd_object = require('amd_amd_object'),
+            amd_string = require('amd_amd_string');
+
+        equal('amd_string', amd_string, 'Should define strings');
+        /*{
+            "string": "1",
+            "function": function () {
+                return true;
+            },
+            "object": {}
+        }*/
+        equal("object", typeof amd_object, 'Should define objects');
+        equal("object", typeof amd_object.object, 'Should define objects in object');
+        equal(true, amd_object.function(), 'Should define functions in object');
+        equal("1", amd_object.string, 'Should define strings in object');
+        equal(amd_object, require('amd_amd_object'), 'Should init once');
+    });
+
+    test("AMD depends", function () {
+        expect(4);
+        var amd_function_deps = require('amd_amd_function_deps');
+
+        /*{
+            amd_string: require("amd_string"),
+            amd_object: amd_object
+        }*/
+        equal("object", typeof amd_function_deps, 'Should be an object');
+        equal('amd_string', amd_function_deps.amd_string, 'Should require directly');
+        equal('object', typeof amd_function_deps.amd_object, 'Should require using deps');
+        equal(amd_function_deps.amd_object, require('amd_amd_object'), 'Should init once');
+    });
+
+    test("AMD no depends", function () {
+        expect(4);
+        var amd_function_nodeps = require('amd_amd_function_nodeps');
+
+        /*{
+            amd_string: require('amd_amd_function_deps').amd_string,
+            some_extra_number: 1,
+            typeof_exports: typeof exports,
+            typeof_module: typeof module
+        }*/
+        equal("string", typeof amd_function_nodeps.amd_string, 'Can require');
+        equal('object', amd_function_nodeps.typeof_exports, 'Should pass exports');
+        equal('object', amd_function_nodeps.typeof_module, 'Should pass module');
+        equal(true, amd_function_nodeps.module_eq_module_exports, 'module.exports = exports');
+
+    });
+
+    test("AMD module name", function () {
+        expect(5);
+        var amd_function_name = require('amd_amd_function_name');
+
+        /*{
+            amd_string: require("amd_string"),
+            amd_object: amd_object
+        }*/
+        equal("object", typeof amd_function_name, 'Should be an object');
+        equal('amd_string', amd_function_name.amd_string, 'Should require directly');
+        equal('object', typeof amd_function_name.amd_object, 'Should require using deps');
+        equal(amd_function_name.amd_object, require('amd_amd_object'), 'Should init once');
+        equal("undefined", typeof require("amd_function_name!!!"), "Should not define objects using define(name)");
+    });
+
+    test("AMD multi define", function () {
+        var amd_multi_define = require('amd_amd_multi_define');
+
+        equal("ok", amd_multi_define, "Should overwrite defines in one module");
+    });
+
+    test("AMD require LMD module", function () {
+        var amd_require_lmd_module = require('amd_amd_require_lmd_module');
+
+        /*{
+            lmd_fe: require('lmd_fe'),
+            lmd_fd: require('lmd_fd'),
+            lmd_json: require('lmd_json'),
+            lmd_string: require('lmd_string')
+        }*/
+        equal(require('amd_lmd_fe'), amd_require_lmd_module.lmd_fe, 'Should require LMD FE');
+        equal(require('amd_lmd_fd'), amd_require_lmd_module.lmd_fd, 'Should require LMD FD');
+        equal(require('amd_lmd_json'), amd_require_lmd_module.lmd_json, 'Should require LMD JSON');
+        equal(require('amd_lmd_string'), amd_require_lmd_module.lmd_string, 'Should require LMD String');
+    });
+
+    test("AMD shortcuts", function () {
+        var amd_shortcut = require('amd_amd_shortcut');
+
+        equal(require("amd_amd_string"), amd_shortcut.amd_shortcut, "Should follow shortcut by deps");
+        equal(require("amd_amd_string"), amd_shortcut.require_amd_shortcut, "Should follow shortcut by require");
+    });
+
+    test("AMD sandbox", function () {
+        var amd_sandbox = require('amd_amd_sandbox');
+
+        equal(true, amd_sandbox, "Should be sandboxed");
+    });
+
+}),
 "sk_css_css": "@/modules/shortcuts/css.css",
 "sk_js_js": "@/modules/shortcuts/js.js",
 "module_function_fd2": function fd2(require, exports, module) {
@@ -6276,4 +6653,4 @@ return {
 "sk_async_html": "@/modules/shortcuts/async.html",
 "sk_async_js": "@/modules/shortcuts/async.js",
 "sk_async_json": "@/modules/shortcuts/async.json"
-},{"module_function_fd_sandboxed":true,"module_function_fe_sandboxed":true,"module_function_plain_sandboxed":true},{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"]},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[]},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"]},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"]},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"]}})
+},{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"],"coverage":1},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[],"coverage":1},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"],"coverage":1},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"],"coverage":1},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"],"coverage":1},"coverage_amd_fully_covered":{"lines":["0","1","2","3","4","7","8"],"conditions":["if:7:171"],"functions":["(?):-1:1","(?):1:83","test:3:120"],"coverage":1,"sandbox":1},"amd_amd_sandbox":{"sandbox":1},"module_function_fd_sandboxed":{"sandbox":1},"module_function_fe_sandboxed":{"sandbox":1},"module_function_plain_sandboxed":{"sandbox":1}})

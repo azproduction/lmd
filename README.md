@@ -238,6 +238,7 @@ For templates
 
     // ## Extra module types
     "shortcuts": true,
+    "amd": true,
 
     // ## Stats and Code coverage
     "stats": true,
@@ -476,6 +477,11 @@ new Lmd.watch("path/to/lmd.json", "path/to/result/lmd.js")
         <td>enables shortcuts in LMD package</td>
         <td>false</td>
     </tr>
+    <tr>
+        <td>amd</td>
+        <td>enables AMD modules in LMD package</td>
+        <td>false</td>
+    </tr>
 </table>
 
 ### Stats and Code coverage
@@ -695,6 +701,58 @@ require.js("jquery", function () {
     });
 });
 ```
+
+### AMD modules (RequireJS)
+
+ - Flag `amd`
+
+If your project is using AMD (RequireJS) modules and you want to play with LMD - you can just anable flag `amd` and use your
+AMD modules without any changes!
+
+#### Example
+
+1. This is your RequireJS config
+
+```javascript
+requirejs.config({
+    paths: {
+        main: 'path/to/main',
+        jquery: 'path/to/third-party/jquery.min',
+        underscore: 'path/to/third-party/underscore.min',
+        backbone: 'path/to/third-party/backbone.min',
+    }
+});
+```
+
+2. Transform it to LMD `config.json`. Do not forget to add `.js` tail to your paths.
+
+`"main"` module will be called first.
+
+```javascript
+{
+    "root": "path/to/",
+    "modules": {
+        "main": "main.js",
+        "jquery": "third-party/jquery.min.js",
+        "underscore": "third-party/underscore.min.js",
+        "backbone": "third-party/backbone.min.js"
+    },
+
+    "amd": true
+}
+```
+
+3. Than make lmd package `lmd config.json result.js`
+
+4. Yahoo! - now you can use all LMD features (code coverage, stats) with your AMD modules!
+
+see [examples/mock_chat/js/amd](/azproduction/lmd/tree/master/examples/mock_chat/js/amd) for real example
+
+#### Limitations
+
+  1. All your AMD modules and adpends should be declard in `modules` section
+  2. Name filed in `define('name')` is ignored
+  3. All your modules files whould contain only one `define()`
 
 ## Module features
 
@@ -1381,7 +1439,7 @@ _Listener returns context:_ no
 
 _Listener returns context:_ no
 
-#### lmd-register:call-module
+#### lmd-register:decorate-require
 
  request for fake require
 
@@ -1389,15 +1447,6 @@ _Listener returns context:_ no
   * `{Object}` module
 
 _Listener returns context:_ yes wraps require
-
-#### lmd-register:call-sandboxed-module
-
- register_module is goint to call sandboxed module and requests for require wrapper for sandboxed module
-
-  * `{String}`        moduleName
-  * `{Function|Null}` require default require
-
-_Listener returns context:_ yes creates fake require
 
 #### lmd-require:before-check
 
@@ -1512,6 +1561,7 @@ _Listener returns context:_ yes depend on moduleName value returns empty array o
   - Tail semicolons cleanup
   - Lmd is Readable Stream
   - Lmd Watch upstart rebuild, watch for lmd.json
+  - AMD module adaptor `amd` flag
 
 ## Licence
 

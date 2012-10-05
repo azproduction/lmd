@@ -152,9 +152,12 @@ function coverage_module(moduleName, lines, conditions, functions) {
 
 (function () {
     var moduleOption;
-    for (var moduleName in coverage_options) {
-        if (coverage_options.hasOwnProperty(moduleName)) {
-            moduleOption = coverage_options[moduleName];
+    for (var moduleName in sb.modules_options) {
+        if (sb.modules_options.hasOwnProperty(moduleName)) {
+            moduleOption = sb.modules_options[moduleName];
+            if (!moduleOption.coverage) {
+                continue;
+            }
             coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
             sb.trigger('*:stats-type', moduleName, 'in-package');
         }
@@ -173,16 +176,11 @@ sb.on('*:stats-coverage', function (moduleName, moduleOption) {
     coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
 });
 
-    /**
-     * @event lmd-register:call-sandboxed-module register_module is goint to call sandboxed module
-     *        and requests for require wrapper for sandboxed module
-     *
-     * @param {String}        moduleName
-     * @param {Function|Null} require default require
-     *
-     * @retuns yes creates fake require
-     */
-sb.on('lmd-register:call-sandboxed-module', function (moduleName, require) {
+sb.on('lmd-register:decorate-require', function (moduleName, require) {
+    var options = sb.modules_options[moduleName] || {};
+    if (!options.sandbox) {
+        return;
+    }
     return [moduleName, {
         coverage_line: require.coverage_line,
         coverage_function: require.coverage_function,

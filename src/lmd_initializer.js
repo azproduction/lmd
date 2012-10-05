@@ -55,7 +55,7 @@
             } catch (e) {}
             if (lmd && main) {
                 // do not catch module's errors
-                lmd(global, main, json.modules, json.sandboxed);
+                lmd(global, main, json.modules, json.options);
                 return;
             }
             // if error or version do not match - wipe cache

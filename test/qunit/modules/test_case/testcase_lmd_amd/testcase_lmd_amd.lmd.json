@@ -1,0 +1,18 @@
+{
+    "root": "../../amd/",
+
+    "modules": {
+        "amd_*": "*.(?:js|json|html)",
+
+        "amd_shortcut": "@amd_amd_string",
+
+        "amd_amd_sandbox": {
+            "path": "amd_sandbox.js",
+            "sandbox": true
+        }
+    },
+    "depends": false,
+
+    "amd": true,
+    "shortcuts": true
+}

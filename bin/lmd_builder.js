@@ -193,10 +193,9 @@ LmdBuilder.prototype.closeStreams = function () {
  * @param {Object} data
  */
 LmdBuilder.prototype.template = function (data) {
-    return data.lmd_js + '(' + data.global + ',' + data.lmd_main + ',' + data.lmd_modules + ',' + data.sandboxed_modules +
+    return data.lmd_js + '(' + data.global + ',' + data.lmd_main + ',' + data.lmd_modules + ',' + data.modules_options +
         // if version passed
         (data.version ? ',' + data.version : '') +
-        (data.coverage_options ? ',' + data.coverage_options : '') +
     ')';
 };
 
@@ -555,21 +554,17 @@ LmdBuilder.prototype.removeTailSemicolons = function (code) {
  * Checks if code is plain module
  *
  * @param code
- * @return {Boolean}
+ * @return {String} df|fe|plain|amd
  */
-LmdBuilder.prototype.isPlainModule = function (code) {
-    try {
-        var ast = parser.parse(code);
-    } catch (e) {
-        throw new Error('parse error on ' + code);
-    }
+LmdBuilder.prototype.getModuleType = function (code) {
+    var ast = parser.parse(code);
 
     // ["toplevel",[["defun","depA",["require"],[]]]]
     if (ast && ast.length === 2 &&
         ast[1] && ast[1].length === 1 &&
         ast[1][0][0] === "defun"
         ) {
-        return false;
+        return "fd";
     }
 
     // ["toplevel",[["stat",["function",null,["require"],[]]]]]
@@ -579,10 +574,23 @@ LmdBuilder.prototype.isPlainModule = function (code) {
         ast[1][0][1] &&
         ast[1][0][1][0] === "function"
         ) {
-        return false;
+        return "fe";
     }
 
-    return true;
+    if (ast) {
+        var isAmd = ast[1].every(function (ast) {
+            return ast[0] === "stat" &&
+                ast[1][0] === "call" &&
+                ast[1][1][0] === "name" &&
+                ast[1][1][1] === "define";
+        });
+
+        if (isAmd) {
+            return "amd";
+        }
+    }
+
+    return "plain";
 };
 
 /**
@@ -594,6 +602,17 @@ LmdBuilder.prototype.isPlainModule = function (code) {
  */
 LmdBuilder.prototype.wrapPlainModule = function (code) {
     return '(function (require, exports, module) { /* wrapped by builder */\n' + code + '\n})';
+};
+
+/**
+ * Wrapper for AMD files
+ *
+ * @param {String} code
+ *
+ * @returns {String} wrapped code
+ */
+LmdBuilder.prototype.wrapAmdModule = function (code) {
+    return '(function (require) { /* wrapped by builder */\nvar define = require.define;\n' + code + '\n})';
 };
 
 /**
@@ -664,13 +683,11 @@ LmdBuilder.prototype.escape = function (file) {
  * @param {String}  lmd_main
  * @param {Boolean} pack
  * @parma {Object}  pack_options
- * @param {Array}   sandboxed_modules
- * @param {Object}  [coverage_options]
+ * @param {Object}  modules_options
  *
  * @returns {String}
  */
-LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, pack_options, sandboxed_modules, coverage_options) {
-    sandboxed_modules = JSON.stringify(sandboxed_modules || {});
+LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, pack_options, modules_options) {
     var lmd_js = fs.readFileSync(LMD_JS_SRC_PATH + 'lmd.js', 'utf8'),
         result;
 
@@ -686,8 +703,7 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, pac
         global: config.global || 'this',
         lmd_main: lmd_main,
         lmd_modules: lmd_modules,
-        sandboxed_modules: sandboxed_modules,
-        coverage_options: coverage_options ? JSON.stringify(coverage_options) : false,
+        modules_options: JSON.stringify(modules_options),
         // if version passed -> module will be cached
         version: config.cache ? JSON.stringify(config.version) : false
     });
@@ -1090,16 +1106,17 @@ LmdBuilder.prototype.build = function () {
         pack = lazy ? true : (config.pack || false),
         moduleContent,
         lmdModules = [],
-        sandbox,
         lmdMain,
         lmdFile,
         isJson,
         isModule,
-        isPlainModule,
+        moduleType,
         coverageResult,
         globalsObjects,
-        coverageOptions = {},
+        modulesOptions = {},
         is_using_shortcuts = false,
+        is_using_amd = false,
+        parseErrorText,
         module,
         modules;
 
@@ -1142,18 +1159,21 @@ LmdBuilder.prototype.build = function () {
             }
 
             if (!isJson) {
-                isPlainModule = false;
+                moduleType = "plain";
+                parseErrorText = '';
                 try {
-                    isPlainModule = this.isPlainModule(moduleContent);
+                    moduleType = this.getModuleType(moduleContent);
                     isModule = true
                 } catch(e) {
+                    parseErrorText = e.toString();
                     isModule = false;
                 }
 
                 // #12 Warn if parse error in .js file
                 if (!isModule && /.js$/.test(module.path)) {
-                    this.warn('File "**' + module.path + '**" has extension **.js** and LMD detect an parse error. ' +
-                              'This module will be string. Please check the source.');
+                    this.warn('File "**' + module.path + '**" has extension **.js** and LMD detect an parse error. \n' +
+                              parseErrorText.red +
+                              '\nThis module will be string. Please check the source.');
                 }
 
                 if (isModule) {
@@ -1165,20 +1185,40 @@ LmdBuilder.prototype.build = function () {
                                       'Remove sandbox flag to allow module require().');
                         }
                     } else {
-                        if (isPlainModule) {
-                            // wrap plain module
-                            moduleContent = this.wrapPlainModule(moduleContent);
-                        } else {
-                            // wipe tail ;
-                            moduleContent = this.removeTailSemicolons(moduleContent);
+                        switch (moduleType) {
+                            case "plain":
+                                // wrap plain module
+                                moduleContent = this.wrapPlainModule(moduleContent);
+                                break;
+
+                            case "amd":
+                                is_using_amd = true;
+                                /*if (!modulesOptions[module.name]) {
+                                    modulesOptions[module.name] = {};
+                                }
+                                modulesOptions[module.name].amd = 1;*/
+                                moduleContent = this.wrapAmdModule(moduleContent);
+                                break;
+
+                            default:
+                                // wipe tail ;
+                                moduleContent = this.removeTailSemicolons(moduleContent);
                         }
                     }
                 }
 
                 // #26 Code coverage
                 if (isModule && module.is_coverage) {
-                    coverageResult = lmdCoverage.interpret(module.name, module.path, moduleContent, isPlainModule ? 0 : 1);
-                    coverageOptions[module.name] = coverageResult.options;
+                    var skipLines = ({
+                        fd: 1,
+                        fe: 1,
+                        plain: 0,
+                        amd: -1
+                    })[moduleType];
+
+                    coverageResult = lmdCoverage.interpret(module.name, module.path, moduleContent, skipLines);
+                    modulesOptions[module.name] = coverageResult.options;
+                    modulesOptions[module.name].coverage = 1;
                     moduleContent = coverageResult.code;
 
                     // Check for different require name (first argument)
@@ -1231,6 +1271,16 @@ LmdBuilder.prototype.build = function () {
                       'Disable that flag to optimize your package.');
         }
 
+        if (is_using_amd && !config.amd) {
+            this.warn('Some of your modules are AMD Modules, but config flag **amd** is undefined or falsy. ' +
+                      'Enable that flag for proper work.');
+        }
+
+        if (!is_using_amd && config.amd) {
+            this.warn('Config flag **amd** is enabled, but there is no AMD Modules in your package. ' +
+                      'Disable that flag to optimize your package.');
+        }
+
         if (config.stats_coverage && (config.cache || config.cache_async)) {
             this.warn('LMD will cache your modules under code coverage.');
         }
@@ -1247,8 +1297,14 @@ LmdBuilder.prototype.build = function () {
             this.warn('You are using `stats_coverage_async` but not using `async`. Disable `stats_coverage_async` flag.');
         }
 
-        sandbox = this.getSandboxedModules(modules, config);
-        lmdFile = this.render(config, lmdModules, lmdMain, pack, config.pack_options, sandbox, config.stats_coverage ? coverageOptions : void 0);
+        var sandboxedModules = this.getSandboxedModules(modules, config);
+        for (var moduleName in sandboxedModules) {
+            if (!modulesOptions[moduleName]) {
+                modulesOptions[moduleName] = {};
+            }
+            modulesOptions[moduleName].sandbox = 1;
+        }
+        lmdFile = this.render(config, lmdModules, lmdMain, pack, config.pack_options, modulesOptions);
 
         return lmdFile;
     }

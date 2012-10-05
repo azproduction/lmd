@@ -1,4 +1,4 @@
-(function (global, main, modules, sandboxed_modules, coverage_options) {
+(function (global, main, modules, modules_options) {
     var initialized_modules = {},
         global_eval = function (code) {
             return global.Function('return ' + code)();
@@ -24,40 +24,54 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require = lmd_trigger(
-                    sandboxed_modules[moduleName] ?
-                        'lmd-register:call-sandboxed-module' :
-                        'lmd-register:call-module',
-                    moduleName,
-                    require
-                )[1];
+                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, require)[1];
+
+                // Make sure that sandboxed modules cant require
+                if (modules_options[moduleName] &&
+                    modules_options[moduleName].sandbox &&
+                    typeof module_require === "function") {
+
+                    module_require = local_undefined;
+                }
 
                 module = module(module_require, output.exports, output) || output.exports;
             }
 
-            lmd_trigger('lmd-register:after-register', moduleName, module);
+            module = lmd_trigger('lmd-register:after-register', moduleName, module)[1];
             return modules[moduleName] = module;
         },
         /**
          * List of All lmd Events
+         *
+         * @important Do not rename it!
          */
         lmd_events = {},
         /**
          * LMD event trigger function
+         *
+         * @important Do not rename it!
          */
-        lmd_trigger = function (event, data, data2) {
+        lmd_trigger = function (event, data, data2, data3) {
             var list = lmd_events[event],
                 result;
 
             if (list) {
                 for (var i = 0, c = list.length; i < c; i++) {
-                    result = list[i](event, data, data2) || result;
+                    result = list[i](data, data2, data3) || result;
+                    if (result) {
+                        // enable decoration
+                        data = result[0] || data;
+                        data2 = result[1] || data2;
+                        data3 = result[2] || data3;
+                    }
                 }
             }
-            return result || [data, data2];
+            return result || [data, data2, data3];
         },
         /**
          * LMD event register function
+         *
+         * @important Do not rename it!
          */
         lmd_on = function (event, callback) {
             if (!lmd_events[event]) {
@@ -73,17 +87,18 @@
         require = function (moduleName) {
             var module = modules[moduleName];
 
+            lmd_trigger('lmd-require:before-check', moduleName, module);
             // Already inited - return as is
             if (initialized_modules[moduleName] && module) {
-                lmd_trigger('lmd-require:from-cache', moduleName);
                 return module;
             }
-
-            var replacement = lmd_trigger('lmd-require:first-init', moduleName, module);
+            var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
             if (replacement) {
                 moduleName = replacement[0];
                 module = replacement[1];
             }
+
+            lmd_trigger('*:before-init', moduleName, module);
 
             // Lazy LMD module not a string
             if (typeof module === "string" && module.indexOf('(function(') === 0) {
@@ -92,14 +107,243 @@
 
             return register_module(moduleName, module);
         },
-        output = {exports: {}};
+        output = {exports: {}},
+
+        /**
+         * Sandbox object for plugins
+         *
+         * @important Do not rename it!
+         */
+        sandbox = {
+            global: global,
+            modules: modules,
+            modules_options: modules_options,
+
+            eval: global_eval,
+            register: register_module,
+            require: require,
+            initialized: initialized_modules,
+
+            noop: global_noop,
+            document: global_document,
+            
+            
+            
+
+            on: lmd_on,
+            trigger: lmd_trigger,
+            undefined: local_undefined
+        };
 
     for (var moduleName in modules) {
         // reset module init flag in case of overwriting
         initialized_modules[moduleName] = 0;
     }
 
-/*if ($P.RACE) include('race.js');*/
+/**
+ * Async loader of off-package LMD modules (special LMD format file)
+ *
+ * @see /README.md near "LMD Modules types" for details
+ *
+ * Flag "async"
+ *
+ * This plugin provides require.async() function
+ */
+/**
+ * @name sandbox
+ */
+(function (sb) {
+    /**
+     * Load off-package LMD module
+     *
+     * @param {String|Array} moduleName same origin path to LMD module
+     * @param {Function}     [callback]   callback(result) undefined on error others on success
+     */
+    sb.require.async = function (moduleName, callback) {
+        callback = callback || sb.noop;
+
+        if (typeof moduleName !== "string") {
+            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.async)[1];
+            if (!callback) {
+                return sb.require;
+            }
+        }
+
+        var module = sb.modules[moduleName],
+            XMLHttpRequestConstructor = sb.global.XMLHttpRequest || sb.global.ActiveXObject;
+
+        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
+        if (replacement) {
+            moduleName = replacement[0];
+            module = replacement[1];
+        }
+
+        sb.trigger('async:before-check', moduleName, module);
+        // If module exists or its a node.js env
+        if (module) {
+            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            return sb.require;
+        }
+
+        sb.trigger('*:before-init', moduleName, module);
+
+        callback = sb.trigger('*:request-race', moduleName, callback)[1];
+        // if already called
+        if (!callback) {
+            return sb.require;
+        }
+
+        if (!XMLHttpRequestConstructor) {
+            sb.trigger('async:require-environment-file', moduleName, module, callback);
+            return sb.require;
+        }
+
+        // Optimized tiny ajax get
+        // @see https://gist.github.com/1625623
+        var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4) {
+                // 3. Check for correct status 200 or 0 - OK?
+                if (xhr.status < 201) {
+                    var contentType = xhr.getResponseHeader('content-type');
+                    module = xhr.responseText;
+                    if ((/script$|json$/).test(contentType)) {
+                        module = sb.trigger('*:wrap-module', moduleName, module, contentType)[1];
+                        if (!(/json$/).test(contentType)) {
+                            module = sb.trigger('*:coverage-apply', moduleName, module)[1];
+                        }
+
+                        module = sb.eval(module);
+                    }
+
+                    sb.trigger('async:before-callback', moduleName, typeof module === "function" ? xhr.responseText : module);
+                    // 4. Then callback it
+                    callback(sb.register(moduleName, module));
+                } else {
+                    sb.trigger('*:request-error', moduleName, module);
+                    callback();
+                }
+            }
+        };
+        xhr.open('get', moduleName);
+        xhr.send();
+
+        return sb.require;
+
+    };
+
+}(sandbox));
+
+/**
+ * Parallel resource loader
+ *
+ * Flag "parallel"
+ *
+ * This plugin provides private "parallel" function
+ */
+
+/**
+ * @name sandbox
+ */
+(function (sb) {
+
+function parallel(method, items, callback) {
+    var i = 0,
+        j = 0,
+        c = items.length,
+        results = [];
+
+    var readyFactory = function (index) {
+        return function (data) {
+            // keep the order
+            results[index] = data;
+            j++;
+            if (j >= c) {
+                callback.apply(sb.global, results);
+            }
+        }
+    };
+
+    for (; i < c; i++) {
+        method(items[i], readyFactory(i));
+    }
+}
+
+    /**
+     * @event *:request-parallel parallel module request for require.async(['a', 'b', 'c']) etc
+     *
+     * @param {Array}    moduleNames list of modules to init
+     * @param {Function} callback    this callback will be called when module inited
+     * @param {Function} method      method to call for init
+     *
+     * @retuns yes empty environment
+     */
+sb.on('*:request-parallel', function (moduleNames, callback, method) {
+    parallel(method, moduleNames, callback);
+    return [];
+});
+
+}(sandbox));
+
+/**
+ * This plugin enables shortcuts
+ *
+ * Flag "shortcuts"
+ *
+ * This plugin provides private "is_shortcut" function
+ */
+
+/**
+ * @name sandbox
+ */
+(function (sb) {
+
+function is_shortcut(moduleName, moduleContent) {
+    return !sb.initialized[moduleName] &&
+           typeof moduleContent === "string" &&
+           moduleContent.charAt(0) == '@';
+}
+
+function rewrite_shortcut(moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        sb.trigger('shortcuts:before-resolve', moduleName, module);
+
+        moduleName = module.replace('@', '');
+        module = sb.modules[moduleName];
+    }
+    return [moduleName, module];
+}
+
+    /**
+     * @event *:rewrite-shortcut request for shortcut rewrite
+     *
+     * @param {String} moduleName race for module name
+     * @param {String} module     this callback will be called when module inited
+     *
+     * @retuns yes returns modified moduleName and module itself
+     */
+sb.on('*:rewrite-shortcut', rewrite_shortcut);
+
+    /**
+     * @event *:rewrite-shortcut fires before stats plugin counts require same as *:rewrite-shortcut
+     *        but without triggering shortcuts:before-resolve event
+     *
+     * @param {String} moduleName race for module name
+     * @param {String} module     this callback will be called when module inited
+     *
+     * @retuns yes returns modified moduleName and module itself
+     */
+sb.on('stats:before-require-count', function (moduleName, module) {
+    if (is_shortcut(moduleName, module)) {
+        moduleName = module.replace('@', '');
+        module = sb.modules[moduleName];
+
+        return [moduleName, module];
+    }
+});
+
+}(sandbox));
+
 /**
  * Package usage statistics
  *
@@ -110,20 +354,6 @@
  * This plugin provides require.stats() function and bunch of private functions
  */
 
-/**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- * @name coverage_options
- */
 
 /**
  * @name LineReport
@@ -244,10 +474,15 @@
  */
 
 /**
+ * @name sandbox
+ */
+(function (sb) {
+
+/**
  * @type {lmdStats}
  */
 var stats_results = {},
-    stats_Date = global.Date,
+    stats_Date = sb.global.Date,
     stats_startTime = +new stats_Date;
 
 function stats_get(moduleName) {
@@ -286,24 +521,28 @@ function stats_require_module(moduleName, byModuleName) {
 
 function stats_wrap_require_method(method, thisObject, byModuleName) {
     return function (moduleName) {
-        var moduleNames = [];
-        if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
-            moduleNames = [moduleName];
-        } else {
-            moduleNames = moduleName;
-        }
-
-        for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
-            moduleNamesItem = moduleNames[i];
-            module = modules[moduleNamesItem];
-
-            var replacement = lmd_trigger('stats:before-require-count', moduleNamesItem, module);
-            if (replacement) {
-                moduleNamesItem = replacement[0];
-            }
-            stats_require_module(moduleNamesItem, byModuleName);
-        }
+        stats_require_modules(moduleName, byModuleName);
         return method.apply(thisObject, arguments);
+    }
+}
+
+function stats_require_modules(moduleName, byModuleName) {
+    var moduleNames = [];
+    if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
+        moduleNames = [moduleName];
+    } else {
+        moduleNames = moduleName;
+    }
+
+    for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
+        moduleNamesItem = moduleNames[i];
+        module = sb.modules[moduleNamesItem];
+
+        var replacement = sb.trigger('stats:before-require-count', moduleNamesItem, module);
+        if (replacement) {
+            moduleNamesItem = replacement[0];
+        }
+        stats_require_module(moduleNamesItem, byModuleName);
     }
 }
 
@@ -349,7 +588,7 @@ function stats_shortcut(moduleName, shortcut) {
     }
 
     // ie6 indexOf hackz
-    index = shortcuts.indexOf(shortcut);
+    index = sb.trigger('*:request-indexof', [].indexOf)[0].call(shortcuts, shortcut);
 
     if (index === -1) {
         shortcuts.push(shortcut);
@@ -363,7 +602,7 @@ function stats_shortcut(moduleName, shortcut) {
  * @return {Object}
  */
 require.stats = function (moduleName) {
-    var replacement = lmd_trigger('stats:before-return-stats', moduleName, stats_results);
+    var replacement = sb.trigger('stats:before-return-stats', moduleName, stats_results);
 
     if (replacement && replacement[1]) {
         return replacement[1];
@@ -371,141 +610,180 @@ require.stats = function (moduleName) {
     return moduleName ? stats_results[moduleName] : stats_results;
 };
 
-lmd_on('lmd-register:call-module', function (event, moduleName, require) {
+    /**
+     * @event lmd-register:decorate-require request for fake require
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns yes wraps require
+     */
+sb.on('lmd-register:decorate-require', function (moduleName, require) {
+    var options = sb.modules_options[moduleName] || {};
+    if (options.sandbox) {
+        return;
+    }
     return [moduleName, stats_wrap_require(require, moduleName)];
 });
 
-lmd_on('lmd-register:after-register', function (event, moduleName, module) {
+    /**
+     * @event lmd-register:after-register after module register event
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
+sb.on('lmd-register:after-register', function (moduleName) {
     stats_initEnd(moduleName);
 });
 
-lmd_on('lmd-register:before-register', function (event, moduleName, module) {
-    stats_type(moduleName, !module ? 'global' : typeof modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
+    /**
+     * @event lmd-register:before-register before module register event
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
+sb.on('lmd-register:before-register', function (moduleName, module) {
+    stats_type(moduleName, !module ? 'global' : typeof sb.modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
 });
 
-lmd_on('lmd-require:from-cache', function (event, moduleName) {
+
+    /**
+     * @event lmd-require:before-check before module cache check
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
+sb.on('lmd-require:before-check', function (moduleName) {
     stats_require(moduleName);
 });
 
-lmd_on('lmd-require:first-init', function (event, moduleName, module) {
-    stats_require(moduleName);
+    /**
+     * @event css:before-check before module cache check in css()
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
+sb.on('css:before-check', function (moduleName, module) {
+    if (!(module || !sb.document) || sb.initialized[moduleName]) {
+        stats_require(moduleName);
+    }
+});
+
+    /**
+     * @event js:before-check before module cache check in js()
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
+sb.on('js:before-check', function (moduleName, module) {
+    if (!module || sb.initialized[moduleName]) {
+        stats_require(moduleName);
+    }
+});
+
+    /**
+     * @event async:before-check before module cache check in async()
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
+sb.on('async:before-check', function (moduleName) {
+    if (!module || sb.initialized[moduleName]) {
+        stats_require(moduleName);
+    }
+});
+
+    /**
+     * @event *:before-init calls when module is goint to eval or call
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
+sb.on('*:before-init', function (moduleName) {
     stats_initStart(moduleName);
 });
 
-lmd_on('shortcuts:before-resolve', function (event, moduleName, module) {
+    /**
+     * @event *:request-error module load error
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
+sb.on('*:request-error', function (moduleName) {
+    stats_initEnd(moduleName);
+});
+
+    /**
+     * @event shortcuts:before-resolve moduleName is shortcut and its goint to resolve with actual name
+     *
+     * @param {String} moduleName
+     * @param {Object} module
+     *
+     * @retuns no
+     */
+sb.on('shortcuts:before-resolve', function (moduleName, module) {
     // assign shortcut name for module
     stats_shortcut(module, moduleName);
 });
+
+    /**
+     * @event *:stats-get somethins is request raw module stats
+     *
+     * @param {String} moduleName
+     * @param {Object} result    default stats
+     *
+     * @retuns yes
+     */
+sb.on('*:stats-get', function (moduleName, result) {
+    return [moduleName, stats_get(moduleName)];
+});
+
+    /**
+     * @event *:stats-type something tells stats to overwrite module type
+     *
+     * @param {String} moduleName
+     * @param {String} packageType
+     *
+     * @retuns no
+     */
+sb.on('*:stats-type', function (moduleName, packageType) {
+    stats_type(moduleName, packageType);
+});
+
+    /**
+     * @event *:stats-results somethins is request processed module stats
+     *
+     * @param {String} moduleName
+     * @param {Object} result     default stats
+     *
+     * @retuns yes
+     */
+sb.on('*:stats-results', function (moduleName, result) {
+    return [moduleName, stats_results[moduleName]];
+});
+
+}(sandbox));
+
 /**
- * Coverage for off-package LMD modules
- *
- * Flag "stats_sendto"
- *
- * This plugin provides sendTo private function and require.stats.sendTo() public function
- *
- * This plugin depends on stats
+ * @name sandbox
  */
-
-/**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- */
-
-/**
-  * XDomain post
-  *
-  * @param {String} host
-  * @param {String} method
-  * @param {Object} data
-  * @param {String} [reportName]
-  *
-  * @return {HTMLIFrameElement}
-  */
-var sendTo = function () {
-
-    var runId = function () {
-            var userAgent = navigator.userAgent,
-                rchrome = /(chrome)[ \/]([\w.]+)/i,
-                rwebkit = /(webkit)[ \/]([\w.]+)/i,
-                ropera = /(opera)(?:.*version)?[ \/]([\w.]+)/i,
-                rmsie = /(msie) ([\w.]+)/i,
-                rmozilla = /(mozilla)(?:.*? rv:([\w.]+))?/i;
-
-            userAgent = (userAgent.match(rchrome) ||
-                userAgent.match(rwebkit) ||
-                userAgent.match(ropera) ||
-                userAgent.match(rmsie) ||
-                userAgent.match(rmozilla)
-            );
-
-            return (userAgent ? userAgent.slice(1).join('-') : 'undefined-0') + '-' +
-                   (new Date+'').split(' ').slice(1, 5).join('_') + '-' +
-                   Math.random();
-        }();
-
-    return function (host, method, data, reportName) {
-        var JSON = global.JSON;
-
-        // Add the iframe with a unique name
-        var iframe = global_document.createElement("iframe"),
-            uniqueString = global.Math.random();
-
-        global_document.body.appendChild(iframe);
-        iframe.style.visibility = "hidden";
-        iframe.style.position = "absolute";
-        iframe.style.left = "-1000px";
-        iframe.style.top = "-1000px";
-        iframe.contentWindow.name = uniqueString;
-
-        // construct a form with hidden inputs, targeting the iframe
-        var form = global_document.createElement("form");
-        form.target = uniqueString;
-        form.action = host + "/" + method + '/' + (reportName || runId).replace(/\/|\\|\./g, '_');
-        form.method = "POST";
-        form.setAttribute('accept-charset', 'utf-8');
-
-        // repeat for each parameter
-        var input = global_document.createElement("input");
-        input.type = "hidden";
-        input.name = "json";
-        input.value = JSON.stringify(data);
-        form.appendChild(input);
-
-        document.body.appendChild(form);
-        form.submit();
-
-        return iframe;
-    }
-}();
-
-require.stats.sendTo = function (host) {
-    return sendTo(host, "stats", require.stats());
-};
-/**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- * @name coverage_options
- * @name coverage_module
- */
-
+(function (sb) {
 
 /**
  * Calculate coverage total
@@ -513,7 +791,7 @@ require.stats.sendTo = function (host) {
  * @param moduleName
  */
 function stats_calculate_coverage(moduleName) {
-    var stats = stats_get(moduleName),
+    var stats = sb.trigger('*:stats-get', moduleName, null)[1],
         total,
         covered,
         lineId,
@@ -602,8 +880,8 @@ function stats_calculate_coverage(moduleName) {
  *
  * @private
  */
-require.coverage_line = function (moduleName, lineId) {
-    stats_results[moduleName].runLines[lineId] += 1;
+sb.require.coverage_line = function (moduleName, lineId) {
+    sb.trigger('*:stats-results', moduleName, null)[1].runLines[lineId] += 1;
 };
 
 /**
@@ -611,8 +889,8 @@ require.coverage_line = function (moduleName, lineId) {
  *
  * @private
  */
-require.coverage_function = function (moduleName, lineId) {
-    stats_results[moduleName].runFunctions[lineId] += 1;
+sb.require.coverage_function = function (moduleName, lineId) {
+    sb.trigger('*:stats-results', moduleName, null)[1].runFunctions[lineId] += 1;
 };
 
 /**
@@ -620,8 +898,8 @@ require.coverage_function = function (moduleName, lineId) {
  *
  * @private
  */
-require.coverage_condition = function (moduleName, lineId, condition) {
-    stats_results[moduleName].runConditions[lineId][condition ? 1 : 0] += 1;
+sb.require.coverage_condition = function (moduleName, lineId, condition) {
+    sb.trigger('*:stats-results', moduleName, null)[1].runConditions[lineId][condition ? 1 : 0] += 1;
     return condition;
 };
 
@@ -631,7 +909,7 @@ require.coverage_condition = function (moduleName, lineId, condition) {
  * @private
  */
 function coverage_module(moduleName, lines, conditions, functions) {
-    var stats = stats_get(moduleName);
+    var stats = sb.trigger('*:stats-get', moduleName, null)[1];
     if (stats.lines) {
         return;
     }
@@ -656,16 +934,35 @@ function coverage_module(moduleName, lines, conditions, functions) {
 
 (function () {
     var moduleOption;
-    for (var moduleName in coverage_options) {
-        if (coverage_options.hasOwnProperty(moduleName)) {
-            moduleOption = coverage_options[moduleName];
+    for (var moduleName in sb.modules_options) {
+        if (sb.modules_options.hasOwnProperty(moduleName)) {
+            moduleOption = sb.modules_options[moduleName];
+            if (!moduleOption.coverage) {
+                continue;
+            }
             coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
-            stats_type(moduleName, 'in-package');
+            sb.trigger('*:stats-type', moduleName, 'in-package');
         }
     }
 })();
 
-lmd_on('lmd-register:call-sandboxed-module', function (event, moduleName, require) {
+    /**
+     * @event *:stats-coverage adds module parameters for statistics
+     *
+     * @param {String} moduleName
+     * @param {Object} moduleOption preprocessed data for lines, conditions and functions
+     *
+     * @retuns no
+     */
+sb.on('*:stats-coverage', function (moduleName, moduleOption) {
+    coverage_module(moduleName, moduleOption.lines, moduleOption.conditions, moduleOption.functions);
+});
+
+sb.on('lmd-register:decorate-require', function (moduleName, require) {
+    var options = sb.modules_options[moduleName] || {};
+    if (!options.sandbox) {
+        return;
+    }
     return [moduleName, {
         coverage_line: require.coverage_line,
         coverage_function: require.coverage_function,
@@ -673,9 +970,17 @@ lmd_on('lmd-register:call-sandboxed-module', function (event, moduleName, requir
     }];
 });
 
-lmd_on('stats:before-return-stats', function (event, moduleName, stats_results) {
+    /**
+     * @event stats:before-return-stats stats is going to return stats data
+     *        this event can modify that data
+     *
+     * @param {String|undefined} moduleName
+     * @param {Object}           stats_results default stats
+     *
+     * @retuns yes depend on moduleName value returns empty array or replaces stats_results
+     */
+sb.on('stats:before-return-stats', function (moduleName, stats_results) {
     if (moduleName) {
-        console.log('stats_calculate_coverage(moduleName);');
         stats_calculate_coverage(moduleName);
         return [];
     } else {
@@ -730,195 +1035,101 @@ lmd_on('stats:before-return-stats', function (event, moduleName, stats_results) 
         return [moduleName, result];
     }
 });
-/*if ($P.STATS_COVERAGE_ASYNC) include('stats_coverage_async.js');*/
-/**
- * This plugin enables shortcuts
- *
- * Flag "shortcuts"
- *
- * This plugin provides private "is_shortcut" function
- */
+
+}(sandbox));
 
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- */
-
-function is_shortcut(moduleName, moduleContent) {
-    return !initialized_modules[moduleName] &&
-           typeof moduleContent === "string" &&
-           moduleContent.charAt(0) == '@';
-}
-
-lmd_on('lmd-require:first-init', function (event, moduleName, module) {
-    if (is_shortcut(moduleName, module)) {
-        lmd_trigger('shortcuts:before-resolve', moduleName, module);
-
-        moduleName = module.replace('@', '');
-        module = modules[moduleName];
-
-        return [moduleName, module];
-    }
-});
-
-lmd_on('stats:before-require-count', function (event, moduleName, module) {
-    if (is_shortcut(moduleName, module)) {
-        moduleName = module.replace('@', '');
-        module = modules[moduleName];
-
-        return [moduleName, module];
-    }
-});
-/**
- * Parallel resource loader
+ * Coverage for off-package LMD modules
  *
- * Flag "parallel"
+ * Flag "stats_sendto"
  *
- * This plugin provides private "parallel" function
- */
-
-/**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name register_module
- * @name global_document
- * @name global_noop
- * @name local_undefined
- * @name create_race
- * @name race_callbacks
- */
-
-function parallel(method, items, callback) {
-    var i = 0,
-        j = 0,
-        c = items.length,
-        results = [];
-
-    var readyFactory = function (index) {
-        return function (data) {
-            // keep the order
-            results[index] = data;
-            j++;
-            if (j >= c) {
-                callback.apply(global, results);
-            }
-        }
-    };
-
-    for (; i < c; i++) {
-        method(items[i], readyFactory(i));
-    }
-}
-/*if ($P.CACHE_ASYNC) include('cache_async.js');*/
-/**
- * Async loader of off-package LMD modules (special LMD format file)
+ * This plugin provides sendTo private function and require.stats.sendTo() public function
  *
- * @see /README.md near "LMD Modules types" for details
- *
- * Flag "async"
- *
- * This plugin provides require.async() function
+ * This plugin depends on stats
  */
 /**
- * @name global
- * @name require
- * @name initialized_modules
- * @name modules
- * @name global_eval
- * @name global_noop
- * @name register_module
- * @name create_race
- * @name race_callbacks
- * @name cache_async
- * @name parallel
+ * @name sandbox
  */
+(function (sb) {
 
+/**
+  * XDomain post
+  *
+  * @param {String} host
+  * @param {String} method
+  * @param {Object} data
+  * @param {String} [reportName]
+  *
+  */
+var sendTo = function () {
+    var runId = function () {
+            var userAgent = navigator.userAgent,
+                rchrome = /(chrome)[ \/]([\w.]+)/i,
+                rwebkit = /(webkit)[ \/]([\w.]+)/i,
+                ropera = /(opera)(?:.*version)?[ \/]([\w.]+)/i,
+                rmsie = /(msie) ([\w.]+)/i,
+                rmozilla = /(mozilla)(?:.*? rv:([\w.]+))?/i;
 
+            userAgent = (userAgent.match(rchrome) ||
+                userAgent.match(rwebkit) ||
+                userAgent.match(ropera) ||
+                userAgent.match(rmsie) ||
+                userAgent.match(rmozilla)
+            );
+
+            return (userAgent ? userAgent.slice(1).join('-') : 'undefined-0') + '-' +
+                   (new Date+'').split(' ').slice(1, 5).join('_') + '-' +
+                   Math.random();
+        }();
 
     /**
-     * Load off-package LMD module
-     *
-     * @param {String|Array} moduleName same origin path to LMD module
-     * @param {Function}     [callback]   callback(result) undefined on error others on success
+     * @return {HTMLIFrameElement}
      */
-    require.async = function (moduleName, callback) {
-        callback = callback || global_noop;
+    return function (host, method, data, reportName) {
+        var JSON = sb.trigger('*:request-json', sb.global.JSON)[0];
 
-        // expect that its an array
-        if (typeof moduleName !== "string") {
-            parallel(require.async, moduleName, callback);
-            return require;
-        }
-        var module = modules[moduleName],
-            XMLHttpRequestConstructor = global.XMLHttpRequest || global.ActiveXObject;
+        // Add the iframe with a unique name
+        var iframe = sb.document.createElement("iframe"),
+            uniqueString = sb.global.Math.random();
 
-        // Its an shortcut
-        if (is_shortcut(moduleName, module)) {
-            // rewrite module name
-            // assign shortcut name for module
-            stats_shortcut(module, moduleName);
-            moduleName = module.replace('@', '');
-            module = modules[moduleName];
-        }
+        sb.document.body.appendChild(iframe);
+        iframe.style.visibility = "hidden";
+        iframe.style.position = "absolute";
+        iframe.style.left = "-1000px";
+        iframe.style.top = "-1000px";
+        iframe.contentWindow.name = uniqueString;
 
-        if (!module || initialized_modules[moduleName]) {
-            stats_require(moduleName);
-        }
-        // If module exists or its a node.js env
-        if (module) {
-            callback(initialized_modules[moduleName] ? module : require(moduleName));
-            return require;
-        }
+        // construct a form with hidden inputs, targeting the iframe
+        var form = sb.document.createElement("form");
+        form.target = uniqueString;
+        form.action = host + "/" + method + '/' + (reportName || runId).replace(/\/|\\|\./g, '_');
+        form.method = "POST";
+        form.setAttribute('accept-charset', 'utf-8');
 
-        stats_initStart(moduleName);
+        // repeat for each parameter
+        var input = sb.document.createElement("input");
+        input.type = "hidden";
+        input.name = "json";
+        input.value = JSON.stringify(data);
+        form.appendChild(input);
+
+        document.body.appendChild(form);
+        form.submit();
+
+        return iframe;
+    }
+}();
+
+sb.require.stats.sendTo = function (host) {
+    return sendTo(host, "stats", sb.require.stats());
+};
+
+}(sandbox));
 
 
 
-        // Optimized tiny ajax get
-        // @see https://gist.github.com/1625623
-        var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState == 4) {
-                // 3. Check for correct status 200 or 0 - OK?
-                if (xhr.status < 201) {
-                    var contentType = xhr.getResponseHeader('content-type');
-                    module = xhr.responseText;
-                    if ((/script$|json$/).test(contentType)) {
-                        module = global_eval(module);
-                    }
-
-                    // 4. Then callback it
-                    callback(register_module(moduleName, module));
-                } else {
-                    // stop init on error
-                    stats_initEnd(moduleName);
-                    callback();
-                }
-            }
-        };
-        xhr.open('get', moduleName);
-        xhr.send();
-
-        return require;
-
-    };
-/*if ($P.JS) include('js.js');*/
-/*if ($P.CSS) include('css.js');*/
-/*if ($P.CACHE) include('cache.js');*/
-    main(lmd_trigger('lmd-register:call-module', "main", require)[1], output.exports, output);
-})(this,(function(require, exports, module) {
+    main(lmd_trigger('lmd-register:decorate-require', "main", require)[1], output.exports, output);
+})/*DO NOT ADD ; !*/(this,(function(require, exports, module) {
     var require = arguments[0];
     require.coverage_function("main", "(?):0:1");
     require.coverage_line("main", "1");
@@ -2803,4 +3014,4 @@ function parallel(method, items, callback) {
 }),
 "b-dialog": "@js/lmd/modules/b-dialog.js",
 "b-talk": "@js/lmd/modules/b-talk.js"
-},{},{"main":{"lines":["1","4"],"conditions":[],"functions":["(?):0:1"]},"b-roster":{"lines":["1","3","4","6","8","9","12","14","18","19","20","25","26","29","30","42","43","47","48","51","52","55","56","59","60","63","64","67","68","71","72","75","76","79","80","83","84","87","88","91","92","95","96","99","100","103","104","107","108","111","112","115","116","119","120","123","124","127","128","131","132","135","136","139","140","143","144","147","148","151","152","155","156","159","160","163","164","167","168","171","172","175","176","179","180","183","184","187","188","191","192","195","196","199","200","203","204","207","208","211","212","215","216","219","220","223","224","227","228","231","232","235","236","239","240","243","244","247","248","251","252","255","256","259","260","263","264","267","268","271","272","275","276","279","280","283","284","287","288","291","292","295","296","299","300","303","304","307","308","311","312","315","316","319","320","323","324","327","328","331","332","335","336","339","340","343","344","347","348","351","352","355","356","359","360","363","364","367","368","371","372","375","376","379","380","383","384","387","388","391","392","395","396","399","400","403","404","407","408","411","412","415","416","419","420","423","424","427","428","431","432","435","436","439","440","443","444","447","448","451","452","455","456","459","460","463","464","467","468","471","472","475","476","479","480","483","484","487","488","491","492","495","496","499","500","503","504","507","508","511","512","515","516","519","520","523","524","527","528","531","532","535","536","539","540","543","544","547","548","551","552","555","556","559","560","563","564","567","568","571","572","575","576","579","580","583","584","587","588","591","592","595","596","599","600","603","604","607","608","611","612","615","616","619","620","623","624","627","628","631","632","635","636","639","640","643","644","647","648","651","652","655","656","659","660","663","664","667","668","671","672","675","676","679","680","683","684","687","688","691","692","695","696","699","700","703","704","707","708","711","712","715","716","719","720","723","724","727","728","731","732","735","736","739","740","743","744","747","748","751","752","755","756","759","760","763","764","767","768","771","772","775","776","779","780","783","784","787","788","791","792","795","796","799","800","803","804","807","808","811","812","815","816","819","820","823","824","827","828","831","832","835","836","839","840","843","844","847","848","851","852","855","856","859","860","863","864","867","868","871","872","875","876","879","880","883","884","887","888","891","892","895","896","899","900","903","904","907","908","911","912","915","916","919","920","923","924","927","928","931","932","935","936","939","940","943","944","947","948","951","952","955","956","959","960","963","964","967","968","971","972","975","976","979","980","983","984","987","988","991","992","995","996","999","1000","1003","1004","1007","1008","1011","1012","1015","1016","1019","1020","1023","1024","1027","1028","1031","1032","1035","1036","1039","1040","1043","1044","1047","1048","1051","1052","1055","1056","1059","1060","1063","1064","1067","1068","1071","1072","1075","1076","1079","1080","1083","1084","1087","1088","1091","1092","1095","1096","1099","1100","1103","1104","1107","1108","1111","1112","1115","1116","1119","1120","1123","1124","1127","1128","1131","1132","1135","1136","1139","1140","1143","1144","1147","1148","1151","1152","1155","1156","1159","1160","1163","1164","1167","1168","1171","1172","1175","1176","1179","1180","1183","1184","1187","1188","1191","1192","1195","1196","1199","1200","1203","1204","1207","1208","1211","1212","1215","1216","1219","1220","1223","1224","1227","1228","1231","1232","1235","1236","1239","1240","1243","1244","1247"],"conditions":[],"functions":["(?):0:1","Roster:3:114","(?):14:404","(?):18:568","renderWrapper:25:743","renderItem:29:834","renderName:42:1490","Long_Long_Name_renderName0:47:1596","Long_Long_Name_renderName1:51:1728","Long_Long_Name_renderName2:55:1860","Long_Long_Name_renderName3:59:1992","Long_Long_Name_renderName4:63:2124","Long_Long_Name_renderName5:67:2256","Long_Long_Name_renderName6:71:2388","Long_Long_Name_renderName7:75:2520","Long_Long_Name_renderName8:79:2652","Long_Long_Name_renderName9:83:2784","Long_Long_Name_renderName10:87:2917","Long_Long_Name_renderName11:91:3051","Long_Long_Name_renderName12:95:3185","Long_Long_Name_renderName13:99:3319","Long_Long_Name_renderName14:103:3453","Long_Long_Name_renderName15:107:3587","Long_Long_Name_renderName16:111:3721","Long_Long_Name_renderName17:115:3855","Long_Long_Name_renderName18:119:3989","Long_Long_Name_renderName19:123:4123","Long_Long_Name_renderName20:127:4257","Long_Long_Name_renderName21:131:4391","Long_Long_Name_renderName22:135:4525","Long_Long_Name_renderName23:139:4659","Long_Long_Name_renderName24:143:4793","Long_Long_Name_renderName25:147:4927","Long_Long_Name_renderName26:151:5061","Long_Long_Name_renderName27:155:5195","Long_Long_Name_renderName28:159:5329","Long_Long_Name_renderName29:163:5463","Long_Long_Name_renderName30:167:5597","Long_Long_Name_renderName31:171:5731","Long_Long_Name_renderName32:175:5865","Long_Long_Name_renderName33:179:5999","Long_Long_Name_renderName34:183:6133","Long_Long_Name_renderName35:187:6267","Long_Long_Name_renderName36:191:6401","Long_Long_Name_renderName37:195:6535","Long_Long_Name_renderName38:199:6669","Long_Long_Name_renderName39:203:6803","Long_Long_Name_renderName40:207:6937","Long_Long_Name_renderName41:211:7071","Long_Long_Name_renderName42:215:7205","Long_Long_Name_renderName43:219:7339","Long_Long_Name_renderName44:223:7473","Long_Long_Name_renderName45:227:7607","Long_Long_Name_renderName46:231:7741","Long_Long_Name_renderName47:235:7875","Long_Long_Name_renderName48:239:8009","Long_Long_Name_renderName49:243:8143","Long_Long_Name_renderName50:247:8277","Long_Long_Name_renderName51:251:8411","Long_Long_Name_renderName52:255:8545","Long_Long_Name_renderName53:259:8679","Long_Long_Name_renderName54:263:8813","Long_Long_Name_renderName55:267:8947","Long_Long_Name_renderName56:271:9081","Long_Long_Name_renderName57:275:9215","Long_Long_Name_renderName58:279:9349","Long_Long_Name_renderName59:283:9483","Long_Long_Name_renderName60:287:9617","Long_Long_Name_renderName61:291:9751","Long_Long_Name_renderName62:295:9885","Long_Long_Name_renderName63:299:10019","Long_Long_Name_renderName64:303:10153","Long_Long_Name_renderName65:307:10287","Long_Long_Name_renderName66:311:10421","Long_Long_Name_renderName67:315:10555","Long_Long_Name_renderName68:319:10689","Long_Long_Name_renderName69:323:10823","Long_Long_Name_renderName70:327:10957","Long_Long_Name_renderName71:331:11091","Long_Long_Name_renderName72:335:11225","Long_Long_Name_renderName73:339:11359","Long_Long_Name_renderName74:343:11493","Long_Long_Name_renderName75:347:11627","Long_Long_Name_renderName76:351:11761","Long_Long_Name_renderName77:355:11895","Long_Long_Name_renderName78:359:12029","Long_Long_Name_renderName79:363:12163","Long_Long_Name_renderName80:367:12297","Long_Long_Name_renderName81:371:12431","Long_Long_Name_renderName82:375:12565","Long_Long_Name_renderName83:379:12699","Long_Long_Name_renderName84:383:12833","Long_Long_Name_renderName85:387:12967","Long_Long_Name_renderName86:391:13101","Long_Long_Name_renderName87:395:13235","Long_Long_Name_renderName88:399:13369","Long_Long_Name_renderName89:403:13503","Long_Long_Name_renderName90:407:13637","Long_Long_Name_renderName91:411:13771","Long_Long_Name_renderName92:415:13905","Long_Long_Name_renderName93:419:14039","Long_Long_Name_renderName94:423:14173","Long_Long_Name_renderName95:427:14307","Long_Long_Name_renderName96:431:14441","Long_Long_Name_renderName97:435:14575","Long_Long_Name_renderName98:439:14709","Long_Long_Name_renderName99:443:14843","Long_Long_Name_renderName100:447:14978","Long_Long_Name_renderName101:451:15114","Long_Long_Name_renderName102:455:15250","Long_Long_Name_renderName103:459:15386","Long_Long_Name_renderName104:463:15522","Long_Long_Name_renderName105:467:15658","Long_Long_Name_renderName106:471:15794","Long_Long_Name_renderName107:475:15930","Long_Long_Name_renderName108:479:16066","Long_Long_Name_renderName109:483:16202","Long_Long_Name_renderName110:487:16338","Long_Long_Name_renderName111:491:16474","Long_Long_Name_renderName112:495:16610","Long_Long_Name_renderName113:499:16746","Long_Long_Name_renderName114:503:16882","Long_Long_Name_renderName115:507:17018","Long_Long_Name_renderName116:511:17154","Long_Long_Name_renderName117:515:17290","Long_Long_Name_renderName118:519:17426","Long_Long_Name_renderName119:523:17562","Long_Long_Name_renderName120:527:17698","Long_Long_Name_renderName121:531:17834","Long_Long_Name_renderName122:535:17970","Long_Long_Name_renderName123:539:18106","Long_Long_Name_renderName124:543:18242","Long_Long_Name_renderName125:547:18378","Long_Long_Name_renderName126:551:18514","Long_Long_Name_renderName127:555:18650","Long_Long_Name_renderName128:559:18786","Long_Long_Name_renderName129:563:18922","Long_Long_Name_renderName130:567:19058","Long_Long_Name_renderName131:571:19194","Long_Long_Name_renderName132:575:19330","Long_Long_Name_renderName133:579:19466","Long_Long_Name_renderName134:583:19602","Long_Long_Name_renderName135:587:19738","Long_Long_Name_renderName136:591:19874","Long_Long_Name_renderName137:595:20010","Long_Long_Name_renderName138:599:20146","Long_Long_Name_renderName139:603:20282","Long_Long_Name_renderName140:607:20418","Long_Long_Name_renderName141:611:20554","Long_Long_Name_renderName142:615:20690","Long_Long_Name_renderName143:619:20826","Long_Long_Name_renderName144:623:20962","Long_Long_Name_renderName145:627:21098","Long_Long_Name_renderName146:631:21234","Long_Long_Name_renderName147:635:21370","Long_Long_Name_renderName148:639:21506","Long_Long_Name_renderName149:643:21642","Long_Long_Name_renderName150:647:21778","Long_Long_Name_renderName151:651:21914","Long_Long_Name_renderName152:655:22050","Long_Long_Name_renderName153:659:22186","Long_Long_Name_renderName154:663:22322","Long_Long_Name_renderName155:667:22458","Long_Long_Name_renderName156:671:22594","Long_Long_Name_renderName157:675:22730","Long_Long_Name_renderName158:679:22866","Long_Long_Name_renderName159:683:23002","Long_Long_Name_renderName160:687:23138","Long_Long_Name_renderName161:691:23274","Long_Long_Name_renderName162:695:23410","Long_Long_Name_renderName163:699:23546","Long_Long_Name_renderName164:703:23682","Long_Long_Name_renderName165:707:23818","Long_Long_Name_renderName166:711:23954","Long_Long_Name_renderName167:715:24090","Long_Long_Name_renderName168:719:24226","Long_Long_Name_renderName169:723:24362","Long_Long_Name_renderName170:727:24498","Long_Long_Name_renderName171:731:24634","Long_Long_Name_renderName172:735:24770","Long_Long_Name_renderName173:739:24906","Long_Long_Name_renderName174:743:25042","Long_Long_Name_renderName175:747:25178","Long_Long_Name_renderName176:751:25314","Long_Long_Name_renderName177:755:25450","Long_Long_Name_renderName178:759:25586","Long_Long_Name_renderName179:763:25722","Long_Long_Name_renderName180:767:25858","Long_Long_Name_renderName181:771:25994","Long_Long_Name_renderName182:775:26130","Long_Long_Name_renderName183:779:26266","Long_Long_Name_renderName184:783:26402","Long_Long_Name_renderName185:787:26538","Long_Long_Name_renderName186:791:26674","Long_Long_Name_renderName187:795:26810","Long_Long_Name_renderName188:799:26946","Long_Long_Name_renderName189:803:27082","Long_Long_Name_renderName190:807:27218","Long_Long_Name_renderName191:811:27354","Long_Long_Name_renderName192:815:27490","Long_Long_Name_renderName193:819:27626","Long_Long_Name_renderName194:823:27762","Long_Long_Name_renderName195:827:27898","Long_Long_Name_renderName196:831:28034","Long_Long_Name_renderName197:835:28170","Long_Long_Name_renderName198:839:28306","Long_Long_Name_renderName199:843:28442","Long_Long_Name_renderName200:847:28578","Long_Long_Name_renderName201:851:28714","Long_Long_Name_renderName202:855:28850","Long_Long_Name_renderName203:859:28986","Long_Long_Name_renderName204:863:29122","Long_Long_Name_renderName205:867:29258","Long_Long_Name_renderName206:871:29394","Long_Long_Name_renderName207:875:29530","Long_Long_Name_renderName208:879:29666","Long_Long_Name_renderName209:883:29802","Long_Long_Name_renderName210:887:29938","Long_Long_Name_renderName211:891:30074","Long_Long_Name_renderName212:895:30210","Long_Long_Name_renderName213:899:30346","Long_Long_Name_renderName214:903:30482","Long_Long_Name_renderName215:907:30618","Long_Long_Name_renderName216:911:30754","Long_Long_Name_renderName217:915:30890","Long_Long_Name_renderName218:919:31026","Long_Long_Name_renderName219:923:31162","Long_Long_Name_renderName220:927:31298","Long_Long_Name_renderName221:931:31434","Long_Long_Name_renderName222:935:31570","Long_Long_Name_renderName223:939:31706","Long_Long_Name_renderName224:943:31842","Long_Long_Name_renderName225:947:31978","Long_Long_Name_renderName226:951:32114","Long_Long_Name_renderName227:955:32250","Long_Long_Name_renderName228:959:32386","Long_Long_Name_renderName229:963:32522","Long_Long_Name_renderName230:967:32658","Long_Long_Name_renderName231:971:32794","Long_Long_Name_renderName232:975:32930","Long_Long_Name_renderName233:979:33066","Long_Long_Name_renderName234:983:33202","Long_Long_Name_renderName235:987:33338","Long_Long_Name_renderName236:991:33474","Long_Long_Name_renderName237:995:33610","Long_Long_Name_renderName238:999:33746","Long_Long_Name_renderName239:1003:33882","Long_Long_Name_renderName240:1007:34018","Long_Long_Name_renderName241:1011:34154","Long_Long_Name_renderName242:1015:34290","Long_Long_Name_renderName243:1019:34426","Long_Long_Name_renderName244:1023:34562","Long_Long_Name_renderName245:1027:34698","Long_Long_Name_renderName246:1031:34834","Long_Long_Name_renderName247:1035:34970","Long_Long_Name_renderName248:1039:35106","Long_Long_Name_renderName249:1043:35242","Long_Long_Name_renderName250:1047:35378","Long_Long_Name_renderName251:1051:35514","Long_Long_Name_renderName252:1055:35650","Long_Long_Name_renderName253:1059:35786","Long_Long_Name_renderName254:1063:35922","Long_Long_Name_renderName255:1067:36058","Long_Long_Name_renderName256:1071:36194","Long_Long_Name_renderName257:1075:36330","Long_Long_Name_renderName258:1079:36466","Long_Long_Name_renderName259:1083:36602","Long_Long_Name_renderName260:1087:36738","Long_Long_Name_renderName261:1091:36874","Long_Long_Name_renderName262:1095:37010","Long_Long_Name_renderName263:1099:37146","Long_Long_Name_renderName264:1103:37282","Long_Long_Name_renderName265:1107:37418","Long_Long_Name_renderName266:1111:37554","Long_Long_Name_renderName267:1115:37690","Long_Long_Name_renderName268:1119:37826","Long_Long_Name_renderName269:1123:37962","Long_Long_Name_renderName270:1127:38098","Long_Long_Name_renderName271:1131:38234","Long_Long_Name_renderName272:1135:38370","Long_Long_Name_renderName273:1139:38506","Long_Long_Name_renderName274:1143:38642","Long_Long_Name_renderName275:1147:38778","Long_Long_Name_renderName276:1151:38914","Long_Long_Name_renderName277:1155:39050","Long_Long_Name_renderName278:1159:39186","Long_Long_Name_renderName279:1163:39322","Long_Long_Name_renderName280:1167:39458","Long_Long_Name_renderName281:1171:39594","Long_Long_Name_renderName282:1175:39730","Long_Long_Name_renderName283:1179:39866","Long_Long_Name_renderName284:1183:40002","Long_Long_Name_renderName285:1187:40138","Long_Long_Name_renderName286:1191:40274","Long_Long_Name_renderName287:1195:40410","Long_Long_Name_renderName288:1199:40546","Long_Long_Name_renderName289:1203:40682","Long_Long_Name_renderName290:1207:40818","Long_Long_Name_renderName291:1211:40954","Long_Long_Name_renderName292:1215:41090","Long_Long_Name_renderName293:1219:41226","Long_Long_Name_renderName294:1223:41362","Long_Long_Name_renderName295:1227:41498","Long_Long_Name_renderName296:1231:41634","Long_Long_Name_renderName297:1235:41770","Long_Long_Name_renderName298:1239:41906","Long_Long_Name_renderName299:1243:42042"]},"undefined":{"lines":["3","5","6"],"conditions":[],"functions":["(?):1:1","$:5:85"]},"b-unused-module":{"lines":["1","2"],"conditions":[],"functions":["(?):0:1","pewpewOlolo:1:86"]}})
+},{"main":{"lines":["1","4"],"conditions":[],"functions":["(?):0:1"],"coverage":1},"b-roster":{"lines":["1","3","4","6","8","9","12","14","18","19","20","25","26","29","30","42","43","47","48","51","52","55","56","59","60","63","64","67","68","71","72","75","76","79","80","83","84","87","88","91","92","95","96","99","100","103","104","107","108","111","112","115","116","119","120","123","124","127","128","131","132","135","136","139","140","143","144","147","148","151","152","155","156","159","160","163","164","167","168","171","172","175","176","179","180","183","184","187","188","191","192","195","196","199","200","203","204","207","208","211","212","215","216","219","220","223","224","227","228","231","232","235","236","239","240","243","244","247","248","251","252","255","256","259","260","263","264","267","268","271","272","275","276","279","280","283","284","287","288","291","292","295","296","299","300","303","304","307","308","311","312","315","316","319","320","323","324","327","328","331","332","335","336","339","340","343","344","347","348","351","352","355","356","359","360","363","364","367","368","371","372","375","376","379","380","383","384","387","388","391","392","395","396","399","400","403","404","407","408","411","412","415","416","419","420","423","424","427","428","431","432","435","436","439","440","443","444","447","448","451","452","455","456","459","460","463","464","467","468","471","472","475","476","479","480","483","484","487","488","491","492","495","496","499","500","503","504","507","508","511","512","515","516","519","520","523","524","527","528","531","532","535","536","539","540","543","544","547","548","551","552","555","556","559","560","563","564","567","568","571","572","575","576","579","580","583","584","587","588","591","592","595","596","599","600","603","604","607","608","611","612","615","616","619","620","623","624","627","628","631","632","635","636","639","640","643","644","647","648","651","652","655","656","659","660","663","664","667","668","671","672","675","676","679","680","683","684","687","688","691","692","695","696","699","700","703","704","707","708","711","712","715","716","719","720","723","724","727","728","731","732","735","736","739","740","743","744","747","748","751","752","755","756","759","760","763","764","767","768","771","772","775","776","779","780","783","784","787","788","791","792","795","796","799","800","803","804","807","808","811","812","815","816","819","820","823","824","827","828","831","832","835","836","839","840","843","844","847","848","851","852","855","856","859","860","863","864","867","868","871","872","875","876","879","880","883","884","887","888","891","892","895","896","899","900","903","904","907","908","911","912","915","916","919","920","923","924","927","928","931","932","935","936","939","940","943","944","947","948","951","952","955","956","959","960","963","964","967","968","971","972","975","976","979","980","983","984","987","988","991","992","995","996","999","1000","1003","1004","1007","1008","1011","1012","1015","1016","1019","1020","1023","1024","1027","1028","1031","1032","1035","1036","1039","1040","1043","1044","1047","1048","1051","1052","1055","1056","1059","1060","1063","1064","1067","1068","1071","1072","1075","1076","1079","1080","1083","1084","1087","1088","1091","1092","1095","1096","1099","1100","1103","1104","1107","1108","1111","1112","1115","1116","1119","1120","1123","1124","1127","1128","1131","1132","1135","1136","1139","1140","1143","1144","1147","1148","1151","1152","1155","1156","1159","1160","1163","1164","1167","1168","1171","1172","1175","1176","1179","1180","1183","1184","1187","1188","1191","1192","1195","1196","1199","1200","1203","1204","1207","1208","1211","1212","1215","1216","1219","1220","1223","1224","1227","1228","1231","1232","1235","1236","1239","1240","1243","1244","1247"],"conditions":[],"functions":["(?):0:1","Roster:3:114","(?):14:404","(?):18:568","renderWrapper:25:743","renderItem:29:834","renderName:42:1490","Long_Long_Name_renderName0:47:1596","Long_Long_Name_renderName1:51:1728","Long_Long_Name_renderName2:55:1860","Long_Long_Name_renderName3:59:1992","Long_Long_Name_renderName4:63:2124","Long_Long_Name_renderName5:67:2256","Long_Long_Name_renderName6:71:2388","Long_Long_Name_renderName7:75:2520","Long_Long_Name_renderName8:79:2652","Long_Long_Name_renderName9:83:2784","Long_Long_Name_renderName10:87:2917","Long_Long_Name_renderName11:91:3051","Long_Long_Name_renderName12:95:3185","Long_Long_Name_renderName13:99:3319","Long_Long_Name_renderName14:103:3453","Long_Long_Name_renderName15:107:3587","Long_Long_Name_renderName16:111:3721","Long_Long_Name_renderName17:115:3855","Long_Long_Name_renderName18:119:3989","Long_Long_Name_renderName19:123:4123","Long_Long_Name_renderName20:127:4257","Long_Long_Name_renderName21:131:4391","Long_Long_Name_renderName22:135:4525","Long_Long_Name_renderName23:139:4659","Long_Long_Name_renderName24:143:4793","Long_Long_Name_renderName25:147:4927","Long_Long_Name_renderName26:151:5061","Long_Long_Name_renderName27:155:5195","Long_Long_Name_renderName28:159:5329","Long_Long_Name_renderName29:163:5463","Long_Long_Name_renderName30:167:5597","Long_Long_Name_renderName31:171:5731","Long_Long_Name_renderName32:175:5865","Long_Long_Name_renderName33:179:5999","Long_Long_Name_renderName34:183:6133","Long_Long_Name_renderName35:187:6267","Long_Long_Name_renderName36:191:6401","Long_Long_Name_renderName37:195:6535","Long_Long_Name_renderName38:199:6669","Long_Long_Name_renderName39:203:6803","Long_Long_Name_renderName40:207:6937","Long_Long_Name_renderName41:211:7071","Long_Long_Name_renderName42:215:7205","Long_Long_Name_renderName43:219:7339","Long_Long_Name_renderName44:223:7473","Long_Long_Name_renderName45:227:7607","Long_Long_Name_renderName46:231:7741","Long_Long_Name_renderName47:235:7875","Long_Long_Name_renderName48:239:8009","Long_Long_Name_renderName49:243:8143","Long_Long_Name_renderName50:247:8277","Long_Long_Name_renderName51:251:8411","Long_Long_Name_renderName52:255:8545","Long_Long_Name_renderName53:259:8679","Long_Long_Name_renderName54:263:8813","Long_Long_Name_renderName55:267:8947","Long_Long_Name_renderName56:271:9081","Long_Long_Name_renderName57:275:9215","Long_Long_Name_renderName58:279:9349","Long_Long_Name_renderName59:283:9483","Long_Long_Name_renderName60:287:9617","Long_Long_Name_renderName61:291:9751","Long_Long_Name_renderName62:295:9885","Long_Long_Name_renderName63:299:10019","Long_Long_Name_renderName64:303:10153","Long_Long_Name_renderName65:307:10287","Long_Long_Name_renderName66:311:10421","Long_Long_Name_renderName67:315:10555","Long_Long_Name_renderName68:319:10689","Long_Long_Name_renderName69:323:10823","Long_Long_Name_renderName70:327:10957","Long_Long_Name_renderName71:331:11091","Long_Long_Name_renderName72:335:11225","Long_Long_Name_renderName73:339:11359","Long_Long_Name_renderName74:343:11493","Long_Long_Name_renderName75:347:11627","Long_Long_Name_renderName76:351:11761","Long_Long_Name_renderName77:355:11895","Long_Long_Name_renderName78:359:12029","Long_Long_Name_renderName79:363:12163","Long_Long_Name_renderName80:367:12297","Long_Long_Name_renderName81:371:12431","Long_Long_Name_renderName82:375:12565","Long_Long_Name_renderName83:379:12699","Long_Long_Name_renderName84:383:12833","Long_Long_Name_renderName85:387:12967","Long_Long_Name_renderName86:391:13101","Long_Long_Name_renderName87:395:13235","Long_Long_Name_renderName88:399:13369","Long_Long_Name_renderName89:403:13503","Long_Long_Name_renderName90:407:13637","Long_Long_Name_renderName91:411:13771","Long_Long_Name_renderName92:415:13905","Long_Long_Name_renderName93:419:14039","Long_Long_Name_renderName94:423:14173","Long_Long_Name_renderName95:427:14307","Long_Long_Name_renderName96:431:14441","Long_Long_Name_renderName97:435:14575","Long_Long_Name_renderName98:439:14709","Long_Long_Name_renderName99:443:14843","Long_Long_Name_renderName100:447:14978","Long_Long_Name_renderName101:451:15114","Long_Long_Name_renderName102:455:15250","Long_Long_Name_renderName103:459:15386","Long_Long_Name_renderName104:463:15522","Long_Long_Name_renderName105:467:15658","Long_Long_Name_renderName106:471:15794","Long_Long_Name_renderName107:475:15930","Long_Long_Name_renderName108:479:16066","Long_Long_Name_renderName109:483:16202","Long_Long_Name_renderName110:487:16338","Long_Long_Name_renderName111:491:16474","Long_Long_Name_renderName112:495:16610","Long_Long_Name_renderName113:499:16746","Long_Long_Name_renderName114:503:16882","Long_Long_Name_renderName115:507:17018","Long_Long_Name_renderName116:511:17154","Long_Long_Name_renderName117:515:17290","Long_Long_Name_renderName118:519:17426","Long_Long_Name_renderName119:523:17562","Long_Long_Name_renderName120:527:17698","Long_Long_Name_renderName121:531:17834","Long_Long_Name_renderName122:535:17970","Long_Long_Name_renderName123:539:18106","Long_Long_Name_renderName124:543:18242","Long_Long_Name_renderName125:547:18378","Long_Long_Name_renderName126:551:18514","Long_Long_Name_renderName127:555:18650","Long_Long_Name_renderName128:559:18786","Long_Long_Name_renderName129:563:18922","Long_Long_Name_renderName130:567:19058","Long_Long_Name_renderName131:571:19194","Long_Long_Name_renderName132:575:19330","Long_Long_Name_renderName133:579:19466","Long_Long_Name_renderName134:583:19602","Long_Long_Name_renderName135:587:19738","Long_Long_Name_renderName136:591:19874","Long_Long_Name_renderName137:595:20010","Long_Long_Name_renderName138:599:20146","Long_Long_Name_renderName139:603:20282","Long_Long_Name_renderName140:607:20418","Long_Long_Name_renderName141:611:20554","Long_Long_Name_renderName142:615:20690","Long_Long_Name_renderName143:619:20826","Long_Long_Name_renderName144:623:20962","Long_Long_Name_renderName145:627:21098","Long_Long_Name_renderName146:631:21234","Long_Long_Name_renderName147:635:21370","Long_Long_Name_renderName148:639:21506","Long_Long_Name_renderName149:643:21642","Long_Long_Name_renderName150:647:21778","Long_Long_Name_renderName151:651:21914","Long_Long_Name_renderName152:655:22050","Long_Long_Name_renderName153:659:22186","Long_Long_Name_renderName154:663:22322","Long_Long_Name_renderName155:667:22458","Long_Long_Name_renderName156:671:22594","Long_Long_Name_renderName157:675:22730","Long_Long_Name_renderName158:679:22866","Long_Long_Name_renderName159:683:23002","Long_Long_Name_renderName160:687:23138","Long_Long_Name_renderName161:691:23274","Long_Long_Name_renderName162:695:23410","Long_Long_Name_renderName163:699:23546","Long_Long_Name_renderName164:703:23682","Long_Long_Name_renderName165:707:23818","Long_Long_Name_renderName166:711:23954","Long_Long_Name_renderName167:715:24090","Long_Long_Name_renderName168:719:24226","Long_Long_Name_renderName169:723:24362","Long_Long_Name_renderName170:727:24498","Long_Long_Name_renderName171:731:24634","Long_Long_Name_renderName172:735:24770","Long_Long_Name_renderName173:739:24906","Long_Long_Name_renderName174:743:25042","Long_Long_Name_renderName175:747:25178","Long_Long_Name_renderName176:751:25314","Long_Long_Name_renderName177:755:25450","Long_Long_Name_renderName178:759:25586","Long_Long_Name_renderName179:763:25722","Long_Long_Name_renderName180:767:25858","Long_Long_Name_renderName181:771:25994","Long_Long_Name_renderName182:775:26130","Long_Long_Name_renderName183:779:26266","Long_Long_Name_renderName184:783:26402","Long_Long_Name_renderName185:787:26538","Long_Long_Name_renderName186:791:26674","Long_Long_Name_renderName187:795:26810","Long_Long_Name_renderName188:799:26946","Long_Long_Name_renderName189:803:27082","Long_Long_Name_renderName190:807:27218","Long_Long_Name_renderName191:811:27354","Long_Long_Name_renderName192:815:27490","Long_Long_Name_renderName193:819:27626","Long_Long_Name_renderName194:823:27762","Long_Long_Name_renderName195:827:27898","Long_Long_Name_renderName196:831:28034","Long_Long_Name_renderName197:835:28170","Long_Long_Name_renderName198:839:28306","Long_Long_Name_renderName199:843:28442","Long_Long_Name_renderName200:847:28578","Long_Long_Name_renderName201:851:28714","Long_Long_Name_renderName202:855:28850","Long_Long_Name_renderName203:859:28986","Long_Long_Name_renderName204:863:29122","Long_Long_Name_renderName205:867:29258","Long_Long_Name_renderName206:871:29394","Long_Long_Name_renderName207:875:29530","Long_Long_Name_renderName208:879:29666","Long_Long_Name_renderName209:883:29802","Long_Long_Name_renderName210:887:29938","Long_Long_Name_renderName211:891:30074","Long_Long_Name_renderName212:895:30210","Long_Long_Name_renderName213:899:30346","Long_Long_Name_renderName214:903:30482","Long_Long_Name_renderName215:907:30618","Long_Long_Name_renderName216:911:30754","Long_Long_Name_renderName217:915:30890","Long_Long_Name_renderName218:919:31026","Long_Long_Name_renderName219:923:31162","Long_Long_Name_renderName220:927:31298","Long_Long_Name_renderName221:931:31434","Long_Long_Name_renderName222:935:31570","Long_Long_Name_renderName223:939:31706","Long_Long_Name_renderName224:943:31842","Long_Long_Name_renderName225:947:31978","Long_Long_Name_renderName226:951:32114","Long_Long_Name_renderName227:955:32250","Long_Long_Name_renderName228:959:32386","Long_Long_Name_renderName229:963:32522","Long_Long_Name_renderName230:967:32658","Long_Long_Name_renderName231:971:32794","Long_Long_Name_renderName232:975:32930","Long_Long_Name_renderName233:979:33066","Long_Long_Name_renderName234:983:33202","Long_Long_Name_renderName235:987:33338","Long_Long_Name_renderName236:991:33474","Long_Long_Name_renderName237:995:33610","Long_Long_Name_renderName238:999:33746","Long_Long_Name_renderName239:1003:33882","Long_Long_Name_renderName240:1007:34018","Long_Long_Name_renderName241:1011:34154","Long_Long_Name_renderName242:1015:34290","Long_Long_Name_renderName243:1019:34426","Long_Long_Name_renderName244:1023:34562","Long_Long_Name_renderName245:1027:34698","Long_Long_Name_renderName246:1031:34834","Long_Long_Name_renderName247:1035:34970","Long_Long_Name_renderName248:1039:35106","Long_Long_Name_renderName249:1043:35242","Long_Long_Name_renderName250:1047:35378","Long_Long_Name_renderName251:1051:35514","Long_Long_Name_renderName252:1055:35650","Long_Long_Name_renderName253:1059:35786","Long_Long_Name_renderName254:1063:35922","Long_Long_Name_renderName255:1067:36058","Long_Long_Name_renderName256:1071:36194","Long_Long_Name_renderName257:1075:36330","Long_Long_Name_renderName258:1079:36466","Long_Long_Name_renderName259:1083:36602","Long_Long_Name_renderName260:1087:36738","Long_Long_Name_renderName261:1091:36874","Long_Long_Name_renderName262:1095:37010","Long_Long_Name_renderName263:1099:37146","Long_Long_Name_renderName264:1103:37282","Long_Long_Name_renderName265:1107:37418","Long_Long_Name_renderName266:1111:37554","Long_Long_Name_renderName267:1115:37690","Long_Long_Name_renderName268:1119:37826","Long_Long_Name_renderName269:1123:37962","Long_Long_Name_renderName270:1127:38098","Long_Long_Name_renderName271:1131:38234","Long_Long_Name_renderName272:1135:38370","Long_Long_Name_renderName273:1139:38506","Long_Long_Name_renderName274:1143:38642","Long_Long_Name_renderName275:1147:38778","Long_Long_Name_renderName276:1151:38914","Long_Long_Name_renderName277:1155:39050","Long_Long_Name_renderName278:1159:39186","Long_Long_Name_renderName279:1163:39322","Long_Long_Name_renderName280:1167:39458","Long_Long_Name_renderName281:1171:39594","Long_Long_Name_renderName282:1175:39730","Long_Long_Name_renderName283:1179:39866","Long_Long_Name_renderName284:1183:40002","Long_Long_Name_renderName285:1187:40138","Long_Long_Name_renderName286:1191:40274","Long_Long_Name_renderName287:1195:40410","Long_Long_Name_renderName288:1199:40546","Long_Long_Name_renderName289:1203:40682","Long_Long_Name_renderName290:1207:40818","Long_Long_Name_renderName291:1211:40954","Long_Long_Name_renderName292:1215:41090","Long_Long_Name_renderName293:1219:41226","Long_Long_Name_renderName294:1223:41362","Long_Long_Name_renderName295:1227:41498","Long_Long_Name_renderName296:1231:41634","Long_Long_Name_renderName297:1235:41770","Long_Long_Name_renderName298:1239:41906","Long_Long_Name_renderName299:1243:42042"],"coverage":1},"undefined":{"lines":["3","5","6"],"conditions":[],"functions":["(?):1:1","$:5:85"],"coverage":1},"b-unused-module":{"lines":["1","2"],"conditions":[],"functions":["(?):0:1","pewpewOlolo:1:86"],"coverage":1}})
