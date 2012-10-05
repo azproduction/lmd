@@ -7,7 +7,10 @@
         "coverage_not_functions": "coverage/not_functions.js",
         "coverage_not_statements": "coverage/not_statements.js",
         "coverage_not_covered": "coverage/not_covered.js",
-        "coverage_amd_fully_covered": "coverage/amd_fully_covered.js",
+        "coverage_amd_fully_covered": {
+            "path": "coverage/amd_fully_covered.js",
+            "sandbox": true
+        },
 
         "coverage_fully_covered_async": "@/modules/coverage/fully_covered_async.js",
         "coverage_not_functions_async": "@/modules/coverage/not_functions_async.js"

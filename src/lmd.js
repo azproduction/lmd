@@ -24,7 +24,7 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require = lmd_trigger('lmd-register:decorate-module', moduleName, require)[1];
+                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, require)[1];
 
                 // Make sure that sandboxed modules cant require
                 if (modules_options[moduleName] &&

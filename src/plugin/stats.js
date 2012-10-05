@@ -175,24 +175,28 @@ function stats_require_module(moduleName, byModuleName) {
 
 function stats_wrap_require_method(method, thisObject, byModuleName) {
     return function (moduleName) {
-        var moduleNames = [];
-        if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
-            moduleNames = [moduleName];
-        } else {
-            moduleNames = moduleName;
-        }
-
-        for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
-            moduleNamesItem = moduleNames[i];
-            module = sb.modules[moduleNamesItem];
-
-            var replacement = sb.trigger('stats:before-require-count', moduleNamesItem, module);
-            if (replacement) {
-                moduleNamesItem = replacement[0];
-            }
-            stats_require_module(moduleNamesItem, byModuleName);
-        }
+        stats_require_modules(moduleName, byModuleName);
         return method.apply(thisObject, arguments);
+    }
+}
+
+function stats_require_modules(moduleName, byModuleName) {
+    var moduleNames = [];
+    if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
+        moduleNames = [moduleName];
+    } else {
+        moduleNames = moduleName;
+    }
+
+    for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
+        moduleNamesItem = moduleNames[i];
+        module = sb.modules[moduleNamesItem];
+
+        var replacement = sb.trigger('stats:before-require-count', moduleNamesItem, module);
+        if (replacement) {
+            moduleNamesItem = replacement[0];
+        }
+        stats_require_module(moduleNamesItem, byModuleName);
     }
 }
 

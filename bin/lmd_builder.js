@@ -1213,7 +1213,7 @@ LmdBuilder.prototype.build = function () {
                         fd: 1,
                         fe: 1,
                         plain: 0,
-                        amd: 0
+                        amd: -1
                     })[moduleType];
 
                     coverageResult = lmdCoverage.interpret(module.name, module.path, moduleContent, skipLines);

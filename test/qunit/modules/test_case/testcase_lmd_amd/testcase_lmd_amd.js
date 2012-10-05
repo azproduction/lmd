@@ -13,7 +13,7 @@
 
     module('LMD AMD module adaptor @ ' + ENV_NAME);
 
-    test("object and strings", function () {
+    test("AMD object and strings", function () {
         expect(6);
 
         var amd_object = require('amd_amd_object'),
@@ -34,7 +34,7 @@
         equal(amd_object, require('amd_amd_object'), 'Should init once');
     });
 
-    test("depends", function () {
+    test("AMD depends", function () {
         expect(4);
         var amd_function_deps = require('amd_amd_function_deps');
 
@@ -48,7 +48,7 @@
         equal(amd_function_deps.amd_object, require('amd_amd_object'), 'Should init once');
     });
 
-    test("no depends", function () {
+    test("AMD no depends", function () {
         expect(4);
         var amd_function_nodeps = require('amd_amd_function_nodeps');
 
@@ -65,7 +65,7 @@
 
     });
 
-    test("module name", function () {
+    test("AMD module name", function () {
         expect(5);
         var amd_function_name = require('amd_amd_function_name');
 
@@ -80,13 +80,13 @@
         equal("undefined", typeof require("amd_function_name!!!"), "Should not define objects using define(name)");
     });
 
-    test("multi define", function () {
+    test("AMD multi define", function () {
         var amd_multi_define = require('amd_amd_multi_define');
 
         equal("ok", amd_multi_define, "Should overwrite defines in one module");
     });
 
-    test("require LMD module from AMD", function () {
+    test("AMD require LMD module", function () {
         var amd_require_lmd_module = require('amd_amd_require_lmd_module');
 
         /*{
@@ -106,6 +106,12 @@
 
         equal(require("amd_amd_string"), amd_shortcut.amd_shortcut, "Should follow shortcut by deps");
         equal(require("amd_amd_string"), amd_shortcut.require_amd_shortcut, "Should follow shortcut by require");
+    });
+
+    test("AMD sandbox", function () {
+        var amd_sandbox = require('amd_amd_sandbox');
+
+        equal(true, amd_sandbox, "Should be sandboxed");
     });
 
 });

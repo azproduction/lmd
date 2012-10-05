@@ -24,7 +24,7 @@
                 module = global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require = lmd_trigger('lmd-register:decorate-module', moduleName, require)[1];
+                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, require)[1];
 
                 // Make sure that sandboxed modules cant require
                 if (modules_options[moduleName] &&
@@ -903,24 +903,28 @@ function stats_require_module(moduleName, byModuleName) {
 
 function stats_wrap_require_method(method, thisObject, byModuleName) {
     return function (moduleName) {
-        var moduleNames = [];
-        if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
-            moduleNames = [moduleName];
-        } else {
-            moduleNames = moduleName;
-        }
-
-        for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
-            moduleNamesItem = moduleNames[i];
-            module = sb.modules[moduleNamesItem];
-
-            var replacement = sb.trigger('stats:before-require-count', moduleNamesItem, module);
-            if (replacement) {
-                moduleNamesItem = replacement[0];
-            }
-            stats_require_module(moduleNamesItem, byModuleName);
-        }
+        stats_require_modules(moduleName, byModuleName);
         return method.apply(thisObject, arguments);
+    }
+}
+
+function stats_require_modules(moduleName, byModuleName) {
+    var moduleNames = [];
+    if (Object.prototype.toString.call(moduleName) !== "[object Array]") {
+        moduleNames = [moduleName];
+    } else {
+        moduleNames = moduleName;
+    }
+
+    for (var i = 0, c = moduleNames.length, moduleNamesItem, module; i < c; i++) {
+        moduleNamesItem = moduleNames[i];
+        module = sb.modules[moduleNamesItem];
+
+        var replacement = sb.trigger('stats:before-require-count', moduleNamesItem, module);
+        if (replacement) {
+            moduleNamesItem = replacement[0];
+        }
+        stats_require_module(moduleNamesItem, byModuleName);
     }
 }
 
@@ -5548,7 +5552,7 @@ var amdModules = {},
  * @param deps
  * @param module
  */
-sb.require.define = function (name, deps, module) {
+var define = function (name, deps, module) {
     switch (arguments.length) {
         case 1: // define(function () {})
             module = name;
@@ -5585,18 +5589,32 @@ sb.require.define = function (name, deps, module) {
                 deps[i] = output.exports;
                 break;
             default:
-                deps[i] = currentRequire(deps[i]);
+                deps[i] = currentRequire && currentRequire(deps[i]);
         }
     }
     module = module.apply(this, deps) || output.exports;
     amdModules[currentModule] = module;
 };
 
+sb.require.define = define;
+
 // First called this than called few of define
-sb.on('lmd-register:decorate-module', function (moduleName, require) {
+sb.on('lmd-register:decorate-require', function (moduleName, require) {
+    var options = sb.modules_options[moduleName] || {};
     // grab current require and module name
-    currentRequire = require;
     currentModule = moduleName;
+
+    if (options.sandbox) {
+        currentRequire = sb.undefined;
+        if (typeof require === "function") {
+            require = {};
+        }
+        require.define = define;
+    } else {
+        currentRequire = require;
+    }
+
+    return [moduleName, require];
 });
 
 // Than called this
@@ -5702,6 +5720,13 @@ define(function (require) {
         lmd_json: require('amd_lmd_json'),
         lmd_string: require('amd_lmd_string')
     };
+});
+}),
+"amd_amd_sandbox": (function (require) { /* wrapped by builder */
+var define = require.define;
+define(["require", "amd_amd_string"], function (require, amd_string) {
+
+    return typeof require === "undefined" && typeof amd_string === "undefined";
 });
 }),
 "amd_amd_shortcut": (function (require) { /* wrapped by builder */
@@ -5815,23 +5840,23 @@ define('amd_string');
 }),
 "coverage_amd_fully_covered": (function(require) {
     var require = arguments[0];
-    require.coverage_function("coverage_amd_fully_covered", "(?):0:1");
-    require.coverage_line("coverage_amd_fully_covered", "1");
+    require.coverage_function("coverage_amd_fully_covered", "(?):-1:1");
+    require.coverage_line("coverage_amd_fully_covered", "0");
     var define = require.define;
-    require.coverage_line("coverage_amd_fully_covered", "2");
+    require.coverage_line("coverage_amd_fully_covered", "1");
     define(function() {
-        require.coverage_function("coverage_amd_fully_covered", "(?):2:83");
-        require.coverage_line("coverage_amd_fully_covered", "3");
+        require.coverage_function("coverage_amd_fully_covered", "(?):1:83");
+        require.coverage_line("coverage_amd_fully_covered", "2");
         var a = "123";
-        require.coverage_line("coverage_amd_fully_covered", "4");
+        require.coverage_line("coverage_amd_fully_covered", "3");
         function test() {
-            require.coverage_function("coverage_amd_fully_covered", "test:4:120");
-            require.coverage_line("coverage_amd_fully_covered", "5");
+            require.coverage_function("coverage_amd_fully_covered", "test:3:120");
+            require.coverage_line("coverage_amd_fully_covered", "4");
             return a;
         }
-        require.coverage_line("coverage_amd_fully_covered", "8");
-        if (require.coverage_condition("coverage_amd_fully_covered", "if:8:171", typeof true === "boolean")) {
-            require.coverage_line("coverage_amd_fully_covered", "9");
+        require.coverage_line("coverage_amd_fully_covered", "7");
+        if (require.coverage_condition("coverage_amd_fully_covered", "if:7:171", typeof true === "boolean")) {
+            require.coverage_line("coverage_amd_fully_covered", "8");
             var b = test();
         }
     });
@@ -6433,7 +6458,7 @@ return {
         });
     });
 
-    test("AMD Coverage", function () {
+    test("AMD Coverage & Coverage under sandbox", function () {
         expect(3);
 
         require("coverage_amd_fully_covered");
@@ -6514,7 +6539,7 @@ return {
 
     module('LMD AMD module adaptor @ ' + ENV_NAME);
 
-    test("object and strings", function () {
+    test("AMD object and strings", function () {
         expect(6);
 
         var amd_object = require('amd_amd_object'),
@@ -6535,7 +6560,7 @@ return {
         equal(amd_object, require('amd_amd_object'), 'Should init once');
     });
 
-    test("depends", function () {
+    test("AMD depends", function () {
         expect(4);
         var amd_function_deps = require('amd_amd_function_deps');
 
@@ -6549,7 +6574,7 @@ return {
         equal(amd_function_deps.amd_object, require('amd_amd_object'), 'Should init once');
     });
 
-    test("no depends", function () {
+    test("AMD no depends", function () {
         expect(4);
         var amd_function_nodeps = require('amd_amd_function_nodeps');
 
@@ -6566,7 +6591,7 @@ return {
 
     });
 
-    test("module name", function () {
+    test("AMD module name", function () {
         expect(5);
         var amd_function_name = require('amd_amd_function_name');
 
@@ -6581,13 +6606,13 @@ return {
         equal("undefined", typeof require("amd_function_name!!!"), "Should not define objects using define(name)");
     });
 
-    test("multi define", function () {
+    test("AMD multi define", function () {
         var amd_multi_define = require('amd_amd_multi_define');
 
         equal("ok", amd_multi_define, "Should overwrite defines in one module");
     });
 
-    test("require LMD module from AMD", function () {
+    test("AMD require LMD module", function () {
         var amd_require_lmd_module = require('amd_amd_require_lmd_module');
 
         /*{
@@ -6609,7 +6634,13 @@ return {
         equal(require("amd_amd_string"), amd_shortcut.require_amd_shortcut, "Should follow shortcut by require");
     });
 
+    test("AMD sandbox", function () {
+        var amd_sandbox = require('amd_amd_sandbox');
+
+        equal(true, amd_sandbox, "Should be sandboxed");
+    });
+
 }),
 "sk_css_css": "@/modules/shortcuts/css.css",
 "sk_js_js": "@/modules/shortcuts/js.js"
-},{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"],"coverage":1},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[],"coverage":1},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"],"coverage":1},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"],"coverage":1},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"],"coverage":1},"coverage_amd_fully_covered":{"lines":["1","2","3","4","5","8","9"],"conditions":["if:8:171"],"functions":["(?):0:1","(?):2:83","test:4:120"],"coverage":1},"module_function_fd_sandboxed":{"sandbox":1},"module_function_fe_sandboxed":{"sandbox":1},"module_function_plain_sandboxed":{"sandbox":1}})
+},{"coverage_fully_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:118"],"functions":["(?):0:1","test:2:79"],"coverage":1},"coverage_not_conditions":{"lines":["2","3"],"conditions":["if:2:31"],"functions":[],"coverage":1},"coverage_not_functions":{"lines":["2","3","4","7","8"],"conditions":["if:7:110"],"functions":["(?):1:1","test:3:45"],"coverage":1},"coverage_not_statements":{"lines":["1","4","5","8","9","11"],"conditions":["if:8:127"],"functions":["(?):0:1","test:4:87"],"coverage":1},"coverage_not_covered":{"lines":["1","2","3","6","7"],"conditions":["if:6:145"],"functions":["(?):0:1","test:2:88"],"coverage":1},"coverage_amd_fully_covered":{"lines":["0","1","2","3","4","7","8"],"conditions":["if:7:171"],"functions":["(?):-1:1","(?):1:83","test:3:120"],"coverage":1,"sandbox":1},"amd_amd_sandbox":{"sandbox":1},"module_function_fd_sandboxed":{"sandbox":1},"module_function_fe_sandboxed":{"sandbox":1},"module_function_plain_sandboxed":{"sandbox":1}})

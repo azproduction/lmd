@@ -73,7 +73,7 @@
         });
     });
 
-    test("AMD Coverage", function () {
+    test("AMD Coverage & Coverage under sandbox", function () {
         expect(3);
 
         require("coverage_amd_fully_covered");

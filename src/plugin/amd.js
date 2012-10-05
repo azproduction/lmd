@@ -22,7 +22,7 @@ var amdModules = {},
  * @param deps
  * @param module
  */
-sb.require.define = function (name, deps, module) {
+var define = function (name, deps, module) {
     switch (arguments.length) {
         case 1: // define(function () {})
             module = name;
@@ -59,18 +59,32 @@ sb.require.define = function (name, deps, module) {
                 deps[i] = output.exports;
                 break;
             default:
-                deps[i] = currentRequire(deps[i]);
+                deps[i] = currentRequire && currentRequire(deps[i]);
         }
     }
     module = module.apply(this, deps) || output.exports;
     amdModules[currentModule] = module;
 };
 
+sb.require.define = define;
+
 // First called this than called few of define
-sb.on('lmd-register:decorate-module', function (moduleName, require) {
+sb.on('lmd-register:decorate-require', function (moduleName, require) {
+    var options = sb.modules_options[moduleName] || {};
     // grab current require and module name
-    currentRequire = require;
     currentModule = moduleName;
+
+    if (options.sandbox) {
+        currentRequire = sb.undefined;
+        if (typeof require === "function") {
+            require = {};
+        }
+        require.define = define;
+    } else {
+        currentRequire = require;
+    }
+
+    return [moduleName, require];
 });
 
 // Than called this
