@@ -884,7 +884,6 @@ function for_side_effects(ast, handler) {
                 "for-in": found,
                 "while": found,
                 "do": found,
-                "return": found,
                 "unary-prefix": unary,
                 "unary-postfix": unary,
                 "defun": found

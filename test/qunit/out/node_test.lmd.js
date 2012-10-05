@@ -3702,7 +3702,6 @@ function for_side_effects(ast, handler) {
                 "for-in": found,
                 "while": found,
                 "do": found,
-                "return": found,
                 "unary-prefix": unary,
                 "unary-postfix": unary,
                 "defun": found
@@ -5268,7 +5267,7 @@ exports.interpret = function (moduleName, file, content, lineOffset, options) {
 	 *          dot[2] : property
 	 */
 	function giveNameToAnonymousFunction () {
-		node = this;
+		var node = this;
 
 		if (node[0].name == "var" || node[0].name == "object") {
 			node[1].forEach(function (assignemt) {
