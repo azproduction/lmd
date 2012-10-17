@@ -1083,7 +1083,7 @@ lmd -m main \
   * Shortcuts, modules under Code Coverage and Lazy modules can not be under Source Map now (will be implemented in future versions)
   * `pack: true` destroys source map now (will be implemented in future versions)
 
-see [LMD ClI](#lmd-cli) for details and
+see [LMD CLI](#lmd-cli) for details
 
 ## Watch mode
 
