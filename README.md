@@ -72,6 +72,7 @@ and [Asynchronous module require](#asynchronous-module-require))
 15. LMD can protect your code from 3-party modules (see [Modules sandbox](#modules-sandbox))
 16. Code Coverage? - Easy! (see [Code coverage](#code-coverage))
 17. Ready for production - `lmd.js` is 100% covered by unit tests see [test/README.md](/azproduction/lmd/tree/master/test) for details
+18. SourceMap for all LMD modules (see [Source map](#source-map))
 
 ## Installing
 
@@ -1061,6 +1062,29 @@ Stats server provides simple coverage and usage reports
 
 see [examples/mock_chat](/azproduction/lmd/tree/master/examples/mock_chat) for real example
 
+## Source map
+
+LMD can generate source map for your modules.
+
+**Example**
+
+```
+lmd -m main \
+    -c ./test/qunit/cfgs/node_test.lmd.json \
+    -o ./test/qunit/out/node_test.lmd.js \
+    -sm ./test/qunit/out/node_test.lmd.map \   # Source Map location
+    -sm-root ./test/qunit \                    # "./test/qunit" <-maps-to-> "/" root of www path
+    -sm-inline \                               # headerless Source Map
+    -l
+```
+
+**Notes**
+
+  * Shortcuts, modules under Code Coverage and Lazy modules can not be under Source Map now (will be implemented in future versions)
+  * `pack: true` destroys source map now (will be implemented in future versions)
+
+see [LMD ClI](#lmd-cli) for details and
+
 ## Watch mode
 
 During development its not very convenient to rebuild the LMD-package each time. You can run LMD package in watch mode
@@ -1083,10 +1107,14 @@ new style `lmd [-m mode] -c config [-o output] [-l]`
 **Arguments**
 
  - `-m` `-mode` lmd run mode `main` (default) or `watch`
- - `-c` `-config` lmd package config file
- - `-o` `-output` lmd output file - default STDOUT
+ - `-c {File}` `-config {File}` lmd package config file
+ - `-o {File}` `-output {File}` lmd output file - default STDOUT
  - `-l` `-log` print work log - default false
  - `-no-w` `-no-warn` disable warnings
+ - `-sm {File}` `-source-map {File}` source map output file, enables source map
+ - `-sm-root {Path}` `-source-map-root {Path}` file system path where your files located (where your index.html located in file system)
+ - `-sm-www {Path}` `-source-map-www {Path}` www path pointed to the file system `root` path (where your index.html located in www)
+ - `-sm-inline` `-source-map-inline` adds `sourceMappingURL` referense to the bottom of generated file
 
 ## Plugins and extending LMD
 
@@ -1562,6 +1590,7 @@ _Listener returns context:_ yes depend on moduleName value returns empty array o
   - Lmd is Readable Stream
   - Lmd Watch upstart rebuild, watch for lmd.json
   - AMD module adaptor `amd` flag
+  - Source Map
 
 ## Licence
 

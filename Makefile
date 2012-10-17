@@ -6,9 +6,27 @@ test: build_test
 	node ./test/qunit/run-test.js
 
 build_test:
-	node $(LMD_BUILD) -m main -c ./test/qunit/cfgs/test.lmd.json -o ./test/qunit/out/test.lmd.js -l
-	node $(LMD_BUILD) -m main -c ./test/qunit/cfgs/node_test.lmd.json -o ./test/qunit/out/node_test.lmd.js -l
-	node $(LMD_BUILD) -m main -c ./test/qunit/cfgs/worker_test.lmd.json -o ./test/qunit/out/worker_test.lmd.js -l
+	node $(LMD_BUILD) -m main \
+	                  -c ./test/qunit/cfgs/test.lmd.json \
+	                  -o ./test/qunit/out/test.lmd.js \
+	                  -sm ./test/qunit/out/test.lmd.map \
+	                  -sm-root ./test/qunit \
+	                  -sm-inline \
+	                  -l
+	node $(LMD_BUILD) -m main \
+	                  -c ./test/qunit/cfgs/node_test.lmd.json \
+	                  -o ./test/qunit/out/node_test.lmd.js \
+	                  -sm ./test/qunit/out/node_test.lmd.map \
+	                  -sm-root ./test/qunit \
+	                  -sm-inline \
+	                  -l
+	node $(LMD_BUILD) -m main \
+	                  -c ./test/qunit/cfgs/worker_test.lmd.json \
+	                  -o ./test/qunit/out/worker_test.lmd.js \
+	                  -sm ./test/qunit/out/worker_test.lmd.map \
+	                  -sm-root ./test/qunit \
+	                  -sm-inline \
+	                  -l
 
 coverage: build_test
 	rm -rf coverage/*

@@ -28,6 +28,14 @@ var parseArgv = function (a,b,c,d) {
     c={};for(a=a.split(/\s*\B[-]+([\w-]+)[\s=]*/),d=1;b=a[d++];c[b]=a[d++]||!0);return c
 };
 
+var createWritableFile = function (fileName) {
+    return fs.createWriteStream(fileName, {
+        flags: "w",
+        encoding: "utf8",
+        mode: 0666
+    });
+};
+
 /**
  * Formats lmd config
  *
@@ -51,6 +59,10 @@ var parseData = function (data) {
             config.log = config.log || config.l;
             config.config = config.config || config.c;
             config['no-warn'] = config['no-warn'] || config['no-w'];
+            config['source-map'] = config['source-map'] || config['sm'];
+            config['source-map-root'] = config['source-map-root'] || config['sm-root'];
+            config['source-map-www'] = config['source-map-www'] || config['sm-www'];
+            config['source-map-inline'] = config['source-map-inline'] || config['sm-inline'];
         } else {
             // an old argv format, split argv and parse manually
             data = data.split(' ');
@@ -84,29 +96,38 @@ var parseData = function (data) {
 
     config.mode = config.mode || 'main';
     config['no-warn'] = config['no-warn'] || false;
+    config['source-map'] = config['source-map'] || false;
+    config['source-map-root'] = config['source-map-root'] || "";
+    config['source-map-www'] = config['source-map-www'] || "";
+    config['source-map-inline'] = config['source-map-inline'] || false;
     config.log = config.log || false;
     return config;
 };
 
-var config = parseData(process.argv.join(' '));
+var config = parseData(process.argv.join(' ')),
+    builderOptions = {
+        noWarn: config['no-warn'],
+        sourceMap: config['source-map'],
+        sourceMapRoot: config['source-map-root'],
+        sourceMapWww: config['source-map-www'],
+        isSourceMapInline: config['source-map-inline'],
+        sourceMapGenerated: config.output
+    };
 
 switch (config.mode) {
     case 'main':
-        var buildResult = new lmdPackage(config.config, {
-            noWarn: config['no-warn']
-        });
+        var buildResult = new lmdPackage(config.config, builderOptions);
         if (!config.config) {
             buildResult.log.pipe(process.stdout);
             break;
         }
-        if (config.output) {
-            var fileStream = fs.createWriteStream(config.output, {
-                flags: "w",
-                encoding: "utf8",
-                mode: 0666
-            });
 
-            buildResult.pipe(fileStream);
+        if (config['source-map']) {
+            buildResult.sourceMap.pipe(createWritableFile(config['source-map']));
+        }
+
+        if (config.output) {
+            buildResult.pipe(createWritableFile(config.output));
             if (config.log) {
                 buildResult.log.pipe(process.stdout);
             }
@@ -115,9 +136,7 @@ switch (config.mode) {
         }
         break;
     case 'watch':
-        var watcher = new lmdPackage.watch(config.config, config.output, {
-            noWarn: config['no-warn']
-        });
+        var watcher = new lmdPackage.watch(config.config, config.output, builderOptions);
         if (!config.config || !config.output) {
             watcher.log.pipe(process.stdout);
             break;

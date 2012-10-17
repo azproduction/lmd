@@ -52,6 +52,7 @@ var JSHINT_GLOBALS = {
 var fs = require('fs'),
     Stream = require('stream'),
     uglifyCompress = require("uglify-js"),
+    SourceMapGenerator = require('source-map').SourceMapGenerator,
     colors = require('colors'),
     parser = uglifyCompress.parser,
     uglify = uglifyCompress.uglify,
@@ -88,14 +89,16 @@ var LmdBuilder = function (configFile, options) {
 
     // apply config
     this.configFile = configFile;
-    this.isWarn = !options.noWarn;
 
-    this.init();
+    this.init(options);
 
     // Let return instance before build
     process.nextTick(function () {
         if (configFile) {
-            self.emit('data', self.build());
+            var buildResult = self.build();
+
+            self.emit('data', buildResult.source);
+            self.sourceMap.emit('data', buildResult.sourceMap.toString());
         } else {
             self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.json'.green + ' [output.lmd.js]\n');
         }
@@ -128,11 +131,9 @@ LmdBuilder.watch = function (configFile, outputFile, options) {
 
     this.configFile = configFile;
     this.outputFile = outputFile;
-    this.isWarn = !options.noWarn;
 
-    this.init();
-    // make Stream writeable to forward build logs
-    this.log.writeable = true;
+    this.init(options);
+    this.sourceMap.readable = false;
     this.readable = false;
 
     // Let return instance before build
@@ -153,7 +154,15 @@ LmdBuilder.prototype = new Stream();
 /**
  * Common init for LmdBuilder and LmdBuilder.watch
  */
-LmdBuilder.prototype.init = function () {
+LmdBuilder.prototype.init = function (options) {
+    this.isWarn = !options.noWarn;
+    this.isSourceMap = !!options.sourceMap;
+    this.sourceMapFile = options.sourceMap;
+    this.sourceMapRoot = options.sourceMapRoot || "";
+    this.sourceMapWww = options.sourceMapWww || "";
+    this.sourceMapGenerated = options.sourceMapGenerated || "";
+    this.isSourceMapInline = options.isSourceMapInline || false;
+
     var self = this;
     this.configDir = fs.realpathSync(this.configFile);
     this.configDir = this.configDir.split(CROSS_PLATFORM_PATH_SPLITTER);
@@ -168,6 +177,14 @@ LmdBuilder.prototype.init = function () {
      */
     this.log = new Stream();
     this.log.readable = true;
+
+    /**
+     * Source Map
+     *
+     * @type {Stream}
+     */
+    this.sourceMap = new Stream();
+    this.sourceMap.readable = true;
 
     // LmdBuilder is readable stream
     this.readable = true;
@@ -185,6 +202,9 @@ LmdBuilder.prototype.closeStreams = function () {
 
     this.log.emit('end');
     this.log.readable = false;
+
+    this.sourceMap.emit('end');
+    this.sourceMap.readable = false;
 };
 
 /**
@@ -682,12 +702,11 @@ LmdBuilder.prototype.escape = function (file) {
  * @param {Array}   lmd_modules
  * @param {String}  lmd_main
  * @param {Boolean} pack
- * @parma {Object}  pack_options
  * @param {Object}  modules_options
  *
  * @returns {String}
  */
-LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, pack_options, modules_options) {
+LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, modules_options) {
     var lmd_js = fs.readFileSync(LMD_JS_SRC_PATH + 'lmd.js', 'utf8'),
         result;
 
@@ -707,10 +726,6 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, pac
         // if version passed -> module will be cached
         version: config.cache ? JSON.stringify(config.version) : false
     });
-
-    if (pack) {
-        result = this.compress(result, pack_options);
-    }
 
     return result;
 };
@@ -977,7 +992,12 @@ LmdBuilder.prototype.fsWatch = function () {
                 log('\n');
             }
 
-            fs.writeFileSync(self.outputFile, self.build(), 'utf8');
+            var buildResult = self.build();
+            fs.writeFileSync(self.outputFile, buildResult.source, 'utf8');
+
+            if (self.isSourceMap) {
+                fs.writeFileSync(self.sourceMapFile, buildResult.sourceMap.toString(), 'utf8');
+            }
 
             if (!self.isWarn) {
                 log(' ' + 'Done!'.green + '\n');
@@ -1090,9 +1110,160 @@ LmdBuilder.prototype.checkForDirectGlobalsAccess = function (moduleName, moduleC
 };
 
 /**
+ * Generates module token
+ *
+ * @param {String} modulePath
+ */
+LmdBuilder.prototype.createToken = function (modulePath) {
+    return '/**[[LMD_TOKEN]]:' + modulePath + '**/';
+};
+
+/**
+ * Calculates module offset relative to source file
+ *
+ * @param {String} source     result source with tokens
+ * @param {Number} tokenIndex module offset
+ *
+ * @return {Object} {column, line}
+ */
+LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
+    var cols = 0,
+        rows = 1;
+
+    for (var i = 0, symbol; i < tokenIndex; i++) {
+        symbol = source[i];
+
+        if (symbol === '\n') {
+            rows++;
+            cols = 0;
+        } else {
+            cols++;
+        }
+    }
+
+    return {
+        column: cols,
+        line: rows
+    };
+};
+
+/**
+ * Generates source map, removes source map tokens
+ *
+ * @param {Object}  modules          in package modules
+ * @param {String}  sourceWithTokens source with sourcemap tokens
+ * @param {String}  generatedFile    output javascript file
+ * @param {String}  root             root fs path
+ * @param {String}  www              root www path
+ * @param {String}  sourceMapFile    source map file location
+ * @param {Boolean} isInline         add sourceMappingURL?
+ *
+ * @return {Object} {source: cleanSource, sourceMap: sourceMap}
+ */
+LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, generatedFile, root, www, sourceMapFile, isInline) {
+    var self = this,
+        module,
+        sourceMapsApplied = 0,
+        sourceMapSkipped = [];
+
+    root = fs.realpathSync(root);
+
+    var sourceMap = new SourceMapGenerator({
+        file: generatedFile ? (fs.realpathSync(generatedFile).replace(root, '')) : "lmd.js",
+        sourceRoot: www || ""
+    });
+
+    for (var moduleName in modules) {
+        module = modules[moduleName];
+        if (this.isModuleCanBeUnderSourceMap(module)) {
+            var token = self.createToken(module.path),
+                tokenIndex = sourceWithTokens.indexOf(token);
+
+            if (tokenIndex === -1) {
+                continue;
+            }
+
+            var offset = self.getModuleOffset(sourceWithTokens, tokenIndex),
+                source = module.path.replace(root, '');
+
+            // add mapping for each line
+            for (var i = 0; i < module.lines; i++) {
+                sourceMap.addMapping({
+                    generated: {
+                        // only first line can be with column offset
+                        column: i ? 0 : offset.column,
+                        line: offset.line + i
+                    },
+                    original: {
+                        column: 0,
+                        line: i + 1
+                    },
+                    source: source
+                });
+            }
+
+            // remove token
+            sourceWithTokens = sourceWithTokens.replace(token, '');
+            sourceMapsApplied++;
+        } else {
+            if (!module.is_shortcut) {
+                sourceMapSkipped.push(moduleName);
+            }
+        }
+    }
+
+    if (sourceMapsApplied === 0) {
+        this.warn('There is no modules under Source Map!');
+    } else if (sourceMapSkipped.length) {
+        this.warn('Source Map is not applied for these modules: **' + sourceMapSkipped.join('**, **') + '**');
+    }
+
+    sourceMapFile = fs.realpathSync(sourceMapFile).replace(root, '');
+
+    if (isInline && sourceMapsApplied !== 0) {
+        // append helper
+        sourceWithTokens += '\n\n//@ sourceMappingURL=' + sourceMapFile + '?' + Math.random() + '\n';
+    }
+
+    return {
+        source: sourceWithTokens,
+        sourceMap: sourceMap
+    };
+};
+
+/**
+ *
+ * @param {String} source
+ *
+ * @return {Number}
+ */
+LmdBuilder.prototype.calculateModuleLines = function (source) {
+    var lines = 1;
+    for (var i = 0, c = source.length; i < c; i++) {
+         if (source[i] === "\n") {
+            lines++;
+         }
+    }
+
+    return lines;
+};
+
+/**
+ *
+ * @param {Object} moduleDescriptor
+ *
+ * @return {Boolean}
+ */
+LmdBuilder.prototype.isModuleCanBeUnderSourceMap = function (moduleDescriptor) {
+    return !moduleDescriptor.is_shortcut &&
+           !moduleDescriptor.is_coverage &&
+           !moduleDescriptor.is_lazy;
+};
+
+/**
  * Main builder
  *
- * @returns {String}
+ * @returns {Object} {source: cleanSource, sourceMap: sourceMap}
  */
 LmdBuilder.prototype.build = function () {
     var config = assembleLmdConfig(this.configFile, Object.keys(this.flagToOptionNameMap));
@@ -1156,6 +1327,13 @@ LmdBuilder.prototype.build = function () {
                 isJson = true;
             } catch (e) {
                 isJson = false;
+            }
+
+            if (this.isSourceMap) {
+                if (this.isModuleCanBeUnderSourceMap(module)) {
+                    moduleContent = this.createToken(module.path) + moduleContent;
+                    module.lines = this.calculateModuleLines(moduleContent);
+                }
             }
 
             if (!isJson) {
@@ -1304,9 +1482,29 @@ LmdBuilder.prototype.build = function () {
             }
             modulesOptions[moduleName].sandbox = 1;
         }
-        lmdFile = this.render(config, lmdModules, lmdMain, pack, config.pack_options, modulesOptions);
+        lmdFile = this.render(config, lmdModules, lmdMain, pack, modulesOptions);
 
-        return lmdFile;
+        var sourceMap = '';
+        if (this.isSourceMap) {
+            var sourceMapResult = this.createSourceMap(
+                modules, lmdFile,
+                this.sourceMapGenerated, this.sourceMapRoot,
+                this.sourceMapWww, this.sourceMapFile, this.isSourceMapInline
+            );
+
+            lmdFile = sourceMapResult.source;
+            sourceMap = sourceMapResult.sourceMap;
+        }
+
+        if (pack) {
+            // TODO(azproduction) Add sourceMap to it
+            lmdFile = this.compress(lmdFile, config.pack_options);
+        }
+
+        return {
+            source: lmdFile,
+            sourceMap: sourceMap
+        };
     }
 };
 
