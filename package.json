@@ -20,6 +20,7 @@
     "keywords": ["lmd", "amd", "module", "builder"],
     "dependencies": {
         "uglify-js": ">= 1.2.0",
+        "uglify-js2": ">= 2.1.2",
         "jshint": ">= 0.7.1",
         "jade": ">= 0.26.1",
         "express": ">= 2.5.9",

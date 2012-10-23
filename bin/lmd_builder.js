@@ -52,6 +52,7 @@ var JSHINT_GLOBALS = {
 var fs = require('fs'),
     Stream = require('stream'),
     uglifyCompress = require("uglify-js"),
+    UglifyJS2 = require("uglify-js2"),
     SourceMapGenerator = require('source-map').SourceMapGenerator,
     colors = require('colors'),
     parser = uglifyCompress.parser,
@@ -221,20 +222,67 @@ LmdBuilder.prototype.template = function (data) {
 
 
 /**
- * Compress code using UglifyJS
- * 
- * @param {String}  code
- * @param {Object}  pack_options
- * @param {Boolean} pack_options.strict_semicolons
- * @param {Object}  pack_options.mangle_options
- * @param {Object}  pack_options.squeeze_options
- * @param {Object}  pack_options.gen_options
+ * Compress code using UglifyJS 2
  *
- * @returns {String} compressed code
+ * @param {String} code
+ *
+ * @param {Object}  [pack_options]
+ * @param {Object}  [pack_options.compress_options]
+ * @param {Object}  [pack_options.gen_options]
+ * @param {Boolean} [pack_options.is_mangle=true]
+ *
+ * @param {Object}  [sourcemap_options]
+ *
+ * @param {String}  sourcemap_options.file
+ * @param {String}  sourcemap_options.orig
+ * @param {String}  sourcemap_options.root
+ *
+ * @returns {Object}
  */
-LmdBuilder.prototype.compress = function (code, pack_options) {
-    pack_options = typeof pack_options === "object" ? pack_options : {};
-    return uglifyCompress(code, pack_options);
+LmdBuilder.prototype.compress = function(code, pack_options, sourcemap_options) {
+    // 0. set defaults
+    var compress_options = UglifyJS2.defaults(pack_options.compress_options, {
+        warnings: false,
+        side_effects: false,
+        unused: false
+    });
+    var gen_options = UglifyJS2.defaults(pack_options.gen_options, {});
+    var is_mangle = typeof pack_options.is_mangle === "undefined" ? true : pack_options.is_mangle;
+
+    // 1. parse
+    var toplevel = null;
+    toplevel = UglifyJS2.parse(code, {
+        filename: "?",
+        toplevel: toplevel
+    });
+
+    // 2. compress
+    toplevel.figure_out_scope();
+    var sq = UglifyJS2.Compressor(compress_options);
+    toplevel = toplevel.transform(sq);
+
+    // 3. mangle
+    toplevel.figure_out_scope();
+    toplevel.compute_char_frequency();
+    if (is_mangle) {
+        toplevel.mangle_names();
+    }
+
+    // 4. output
+    var map = null;
+    if (sourcemap_options) {
+        map = UglifyJS2.SourceMap(sourcemap_options);
+    }
+
+    gen_options.source_map = map;
+
+    var stream = UglifyJS2.OutputStream(gen_options);
+    toplevel.print(stream);
+
+    return {
+        source: stream + "",
+        sourceMap: map !== null ? map + "" : null
+    };
 };
 
 /**
@@ -1155,12 +1203,10 @@ LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
  * @param {String}  generatedFile    output javascript file
  * @param {String}  root             root fs path
  * @param {String}  www              root www path
- * @param {String}  sourceMapFile    source map file location
- * @param {Boolean} isInline         add sourceMappingURL?
  *
  * @return {Object} {source: cleanSource, sourceMap: sourceMap}
  */
-LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, generatedFile, root, www, sourceMapFile, isInline) {
+LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, generatedFile, root, www) {
     var self = this,
         module,
         sourceMapsApplied = 0,
@@ -1218,17 +1264,25 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, gene
         this.warn('Source Map is not applied for these modules: **' + sourceMapSkipped.join('**, **') + '**');
     }
 
-    sourceMapFile = fs.realpathSync(sourceMapFile).replace(root, '');
-
-    if (isInline && sourceMapsApplied !== 0) {
-        // append helper
-        sourceWithTokens += '\n\n//@ sourceMappingURL=' + sourceMapFile + '?' + Math.random() + '\n';
-    }
-
     return {
         source: sourceWithTokens,
         sourceMap: sourceMap
     };
+};
+
+/**
+ *
+ * @param {String}  code
+ * @param {String}  root             root fs path
+ * @param {String}  sourceMapFile    source map file location
+ *
+ * @return {String}
+ */
+LmdBuilder.prototype.declareInlineSourceMap = function (code, root, sourceMapFile) {
+    root = fs.realpathSync(root);
+    sourceMapFile = fs.realpathSync(sourceMapFile).replace(root, '');
+
+    return code + '\n\n//@ sourceMappingURL=' + sourceMapFile + '?' + Math.random() + '\n';
 };
 
 /**
@@ -1418,7 +1472,9 @@ LmdBuilder.prototype.build = function () {
                 }
 
                 if (isModule && (module.is_lazy || pack)) {
-                    moduleContent = this.compress(moduleContent, config.pack_options);
+
+                    moduleContent = this.compress(moduleContent, config.pack_options).source;
+
                 }
             }
 
@@ -1484,26 +1540,41 @@ LmdBuilder.prototype.build = function () {
         }
         lmdFile = this.render(config, lmdModules, lmdMain, pack, modulesOptions);
 
-        var sourceMap = '';
+        var sourceMap = null;
         if (this.isSourceMap) {
             var sourceMapResult = this.createSourceMap(
                 modules, lmdFile,
                 this.sourceMapGenerated, this.sourceMapRoot,
-                this.sourceMapWww, this.sourceMapFile, this.isSourceMapInline
+                this.sourceMapWww
             );
 
             lmdFile = sourceMapResult.source;
             sourceMap = sourceMapResult.sourceMap;
         }
 
+        var isSourceMap = !!sourceMap._mappings.length;
+
         if (pack) {
-            // TODO(azproduction) Add sourceMap to it
-            lmdFile = this.compress(lmdFile, config.pack_options);
+            var sourcemap_options;
+            if (isSourceMap) {
+                sourcemap_options = {
+                    file: fs.realpathSync(this.sourceMapFile).replace(fs.realpathSync(root), ''),
+                    orig: sourceMap + "",
+                    root: this.sourceMapWww
+                };
+            }
+            var minifyResult = this.compress(lmdFile, config.pack_options, sourcemap_options);
+            lmdFile = minifyResult.source;
+            sourceMap = minifyResult.sourceMap;
+        }
+
+        if (isSourceMap && this.isSourceMapInline) {
+            lmdFile = this.declareInlineSourceMap(lmdFile, this.sourceMapRoot, this.sourceMapFile);
         }
 
         return {
             source: lmdFile,
-            sourceMap: sourceMap
+            sourceMap: sourceMap || ''
         };
     }
 };

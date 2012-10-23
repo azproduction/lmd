@@ -23,29 +23,43 @@
     "lazy": false,
     "pack": true,
     "pack_options": {
-        "strict_semicolons": false,
-        "mangle_options": {
-            "mangle": true,
-            "toplevel": false,
-            "defines": null,
-            "except": null,
-            "no_functions": false
-        },
-        "squeeze_options": {
-            "make_seqs": true,
-            "dead_code": true,
-            "no_warnings": false,
-            "keep_comps": true,
-            "unsafe": false
+        "is_mangle": true,
+        "compress_options": {
+            "sequences"     : true,
+            "properties"    : true,
+            "dead_code"     : true,
+            "drop_debugger" : true,
+            "unsafe"        : true,
+            "conditionals"  : true,
+            "comparisons"   : true,
+            "evaluate"      : true,
+            "booleans"      : true,
+            "loops"         : true,
+            "unused"        : false,
+            "hoist_funs"    : true,
+            "hoist_vars"    : false,
+            "if_return"     : true,
+            "join_vars"     : true,
+            "cascade"       : true,
+            "side_effects"  : false,
+    
+            "warnings"      : true,
+            "global_defs"   : {}
         },
         "gen_options": {
-            "indent_start": 0,
-            "indent_level": 4,
-            "quote_keys": false,
-            "space_colon": false,
-            "beautify": false,
-            "ascii_only": false,
-            "inline_script": false
+            "indent_start"  : 0,
+            "indent_level"  : 4,
+            "quote_keys"    : false,
+            "space_colon"   : true,
+            "ascii_only"    : false,
+            "inline_script" : false,
+            "width"         : 80,
+            "max_line_len"  : 32000,
+            "ie_proof"      : true,
+            "beautify"      : false,
+            "bracketize"    : false,
+            "semicolons"    : true,
+            "comments"      : false
         }
     },
 
