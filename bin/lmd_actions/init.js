@@ -48,7 +48,7 @@ module.exports.check = function () {
 
     var status = checkLmdDir(cwd);
     if (status !== true) {
-        printHelp(status ? status : 'run `lmd init` to initialise LMD');
+        printHelp(status ? status : 'run `lmd init` to initialise LMD in ' + cwd);
         return false;
     }
 

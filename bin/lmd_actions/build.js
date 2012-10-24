@@ -68,12 +68,19 @@ module.exports = function () {
     var buildResult = new lmdPackage(lmdFile, argv),
         buildConfig = buildResult.buildConfig;
 
+    // console.log(JSON.stringify(buildConfig, null, '  '));
+
+    var configDir = fs.realpathSync(lmdFile);
+    configDir = configDir.split(common.PATH_SPLITTER);
+    configDir.pop();
+    configDir = configDir.join('/') + '/' + (buildConfig.root || "");
+
     if (buildConfig.sourcemap) {
-        buildResult.sourceMap.pipe(createWritableFile(buildConfig.sourcemap));
+        buildResult.sourceMap.pipe(createWritableFile(configDir + buildConfig.sourcemap));
     }
 
     if (buildConfig.output) {
-        buildResult.pipe(createWritableFile(buildConfig.output));
+        buildResult.pipe(createWritableFile(configDir + buildConfig.output));
         if (buildConfig.log) {
             buildResult.log.pipe(process.stdout);
         }

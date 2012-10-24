@@ -93,9 +93,10 @@ var LmdBuilder = function (configFile, options) {
     this.init();
 
     // Let return instance before build
+    this.buildConfig = self.compileConfig(configFile, self.options);
     process.nextTick(function () {
         if (configFile) {
-            var buildResult = self.build(self.compileConfig(configFile, self.options));
+            var buildResult = self.build(self.buildConfig);
 
             self.emit('data', buildResult.source);
             self.sourceMap.emit('data', buildResult.sourceMap.toString());
@@ -135,12 +136,12 @@ LmdBuilder.watch = function (configFile, options) {
     this.readable = false;
 
     // Let return instance before build
+    self.watchConfig = self.compileConfig(self.configFile, self.options);
     process.nextTick(function () {
 
         if (configFile) {
-            var config = self.compileConfig(self.configFile, self.options);
-            if (config.output) {
-                self.fsWatch(config);
+            if (self.watchConfig.output) {
+                self.fsWatch(self.watchConfig);
                 return;
             }
         }
@@ -161,7 +162,6 @@ LmdBuilder.prototype.init = function () {
 
     var self = this;
 
-    this.buildConfig = null;
     this.configDir = fs.realpathSync(this.configFile);
     this.configDir = this.configDir.split(CROSS_PLATFORM_PATH_SPLITTER);
     this.flagToOptionNameMap = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_plugins.json', 'utf8'));
@@ -197,9 +197,7 @@ LmdBuilder.prototype.init = function () {
  * @param options
  */
 LmdBuilder.prototype.compileConfig = function (configFile, options) {
-    var config = assembleLmdConfig(configFile, Object.keys(this.flagToOptionNameMap));
-
-    return common.deepDestructableMerge(config, options);
+    return assembleLmdConfig(configFile, Object.keys(this.flagToOptionNameMap), options);
 };
 
 /**
@@ -1165,10 +1163,10 @@ LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
  * @return {Object} {source: cleanSource, sourceMap: sourceMap}
  */
 LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, config) {
-    var generatedFile = config.output,
-        root = config.sourcemap_root,
+    var generatedFile = this.configDir + '/' + config.root + '/' + config.output,
+        root = this.configDir + '/' + config.root + '/' + config.sourcemap_root,
         www = config.sourcemap_www,
-        sourceMapFile = config.sourcemap,
+        sourceMapFile = this.configDir + '/' + config.root + '/' + config.sourcemap,
         isInline = config.sourcemap_inline,
         isWarn = config.warn;
 
@@ -1277,7 +1275,6 @@ LmdBuilder.prototype.isModuleCanBeUnderSourceMap = function (moduleDescriptor) {
  * @returns {Object} {source: cleanSource, sourceMap: sourceMap}
  */
 LmdBuilder.prototype.build = function (config) {
-    this.buildConfig = config;
     for (var i = 0, c = config.errors.length; i < c; i++) {
         this.warn(config.errors[i], config.warn);
     }

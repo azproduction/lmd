@@ -55,6 +55,8 @@ function template(buildName, parentConfig, options) {
     }
     json.modules = {};
 
+    json.main = "main";
+
     if (options) {
         json = common.deepDestructableMerge(json, options);
     }

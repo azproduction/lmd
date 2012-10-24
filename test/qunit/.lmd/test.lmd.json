@@ -1,7 +1,7 @@
 {
     "root": "../modules/",
 
-    "output" : "../out/test.lmd.js",
+    "output": "../out/test.lmd.js",
 
     "modules": {
         "main": "main.js",
@@ -20,6 +20,7 @@
     "global": "this",
 
     "warn": true,
+    "log": true,
 
     "depends": "*.lmd.json",
 
