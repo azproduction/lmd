@@ -3,6 +3,8 @@
 
     "extends": "./test.lmd.json",
 
+    "output" : "../out/node_test.lmd.js",
+
     "modules": {
         "testcase_lmd_async_require": "test_case/testcase_lmd_async_require/testcase_lmd_async_require.node.js",
         "testcase_lmd_loader": "test_case/testcase_lmd_loader/testcase_lmd_loader.node.js",

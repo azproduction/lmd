@@ -84,18 +84,18 @@ var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
  *      .pipe(process.stdout);
  */
 var LmdBuilder = function (configFile, options) {
-    options = options || {};
+    this.options = options || {};
     var self = this;
 
     // apply config
     this.configFile = configFile;
 
-    this.init(options);
+    this.init();
 
     // Let return instance before build
     process.nextTick(function () {
         if (configFile) {
-            var buildResult = self.build();
+            var buildResult = self.build(self.compileConfig(configFile, self.options));
 
             self.emit('data', buildResult.source);
             self.sourceMap.emit('data', buildResult.sourceMap.toString());
@@ -114,36 +114,39 @@ var LmdBuilder = function (configFile, options) {
  * @inherits Stream
  *
  * @param {String} configFile
- * @param {String} outputFile
  * @param {Object} [options]
  * @param {Object} [options.noWarn = false]
  *
  * @example
  *
- *      new LmdBuilder.watch("config.json", "result.js", {
+ *      new LmdBuilder.watch("config.json", {
  *          noWarn: true
  *      })
  *      .log.pipe(process.stdout);
  */
-LmdBuilder.watch = function (configFile, outputFile, options) {
-    options = options || {};
+LmdBuilder.watch = function (configFile, options) {
+    this.options = options || {};
     var self = this;
 
     this.configFile = configFile;
-    this.outputFile = outputFile;
 
-    this.init(options);
+    this.init();
     this.sourceMap.readable = false;
     this.readable = false;
 
     // Let return instance before build
     process.nextTick(function () {
-        if (configFile && outputFile) {
-            self.fsWatch();
-        } else {
-            self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.json'.green + ' ' + 'output.lmd.js'.green + '\n');
-            self.closeStreams();
+
+        if (configFile) {
+            var config = self.compileConfig(self.configFile, self.options);
+            if (config.output) {
+                self.fsWatch(config);
+                return;
+            }
         }
+
+        self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.json'.green + ' ' + 'output.lmd.js'.green + '\n');
+        self.closeStreams();
     });
 };
 
@@ -154,16 +157,11 @@ LmdBuilder.prototype = new Stream();
 /**
  * Common init for LmdBuilder and LmdBuilder.watch
  */
-LmdBuilder.prototype.init = function (options) {
-    this.isWarn = !options.noWarn;
-    this.isSourceMap = !!options.sourceMap;
-    this.sourceMapFile = options.sourceMap;
-    this.sourceMapRoot = options.sourceMapRoot || "";
-    this.sourceMapWww = options.sourceMapWww || "";
-    this.sourceMapGenerated = options.sourceMapGenerated || "";
-    this.isSourceMapInline = options.isSourceMapInline || false;
+LmdBuilder.prototype.init = function () {
 
     var self = this;
+
+    this.buildConfig = null;
     this.configDir = fs.realpathSync(this.configFile);
     this.configDir = this.configDir.split(CROSS_PLATFORM_PATH_SPLITTER);
     this.flagToOptionNameMap = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_plugins.json', 'utf8'));
@@ -191,6 +189,17 @@ LmdBuilder.prototype.init = function (options) {
     process.on('exit', function () {
         self.closeStreams();
     });
+};
+
+/**
+ *
+ * @param configFile
+ * @param options
+ */
+LmdBuilder.prototype.compileConfig = function (configFile, options) {
+    var config = assembleLmdConfig(configFile, Object.keys(this.flagToOptionNameMap));
+
+    return common.deepDestructableMerge(config, options);
 };
 
 /**
@@ -962,13 +971,12 @@ LmdBuilder.prototype.getSandboxedModules = function (modulesStruct, config) {
 /**
  * Watch the module files, rebuilding when a change is detected
  */
-LmdBuilder.prototype.fsWatch = function () {
+LmdBuilder.prototype.fsWatch = function (config) {
     var self = this,
-        watchedModulesCount = 0,
-        config = assembleLmdConfig(this.configFile, Object.keys(this.flagToOptionNameMap));
+        watchedModulesCount = 0;
 
     for (var i = 0, c = config.errors.length; i < c; i++) {
-        this.warn(config.errors[i]);
+        this.warn(config.errors[i], config.warn);
     }
 
     var module,
@@ -988,18 +996,18 @@ LmdBuilder.prototype.fsWatch = function () {
 
             log(' ' + 'Rebuilding...'.green);
 
-            if (self.isWarn) {
+            if (config.warn) {
                 log('\n');
             }
 
-            var buildResult = self.build();
-            fs.writeFileSync(self.outputFile, buildResult.source, 'utf8');
+            var buildResult = self.build(self.compileConfig(self.configFile, self.options));
+            fs.writeFileSync(config.output, buildResult.source, 'utf8');
 
-            if (self.isSourceMap) {
-                fs.writeFileSync(self.sourceMapFile, buildResult.sourceMap.toString(), 'utf8');
+            if (self.sourcemap) {
+                fs.writeFileSync(self.sourcemap, buildResult.sourceMap.toString(), 'utf8');
             }
 
-            if (!self.isWarn) {
+            if (!config.warn) {
                 log(' ' + 'Done!'.green + '\n');
             } else {
                 log('lmd'.inverse + ' Rebuilding done!'.green + '\n');
@@ -1081,8 +1089,8 @@ LmdBuilder.prototype.error = function (text) {
  * @example
  *     Pewpew **ololo** - ololo will be green
  */
-LmdBuilder.prototype.warn = function (text) {
-    if (this.isWarn) {
+LmdBuilder.prototype.warn = function (text, isWarn) {
+    if (isWarn) {
         text = this.formatLog(text);
         this.log.emit('data', 'lmd'.inverse + ' ' + 'Warning'.red + ' ' + text + '\n');
     }
@@ -1152,15 +1160,18 @@ LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
  *
  * @param {Object}  modules          in package modules
  * @param {String}  sourceWithTokens source with sourcemap tokens
- * @param {String}  generatedFile    output javascript file
- * @param {String}  root             root fs path
- * @param {String}  www              root www path
- * @param {String}  sourceMapFile    source map file location
- * @param {Boolean} isInline         add sourceMappingURL?
+ * @param {String}  config          module config
  *
  * @return {Object} {source: cleanSource, sourceMap: sourceMap}
  */
-LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, generatedFile, root, www, sourceMapFile, isInline) {
+LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, config) {
+    var generatedFile = config.output,
+        root = config.sourcemap_root,
+        www = config.sourcemap_www,
+        sourceMapFile = config.sourcemap,
+        isInline = config.sourcemap_inline,
+        isWarn = config.warn;
+
     var self = this,
         module,
         sourceMapsApplied = 0,
@@ -1213,9 +1224,9 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, gene
     }
 
     if (sourceMapsApplied === 0) {
-        this.warn('There is no modules under Source Map!');
+        this.warn('There is no modules under Source Map!', isWarn);
     } else if (sourceMapSkipped.length) {
-        this.warn('Source Map is not applied for these modules: **' + sourceMapSkipped.join('**, **') + '**');
+        this.warn('Source Map is not applied for these modules: **' + sourceMapSkipped.join('**, **') + '**', isWarn);
     }
 
     sourceMapFile = fs.realpathSync(sourceMapFile).replace(root, '');
@@ -1265,11 +1276,10 @@ LmdBuilder.prototype.isModuleCanBeUnderSourceMap = function (moduleDescriptor) {
  *
  * @returns {Object} {source: cleanSource, sourceMap: sourceMap}
  */
-LmdBuilder.prototype.build = function () {
-    var config = assembleLmdConfig(this.configFile, Object.keys(this.flagToOptionNameMap));
-
+LmdBuilder.prototype.build = function (config) {
+    this.buildConfig = config;
     for (var i = 0, c = config.errors.length; i < c; i++) {
-        this.warn(config.errors[i]);
+        this.warn(config.errors[i], config.warn);
     }
 
     var lazy = config.lazy || false,
@@ -1297,13 +1307,13 @@ LmdBuilder.prototype.build = function () {
 
     if (!config.cache && config.cache_async) {
         this.warn('This package was configured with flag **cache_async: true**, but without flag **cache**; ' +
-            'cache_async cant work independently. Flag cache_async is disabled! Please switch on **cache**.');
+            'cache_async cant work independently. Flag cache_async is disabled! Please switch on **cache**.', config.warn);
         config.cache_async = false;
     }
 
     if (config.cache && typeof config.version === "undefined") {
         this.warn('This package was configured with flag **cache: true**, but without flag **version** parameter. ' +
-            'Please define **version** to enable cache.');
+            'Please define **version** to enable cache.', config.warn);
     }
 
     if (config.modules) {
@@ -1314,7 +1324,7 @@ LmdBuilder.prototype.build = function () {
             if (module.is_shortcut) {
                 is_using_shortcuts = true;
                 if (module.name === mainModuleName) {
-                    this.warn('Main module can not be a shortcut. Your app will throw an error.')
+                    this.warn('Main module can not be a shortcut. Your app will throw an error.', config.warn);
                 } else {
                     lmdModules.push(this.escape(module.name) + ': ' + this.escape(module.path));
                 }
@@ -1329,7 +1339,7 @@ LmdBuilder.prototype.build = function () {
                 isJson = false;
             }
 
-            if (this.isSourceMap) {
+            if (config.sourcemap) {
                 if (this.isModuleCanBeUnderSourceMap(module)) {
                     moduleContent = this.createToken(module.path) + moduleContent;
                     module.lines = this.calculateModuleLines(moduleContent);
@@ -1351,7 +1361,7 @@ LmdBuilder.prototype.build = function () {
                 if (!isModule && /.js$/.test(module.path)) {
                     this.warn('File "**' + module.path + '**" has extension **.js** and LMD detect an parse error. \n' +
                               parseErrorText.red +
-                              '\nThis module will be string. Please check the source.');
+                              '\nThis module will be string. Please check the source.', config.warn);
                 }
 
                 if (isModule) {
@@ -1408,12 +1418,12 @@ LmdBuilder.prototype.build = function () {
                 }
 
                 // #14 Check direct access of globals in lazy modules
-                if (this.isWarn && isModule && module.is_lazy) {
+                if (config.warn && isModule && module.is_lazy) {
                     globalsObjects = this.checkForDirectGlobalsAccess(module.path, moduleContent);
 
                     if (globalsObjects.length) {
                          this.warn("Lazy module **" + module.path + "** uses some globals directly (" + globalsObjects.join(', ') +  "). " +
-                                   "Replace them with require('" + globalsObjects[0] + "') etc");
+                                   "Replace them with require('" + globalsObjects[0] + "') etc", config.warn);
                     }
                 }
 
@@ -1441,38 +1451,38 @@ LmdBuilder.prototype.build = function () {
 
         if (is_using_shortcuts && !config.shortcuts) {
             this.warn('Some of your modules are shortcuts, but config flag **shortcuts** is undefined or falsy. ' +
-                      'Enable that flag for proper work.');
+                      'Enable that flag for proper work.', config.warn);
         }
 
         if (!is_using_shortcuts && config.shortcuts) {
             this.warn('Config flag **shortcuts** is enabled, but there is no shortcuts in your package. ' +
-                      'Disable that flag to optimize your package.');
+                      'Disable that flag to optimize your package.', config.warn);
         }
 
         if (is_using_amd && !config.amd) {
             this.warn('Some of your modules are AMD Modules, but config flag **amd** is undefined or falsy. ' +
-                      'Enable that flag for proper work.');
+                      'Enable that flag for proper work.', config.warn);
         }
 
         if (!is_using_amd && config.amd) {
             this.warn('Config flag **amd** is enabled, but there is no AMD Modules in your package. ' +
-                      'Disable that flag to optimize your package.');
+                      'Disable that flag to optimize your package.', config.warn);
         }
 
         if (config.stats_coverage && (config.cache || config.cache_async)) {
-            this.warn('LMD will cache your modules under code coverage.');
+            this.warn('LMD will cache your modules under code coverage.', config.warn);
         }
 
         if (config.async_plain && config.async_plainonly) {
-            this.warn('You are using both config flags `async_plain` and `async_plainonly`. Disable one to optimise your source.');
+            this.warn('You are using both config flags `async_plain` and `async_plainonly`. Disable one to optimise your source.', config.warn);
         }
 
         if (!config.stats_coverage && config.stats_coverage_async) {
-            this.warn('You are using `stats_coverage_async` without `stats_coverage`. Enable `stats_coverage` flag.');
+            this.warn('You are using `stats_coverage_async` without `stats_coverage`. Enable `stats_coverage` flag.', config.warn);
         }
 
         if (!config.async && config.stats_coverage_async) {
-            this.warn('You are using `stats_coverage_async` but not using `async`. Disable `stats_coverage_async` flag.');
+            this.warn('You are using `stats_coverage_async` but not using `async`. Disable `stats_coverage_async` flag.', config.warn);
         }
 
         var sandboxedModules = this.getSandboxedModules(modules, config);
@@ -1485,12 +1495,8 @@ LmdBuilder.prototype.build = function () {
         lmdFile = this.render(config, lmdModules, lmdMain, pack, modulesOptions);
 
         var sourceMap = '';
-        if (this.isSourceMap) {
-            var sourceMapResult = this.createSourceMap(
-                modules, lmdFile,
-                this.sourceMapGenerated, this.sourceMapRoot,
-                this.sourceMapWww, this.sourceMapFile, this.isSourceMapInline
-            );
+        if (config.sourcemap) {
+            var sourceMapResult = this.createSourceMap(modules, lmdFile, config);
 
             lmdFile = sourceMapResult.source;
             sourceMap = sourceMapResult.sourceMap;

@@ -1,9 +1,10 @@
 {
     "root": "../modules/",
 
+    "output" : "../out/test.lmd.js",
+
     "modules": {
         "main": "main.js",
-
 
         "testcase_lmd_basic_features": "test_case/testcase_lmd_basic_features/testcase_lmd_basic_features.js",
         "testcase_lmd_async_require": "test_case/testcase_lmd_async_require/testcase_lmd_async_require.js",
@@ -17,6 +18,8 @@
     "version": "latest",
     "main": "main",
     "global": "this",
+
+    "warn": true,
 
     "depends": "*.lmd.json",
 

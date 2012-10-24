@@ -7,21 +7,21 @@ test: build_test
 
 build_test:
 	node $(LMD_BUILD) -m main \
-	                  -c ./test/qunit/cfgs/test.lmd.json \
+	                  -c ./test/qunit/.lmd/test.lmd.json \
 	                  -o ./test/qunit/out/test.lmd.js \
 	                  -sm ./test/qunit/out/test.lmd.map \
 	                  -sm-root ./test/qunit \
 	                  -sm-inline \
 	                  -l
 	node $(LMD_BUILD) -m main \
-	                  -c ./test/qunit/cfgs/node_test.lmd.json \
+	                  -c ./test/qunit/.lmd/node_test.lmd.json \
 	                  -o ./test/qunit/out/node_test.lmd.js \
 	                  -sm ./test/qunit/out/node_test.lmd.map \
 	                  -sm-root ./test/qunit \
 	                  -sm-inline \
 	                  -l
 	node $(LMD_BUILD) -m main \
-	                  -c ./test/qunit/cfgs/worker_test.lmd.json \
+	                  -c ./test/qunit/.lmd/worker_test.lmd.json \
 	                  -o ./test/qunit/out/worker_test.lmd.js \
 	                  -sm ./test/qunit/out/worker_test.lmd.map \
 	                  -sm-root ./test/qunit \

@@ -1,0 +1,5 @@
+{
+    "root": "../",
+    "output": "../dev.lmd.js",
+    "modules": {}
+}

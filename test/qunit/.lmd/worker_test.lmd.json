@@ -3,6 +3,8 @@
 
     "extends": "./test.lmd.json",
 
+    "output" : "../out/worker_test.lmd.js",
+
     "modules": {
         "testcase_lmd_loader": "test_case/testcase_lmd_loader/testcase_lmd_loader.worker.js",
         "testcase_lmd_cache": "test_case/testcase_lmd_cache/testcase_lmd_cache.noop.js"
