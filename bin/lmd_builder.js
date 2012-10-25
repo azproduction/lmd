@@ -1164,7 +1164,7 @@ LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
  */
 LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, config) {
     var generatedFile = this.configDir + '/' + config.root + '/' + config.output,
-        root = this.configDir + '/' + config.root + '/' + config.sourcemap_root,
+        root = this.configDir + '/' + config.root + '/' + config.www_root,
         www = config.sourcemap_www,
         sourceMapFile = this.configDir + '/' + config.root + '/' + config.sourcemap,
         isInline = config.sourcemap_inline,
@@ -1178,7 +1178,7 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
     root = fs.realpathSync(root);
 
     var sourceMap = new SourceMapGenerator({
-        file: generatedFile ? (fs.realpathSync(generatedFile).replace(root, '')) : "lmd.js",
+        file: fs.realpathSync(generatedFile).replace(root, ''),
         sourceRoot: www || ""
     });
 

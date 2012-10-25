@@ -8,7 +8,8 @@
     "sourcemap": "../out/test.lmd.map",
     "sourcemap_inline": true,
     "sourcemap_www": "",
-    "sourcemap_root": "../",
+
+    "www_root": "../",
 
     "modules": {
         "testcase_lmd_async_require": "test_case/testcase_lmd_async_require/testcase_lmd_async_require.node.js",

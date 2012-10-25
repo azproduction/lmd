@@ -68,6 +68,10 @@ module.exports = function () {
     var buildResult = new lmdPackage(lmdFile, argv),
         buildConfig = buildResult.buildConfig;
 
+    if (buildConfig.log) {
+        cli.ok('Building `' + buildName +  '` (.lmd/' + buildName + '.lmd.json)');
+    }
+
     var configDir = fs.realpathSync(lmdFile);
     configDir = configDir.split(common.PATH_SPLITTER);
     configDir.pop();
@@ -76,19 +80,21 @@ module.exports = function () {
     if (buildConfig.sourcemap) {
         buildResult.sourceMap.pipe(createWritableFile(configDir + buildConfig.sourcemap));
 
-        buildResult.sourceMap.on('end', function () {
-            cli.ok('Writing Source Map to ' + buildConfig.sourcemap.green);
-        });
+        if (buildConfig.log) {
+            buildResult.sourceMap.on('end', function () {
+                cli.ok('Writing Source Map to ' + buildConfig.sourcemap.green);
+            });
+        }
     }
 
     if (buildConfig.output) {
         buildResult.pipe(createWritableFile(configDir + buildConfig.output));
         if (buildConfig.log) {
             buildResult.log.pipe(process.stdout);
+            buildResult.on('end', function () {
+                cli.ok('Writing LMD Package to ' + buildConfig.output.green);
+            });
         }
-        buildResult.on('end', function () {
-            cli.ok('Writing LMD Package to ' + buildConfig.output.green);
-        });
     } else {
         buildResult.pipe(process.stdout);
     }

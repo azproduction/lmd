@@ -21,9 +21,9 @@ var allowedActions = {
     update: 'Updates existed LMD config',
     list: 'To see LMD packages list',
     build: 'To build LMD package',
-    watch: 'To start/stop LMD package watcher'/*,
-    info: 'To see LMD package(s) list and info',
-    server: 'To start/stop LMD stats server'*/
+    watch: 'To start/stop LMD package watcher',
+    server: 'To start/stop LMD stats server'/*,
+    info: 'To see LMD package(s) list and info*/
 };
 
 var actionsAliases = {
@@ -41,7 +41,11 @@ var actionsAliases = {
     'build': 'build',
     'make': 'build',
 
-    'watch': 'watch'
+    'watch': 'watch',
+
+    'server': 'server',
+    'serv': 'server',
+    'stats': 'server'
 };
 
 function printHelp(errorMessage) {

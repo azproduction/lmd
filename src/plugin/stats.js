@@ -353,7 +353,7 @@ sb.on('js:before-check', function (moduleName, module) {
      *
      * @retuns no
      */
-sb.on('async:before-check', function (moduleName) {
+sb.on('async:before-check', function (moduleName, module) {
     if (!module || sb.initialized[moduleName]) {
         stats_require(moduleName);
     }

@@ -7,10 +7,10 @@
 var fs = require('fs'),
     express = require("express"),
     common = require(__dirname + '/../lib/lmd_common.js'),
-    /*tryExtend = common.tryExtend,
-    collectModules = common.collectModules,*/
     assembleLmdConfig = common.assembleLmdConfig,
-    flagToOptionNameMap = JSON.parse(fs.readFileSync('../../src/lmd_plugins.json'));
+    flagToOptionNameMap = JSON.parse(fs.readFileSync(__dirname + '/../src/lmd_plugins.json'));
+
+require('colors');
 
 var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
 
@@ -73,26 +73,26 @@ function LmdStatsServer(data) {
     if (this.isSameAdresses) {
         this.adminApp = this.app;
         this.app.use(express.bodyParser());
-        console.log('Admin and log server are on ' + this.address + ':' + this.port);
+        console.log('info'.green +  ':    Admin and log server are on ' + this.address.green + ':' + this.port.toString().green);
     } else {
         this.app.use(express.bodyParser());
         // 2.0 -> 3.0 migration
         this.adminApp = typeof express === "function" ? express() : express.createServer();
         this.adminApp.use(express.bodyParser());
         this.adminApp.listen(this.adminPort, this.adminAddress);
-        console.log('Admin server is on ' + this.adminAddress + ':' + this.adminPort);
-        console.log('Log server is on ' + this.address + ':' + this.port);
+        console.log('info'.green +  ':    Admin server is on ' + this.adminAddress.green + ':' + this.adminPort.toString().green);
+        console.log('info'.green +  ':    Log server is on ' + this.address.green + ':' + this.port.toString().green);
     }
 
-    console.log('Logs dir: ' + this.logDir);
-    console.log('Www dir: ' + this.wwwDir);
-    console.log('LMD config: ' + this.configFile);
+    console.log('info'.green +  ':    Logs dir: ' + this.logDir.green);
+    console.log('info'.green +  ':    Package root dir: ' + this.wwwDir.green);
+    console.log('info'.green +  ':    LMD Config: ' + this.configFile.green);
 
     this.app.listen(this.port, this.address);
     require('./lib/admin.js').attachTo(this.adminApp, this.logDir, this.wwwDir, this.config, this.modules);
     require('./lib/log.js').attachTo(this.app, this.logDir);
 
-    console.log('Hit Ctrl+C to stop');
+    console.log('info'.green +  ':    Hit Ctrl+C to stop');
 }
 
 /**

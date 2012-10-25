@@ -97,7 +97,7 @@ var parseData = function (data) {
     config.mode = config.mode || 'main';
     config.warn = !config['no-warn'];
     config.sourcemap = config['source-map'] || false;
-    config.sourcemap_root = config['source-map-root'] || "";
+    config.www_root = config['source-map-root'] || "";
     config.sourcemap_www = config['source-map-www'] || "";
     config.sourcemap_inline = config['source-map-inline'] || false;
     config.log = config.log || false;
@@ -111,7 +111,7 @@ module.exports = function (argv) {
         builderOptions = {
             warn: config.warn,
             sourcemap: config.sourcemap,
-            sourcemap_root: config.sourcemap_root,
+            www_root: config.www_root,
             sourcemap_www: config.sourcemap_www,
             sourcemap_inline: config.sourcemap_inline,
             output: config.output

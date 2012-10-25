@@ -24,6 +24,8 @@
 
 var fs = require("fs");
 
+require('colors');
+
 exports.attachTo = function (app, logDir) {
 
     app.post("/stats/:instanceId", function (req, res) {
@@ -39,7 +41,7 @@ exports.attachTo = function (app, logDir) {
             if (err) {
                 res.send(500);
             } else {
-                console.log('New report ' + fileName);
+                console.log('info'.green +  ':    New report ' + fileName.green);
                 res.send(200);
             }
         });
