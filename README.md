@@ -1819,6 +1819,10 @@ _Listener returns context:_ yes depend on moduleName value returns empty array o
   - AMD module adaptor `amd` flag
   - Source Map
 
+**v1.9.x**
+
+  - Better LMD CLI
+
 ## Licence
 
 (The MIT License)
