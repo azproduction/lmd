@@ -73,10 +73,146 @@ and [Asynchronous module require](#asynchronous-module-require))
 16. Code Coverage? - Easy! (see [Code coverage](#code-coverage))
 17. Ready for production - `lmd.js` is 100% covered by unit tests see [test/README.md](/azproduction/lmd/tree/master/test) for details
 18. SourceMap for all LMD modules (see [Source map](#source-map))
+19. Reach CLI interface
 
 ## Installing
 
-`npm install lmd` or global `npm install lmd -g`
+`npm install lmd -g` global is prefered for LMD CLI comands. See [Getting started](#getting-started-with-lmd)
+
+## Getting started with LMD
+
+```bash
+# Your dir structure is
++-gettring_started/
+  +-i18n/
+  | +-en.json
+  +-js/
+  | +-main.js
+  +-tpls/
+  | +-name.html
+  +-index.html
+
+# 0. install LMD
+npm install lmd -g
+
+# 1. List all files
+$ cat index.html
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Getting started with LMD</title>
+    </head>
+    <body>
+        <div id="name"></div>
+        <script src="index.lmd.js"></script>
+    </body>
+</html>
+
+$ cat js/main.js
+var i18n = require('i18n'),
+    name = require('name');
+
+document.getElementById('name').innerHTML = name.replace('#{name}', i18n.name.replace('#', prompt('Your name', '')));
+
+$ cat i18n/en.json
+{
+    "name": "My name is #"
+}
+
+# 2. Setup lmd
+$ lmd init
+info:
+info:    .lmd initialised
+info:
+$ ls -a
+.lmd       i18n       index.html js         tpls
+
+# 3. Create build config
+$ lmd create index
+info:
+info:    Build `index` (.lmd/index.lmd.json) created
+info:
+$ cat .lmd/index.lmd.json
+{
+    "root": "../",
+    "output": "index.lmd.js",
+    "modules": {},
+    "main": "main"
+}
+
+# 4. Lets add our modules
+$ lmd up index --modules.main=js/main.js --modules.i18n=i18n/en.json --modules.name=tpls/name.html
+info:
+info:    Build `index` (.lmd/index.lmd.json) updated
+info:
+info:    These options are changed:
+info:
+info:      modules  {"main":"js/main.js","i18n":"i18n/en.json","template":"tpls/name.html"}
+info:
+
+# 5. Lets tweak a bit: deiable ie optinisations, enable, logs, warn and module compression
+$ lmd up index --no-ie --warn --log --pack --no-lazy
+info:
+info:    Build `index` (.lmd/index.lmd.json) updated
+info:
+info:    These options are changed:
+info:
+info:      ie    false
+info:      warn  true
+info:      log   true
+info:      pack  true
+info:      lazy  false
+info:
+
+# 6. Time to build LMD Package!
+$ lmd build index
+info:    Building `index` (.lmd/index.lmd.json)
+info:    Writing LMD Package to index.lmd.js
+
+# 7. Lets start HTTP server and see results
+$ http-server
+Starting up http-server, serving ./ on port: 8080
+http-server successfully started: http://localhost:8080
+Hit CTRL-C to stop the server
+
+# 8. Lets start LMD Watcher
+$ lmd watch index
+info:    Now watching 4 module files. Ctrl+C to stop
+info:    Rebuilding...
+info:    Writing LMD Package to index.lmd.js
+
+# 9. Change i18n/en.json a bit...
+
+# 10. And wuala! LMD Watcher automatically rebuilds your index.lmd.js file
+info:    Change detected in en.json at Thu Oct 25 2012 22:11:19 GMT+0600 (ALMT) Rebuilding...
+info:    Writing LMD Package to index.lmd.js
+
+```
+
+Browse examples/getting_started for that project.
+
+## LMD project structure
+
+LMD uses that dir structure (its **optional** but it required if you are using LMD CLI comands):
+
+```
++-root/                   | Your project root dir
+  +-.lmd/                 | LMD dir
+  | +-logs/               | LMD stats server logs
+  | | +-dev/              |
+  | | +-test/             | LMD stats server logs for builds
+  | | +-prod/             |
+  | |   +-somelog.json    | One of stats server log file for prod build
+  | |                     |
+  | +-dev.lmd.json        |
+  | +-test.lmd.json       | One of build file
+  | +-prod.lmd.json       |
+  | +-your_name.lmd.json  |
+  |                       |
+  +-your_stuff/           |
+  +-your_stuff2/          |
+  +-your_stuff3/          |
+```
 
 ## LMD Modules types
 
@@ -147,12 +283,25 @@ For templates
 
 ## LMD Config file
 
+**You can set all config parameters using lmd cli**
+
 **Full version**
 
 ```javascript
 {
     "path": "../modules/", // if starts with "/" it is absolute path else path will be relative to the config file
     "root": "../modules/", // alias to path
+
+    "output": "../index.lmd.js",     // Relative path to the config result file for lmd cli
+
+    "sourcemap": "../index.lmd.map", // Relative path to the source map result file
+    "sourcemap_inline": true,        // Adds inline Source Map include statement
+    "sourcemap_www": "",             // Relative source map www location
+
+    "www_root": "../../../",         // Relative path of the www root (where your index.html located)
+
+    "warn": true,                    // Print lmd build warnings
+    "log": true,                     // Print build/watch/whatever log
 
     "modules": {
         // basic module descriptor -- only path
@@ -254,6 +403,7 @@ For templates
 ```javascript
 {
     "root": "../modules/",
+    "output": "../module.lmd.js", // Path are relative to the config.lmd.json file
     "modules": {
         "*": "*.js" // use wildcards or specify regex string to grep
     }
@@ -267,12 +417,6 @@ For templates
 
 
 ## Build LMD package from Console
-
-`lmd examples/basic/cfgs/index.development.lmd.json examples/basic/out/index.development.lmd.js` or `node ./lmd/bin/lmd.js ... `
-
-Or print to `STDOUT`
-
-`lmd example/cfgs/index.development.lmd.json`
 
 See [LMD CLI](#lmd-cli)
 
@@ -312,7 +456,7 @@ LMD will assemble your modules and LMD source itself into one file. This file is
 var Lmd = require('lmd');
 
 new Lmd("path/to/lmd.json", {
-    noWarn: false // disable warnings?
+    warn: false // disable warnings?
 });
 .pipe(process.stdout);
 ```
@@ -341,10 +485,9 @@ lmdModule.on('end', function () {
 // Example: Run watch mode
 var Lmd = require('lmd');
 
-new Lmd.watch("path/to/lmd.json", "path/to/result/lmd.js")
+new Lmd.watch("path/to/lmd.json")
 .log.pipe(process.stdout); // redirect watch and build logs to STDOUT
 ```
-
 
 ## List of plugins
 
@@ -1046,19 +1189,19 @@ Stats server provides simple coverage and usage reports
 
 ![](http://github.com/azproduction/lmd/raw/master/images/coverage_module.png)
 
+*Prepare config*
+
+First you have to add this parameters to tour module config
+
+```
+    "www_root": "../../../",
+```
+
 *Starting server*
 
-`$ node bin/lmd_stats.js -a 0.0.0.0 -p 8081 -c ./js/lmd/index.lmd.json -log ./logs/ -www ./`
+`lmd server your_config`
 
-*Other arguments*
-
- - `-address` `-a` address for log and admin server, default=0.0.0.0
- - `-port` `-p` port for log and admin server, default=8081
- - `-admin-address` `-aa` address admin server, default=address
- - `-admin-port` `-ap` address admin server, default=port
- - `-config` `-c` your application config file
- - `-log` `-l` path where stats server will store stats logs
- - `-www` `-wd` www dir of your site - required for async modules
+see [CLI lmd server](#lmd-server) for more information
 
 see [examples/mock_chat](/azproduction/lmd/tree/master/examples/mock_chat) for real example
 
@@ -1068,15 +1211,23 @@ LMD can generate source map for your modules.
 
 **Example**
 
+First add this parameters to tour module config
+
 ```
-lmd -m main \
-    -c ./test/qunit/cfgs/node_test.lmd.json \
-    -o ./test/qunit/out/node_test.lmd.js \
-    -sm ./test/qunit/out/node_test.lmd.map \   # Source Map location
-    -sm-root ./test/qunit \                    # "./test/qunit" <-maps-to-> "/" root of www path
-    -sm-inline \                               # headerless Source Map
-    -l
+    "sourcemap": "../index.lmd.map",
+    "sourcemap_inline": true,
+    "sourcemap_www": "",
+
+    "www_root": "../../../",
 ```
+
+Than build your package `lmd build your_package`.
+
+You can skip all thet extra options and add them to the CLI comand:
+
+`lmd build your_package --sourcemap ../index.lmd.map --sourcemap_inline --sourcemap_www="" --www_root ../../../`
+
+All paths are relative to the config file.
 
 **Notes**
 
@@ -1100,21 +1251,97 @@ or new style with long names `lmd -mode watch -config config.lmd.json -output ou
 
 ## LMD CLI
 
-old style `lmd [mode] config [output]`
+Start from version 1.9.0 LMD provides extended CLI interface
 
-new style `lmd [-m mode] -c config [-o output] [-l]`
+### lmd init
 
-**Arguments**
+Initializes LMD for project. Lmd will create `.lmd` dir in current working directory.
 
- - `-m` `-mode` lmd run mode `main` (default) or `watch`
- - `-c {File}` `-config {File}` lmd package config file
- - `-o {File}` `-output {File}` lmd output file - default STDOUT
- - `-l` `-log` print work log - default false
- - `-no-w` `-no-warn` disable warnings
- - `-sm {File}` `-source-map {File}` source map output file, enables source map
- - `-sm-root {Path}` `-source-map-root {Path}` file system path where your files located (where your index.html located in file system)
- - `-sm-www {Path}` `-source-map-www {Path}` www path pointed to the file system `root` path (where your index.html located in www)
- - `-sm-inline` `-source-map-inline` adds `sourceMappingURL` referense to the bottom of generated file
+`lmd init`
+
+### lmd create
+
+To create new LMD config
+
+`lmd create <build_name> [<parent_build_name>] [<flags>]`
+
+#### Example
+
+```
+lmd create development
+lmd create development --no-pack --async --js --css
+lmd create production development --pack --ie
+lmd create testing production
+```
+
+### lmd update
+
+Updates existed LMD config
+
+`lmd update <build_name> <flags>`
+
+#### Example
+
+```
+lmd update development --no-pack --async --js --css
+lmd update development --modules.name=path.js
+```
+
+### lmd list
+
+To see LMD packages/builds list
+
+`lmd list`
+
+### lmd build
+
+To build LMD package
+
+`lmd build <build_name> [<flags>]`
+
+#### Example
+
+```
+lmd build development
+lmd build development --no-pack --async --js --css
+lmd build development --modules.name=path.js
+```
+
+### lmd watch
+
+To start/stop LMD package watcher
+
+`lmd watch <build_name> [<flags>]`
+
+#### Example
+
+```
+lmd watch development
+lmd watch development --no-warn --no-log
+lmd watch development --js --css
+```
+
+### lmd server
+
+To start/stop LMD stats server
+
+`lmd server <build_name> [<server_options>]`
+
+#### Options
+
+```
+--address, -a          Client stats server address. Log receiver               [default: "0.0.0.0"]
+--port, -p             Client stats server port                                [default: "8081"]
+--admin-address, --aa  Admin interface server address. Default same as `port`
+--admin-port, --ap     Admin interface server port. Default same as `address`
+```
+
+#### Example
+
+```
+lmd server development
+lmd server development --a localhost --p 8080
+```
 
 ## Plugins and extending LMD
 

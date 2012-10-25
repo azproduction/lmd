@@ -48,8 +48,8 @@ function checkFile(cwd, name) {
 
 function template(buildName, parentConfig, options) {
     var json = {};
-    json.root =  "../";
-    json.output =  "../" + buildName + ".lmd.js";
+    json.root = "../";
+    json.output = buildName + ".lmd.js";
     if (parentConfig) {
         json.extends = parentConfig;
     }
