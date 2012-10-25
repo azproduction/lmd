@@ -150,7 +150,7 @@ info:
 info:      modules  {"main":"js/main.js","i18n":"i18n/en.json","template":"tpls/name.html"}
 info:
 
-# 5. Lets tweak a bit: deiable ie optinisations, enable, logs, warn and module compression
+# 5. Lets tweak a bit: desable ie optimisations, enable, verbose logs, warnings and module compression
 $ lmd up index --no-ie --warn --log --pack --no-lazy
 info:
 info:    Build `index` (.lmd/index.lmd.json) updated
