@@ -292,7 +292,7 @@ For templates
     "path": "../modules/", // if starts with "/" it is absolute path else path will be relative to the config file
     "root": "../modules/", // alias to path
 
-    "output": "../index.lmd.js",     // Relative path to the config result file for lmd cli
+    "output": "../index.lmd.js",     // LMD will print build result there. Relative path to the root param
 
     "sourcemap": "../index.lmd.map", // Relative path to the source map result file
     "sourcemap_inline": true,        // Adds inline Source Map include statement
@@ -403,7 +403,7 @@ For templates
 ```javascript
 {
     "root": "../modules/",
-    "output": "../module.lmd.js", // Path are relative to the config.lmd.json file
+    "output": "../module.lmd.js", // Path are relative to the root parameter
     "modules": {
         "*": "*.js" // use wildcards or specify regex string to grep
     }
