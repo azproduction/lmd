@@ -40,7 +40,9 @@ module.exports = function (argv) {
     }
 
     createLmdStructure(cwd);
+    cli.ok('');
     cli.ok('.lmd initialised');
+    cli.ok('');
 };
 
 module.exports.check = function () {

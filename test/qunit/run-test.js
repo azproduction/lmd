@@ -14,7 +14,7 @@ function startHttpServer(port, host, callback) {
     };
 
     function onListening() {
-        console.log('Starting up http-server, serving ' + server.root.green + ' on port: ' + port);
+        console.log('info'.green + ':    Starting up http-server, serving ' + server.root.green + ' on port: ' + port);
         callback();
     }
 
@@ -35,10 +35,11 @@ function startHttpServer(port, host, callback) {
 }
 
 function runTestInPhantomJsEnvironment(runner, url, callback) {
-    console.log('Starting up phantomjs, with runner ' + runner.green + ' and url ' + url.green);
+    console.log('info'.green + ':    Starting up phantomjs, with runner ' + runner.green + ' and url ' + url.green);
 
     var ps = childProcess.spawn('phantomjs', [runner, url]);
 
+    process.stdout.write('test'.cyan + ':    ');
     ps.stdout.on('data', function(buffer) {
         // Proxy & colorize data
         var lines = buffer.toString('utf8')
@@ -49,7 +50,7 @@ function runTestInPhantomJsEnvironment(runner, url, callback) {
                 }
                 return line;
             })
-            .join('\n');
+            .join('\n' + 'test'.cyan + ':    ');
 
         return process.stdout.write(lines);
     });
@@ -65,12 +66,18 @@ var server = startHttpServer(port, host, function () {
     var url = "http://" + host + ":" + port + "/index.html";
 
     runTestInPhantomJsEnvironment(phantomJsIndex, url, function (code) {
-        console.log('Stopping http-server');
+        console.log('\ninfo'.green + ':    Stopping http-server');
+
         server.close();
         if (code === 127) {
-            console.log('NOTE'.red.inverse + ' phantomjs bin required to tun this test!'.red);
+            console.log('ERRO'.red.inverse + ':    phantomjs bin required to tun this test!'.red);
         }
-        console.log('Exit process with code ' + code);
+
+        if (!code) {
+            console.log('info'.green + ':    Exit process with code ' + code);
+        } else {
+            console.log('ERRO'.red.inverse + ':    Exit process with code '.red + code);
+        }
         process.exit(code);
     });
 });

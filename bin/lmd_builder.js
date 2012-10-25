@@ -74,12 +74,11 @@ var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
  *
  * @param {String} configFile
  * @param {Object} [options]
- * @param {Object} [options.noWarn = false]
  *
  * @example
  *
  *      new LmdBuilder("config.json", {
- *          noWarn: true
+ *          warn: true
  *      })
  *      .pipe(process.stdout);
  */
@@ -116,12 +115,11 @@ var LmdBuilder = function (configFile, options) {
  *
  * @param {String} configFile
  * @param {Object} [options]
- * @param {Object} [options.noWarn = false]
  *
  * @example
  *
  *      new LmdBuilder.watch("config.json", {
- *          noWarn: true
+ *          warn: true
  *      })
  *      .log.pipe(process.stdout);
  */
@@ -204,14 +202,20 @@ LmdBuilder.prototype.compileConfig = function (configFile, options) {
  * Closes all streams and make it unreadable
  */
 LmdBuilder.prototype.closeStreams = function () {
-    this.emit('end');
-    this.readable = false;
+    if (this.readable) {
+        this.emit('end');
+        this.readable = false;
+    }
 
-    this.log.emit('end');
-    this.log.readable = false;
+    if (this.log.readable) {
+        this.log.emit('end');
+        this.log.readable = false;
+    }
 
-    this.sourceMap.emit('end');
-    this.sourceMap.readable = false;
+    if (this.sourceMap.readable) {
+        this.sourceMap.emit('end');
+        this.sourceMap.readable = false;
+    }
 };
 
 /**
@@ -985,31 +989,27 @@ LmdBuilder.prototype.fsWatch = function (config) {
         rebuild = function (stat, filename) {
             if (stat && filename) {
                 filename = filename.split(CROSS_PLATFORM_PATH_SPLITTER).pop();
-                log('lmd'.inverse + ' Change detected in ' + filename.toString().green + ' at ' + stat.mtime.toString().blue);
+                log('info'.green + ':    Change detected in ' + filename.toString().green + ' at ' + stat.mtime.toString().blue);
             } else if (stat) {
-                log('lmd'.inverse + ' Change detected at ' + stat.mtime.toString().blue);
+                log('info'.green + ':    Change detected at ' + stat.mtime.toString().blue);
             } else {
-                log('lmd'.inverse);
+                log('info'.green + ':   ');
             }
 
-            log(' ' + 'Rebuilding...'.green);
+            log(' Rebuilding...\n');
 
-            if (config.warn) {
-                log('\n');
+            var buildResult = self.build(self.compileConfig(self.configFile, self.options)),
+                lmdFile = self.configDir + '/' + config.root + '/' + config.output,
+                lmdSourceMapFile = self.configDir + '/' + config.root + '/' + config.sourcemap;
+
+            log('info'.green + ':    Writing LMD Package to ' + config.output.green + '\n');
+            fs.writeFileSync(lmdFile, buildResult.source, 'utf8');
+
+            if (config.sourcemap) {
+                log('info'.green + ':    Writing Source Map to ' + config.sourcemap.green + '\n');
+                fs.writeFileSync(lmdSourceMapFile, buildResult.sourceMap.toString(), 'utf8');
             }
 
-            var buildResult = self.build(self.compileConfig(self.configFile, self.options));
-            fs.writeFileSync(config.output, buildResult.source, 'utf8');
-
-            if (self.sourcemap) {
-                fs.writeFileSync(self.sourcemap, buildResult.sourceMap.toString(), 'utf8');
-            }
-
-            if (!config.warn) {
-                log(' ' + 'Done!'.green + '\n');
-            } else {
-                log('lmd'.inverse + ' Rebuilding done!'.green + '\n');
-            }
         },
         watch = function (event, filename) {
             if (event === 'change') {
@@ -1047,7 +1047,7 @@ LmdBuilder.prototype.fsWatch = function (config) {
         // add lmd.json too
         addWatcherFor(this.configFile);
 
-        log('lmd'.inverse + ' Now watching ' + watchedModulesCount.toString().green + ' module files. Ctrl+C to stop\n');
+        log('info'.green + ':    Now watching ' + watchedModulesCount.toString().green + ' module files. Ctrl+C to stop\n');
 
         // Rebuild at startup
         rebuild();
@@ -1076,7 +1076,7 @@ LmdBuilder.prototype.formatLog = function (text) {
  */
 LmdBuilder.prototype.error = function (text) {
     text = this.formatLog(text);
-    this.log.emit('data', 'lmd'.inverse + ' ' + 'ERROR'.inverse.red + ' ' + text + '\n');
+    this.log.emit('data', 'ERRO'.red.inverse + ':    ' + text + '\n');
 };
 
 /**
@@ -1090,7 +1090,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text, isWarn) {
     if (isWarn) {
         text = this.formatLog(text);
-        this.log.emit('data', 'lmd'.inverse + ' ' + 'Warning'.red + ' ' + text + '\n');
+        this.log.emit('data', 'warn'.red + ':    ' + text + '\n');
     }
 };
 
@@ -1419,7 +1419,7 @@ LmdBuilder.prototype.build = function (config) {
                     globalsObjects = this.checkForDirectGlobalsAccess(module.path, moduleContent);
 
                     if (globalsObjects.length) {
-                         this.warn("Lazy module **" + module.path + "** uses some globals directly (" + globalsObjects.join(', ') +  "). " +
+                         this.warn("Lazy module **" + module.path.split('/').slice(-2).join('/') + "** uses some globals directly (" + globalsObjects.join(', ') +  "). " +
                                    "Replace them with require('" + globalsObjects[0] + "') etc", config.warn);
                     }
                 }

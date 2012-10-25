@@ -3,12 +3,12 @@ LMD_BUILD = ../../bin/lmd.js
 all: test
 
 test: build_test
-	node ./test/qunit/run-test.js
+	@node ./test/qunit/run-test.js
 
 build_test:
-	cd test/qunit; node $(LMD_BUILD) build test
-	cd test/qunit; node $(LMD_BUILD) build node_test
-	cd test/qunit; node $(LMD_BUILD) build worker_test
+	@cd test/qunit; node $(LMD_BUILD) build test
+	@cd test/qunit; node $(LMD_BUILD) build node_test
+	@cd test/qunit; node $(LMD_BUILD) build worker_test
 
 coverage: build_test
 	rm -rf coverage/*

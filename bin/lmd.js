@@ -20,11 +20,28 @@ var allowedActions = {
     create: 'To create new LMD config',
     update: 'Updates existed LMD config',
     list: 'To see LMD packages list',
-    build: 'To build LMD package'/*,
-    watch: 'To start LMD package watcher',
+    build: 'To build LMD package',
+    watch: 'To start/stop LMD package watcher'/*,
     info: 'To see LMD package(s) list and info',
-    unwatch: 'To stop LMD package watcher',
-    server: 'To start LMD stats server'*/
+    server: 'To start/stop LMD stats server'*/
+};
+
+var actionsAliases = {
+    'init': 'init',
+
+    'create': 'create',
+    'new': 'create',
+
+    'update': 'update',
+    'up': 'update',
+
+    'list': 'list',
+    'ls': 'list',
+
+    'build': 'build',
+    'make': 'build',
+
+    'watch': 'watch'
 };
 
 function printHelp(errorMessage) {
@@ -48,12 +65,12 @@ function printHelp(errorMessage) {
     cli.help(help, errorMessage);
 }
 
-if (!allowedActions.hasOwnProperty(action)) {
+if (!actionsAliases.hasOwnProperty(action)) {
     if (process.argv.length >= 4) {
         require('./lmd_actions/old.js')(process.argv);
     } else {
         printHelp();
     }
 } else {
-    require('./lmd_actions/' + action + '.js')(process.argv);
+    require('./lmd_actions/' + actionsAliases[action] + '.js')(process.argv);
 }

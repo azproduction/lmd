@@ -14,15 +14,15 @@ function printHelp(errorMessage) {
         'Usage:'.bold.white.underline,
         '',
 
-        '  lmd build ' + '<build_name>'.blue + ' [' + '<flags>'.green + ']',
+        '  lmd watch ' + '<build_name>'.blue + ' [' + '<flags>'.green + ']',
         '',
 
         'Example:'.bold.white.underline,
         '',
 
-        '  lmd build ' + 'development'.blue,
-        '  lmd build ' + 'development'.blue + ' --no-pack --async --js --css'.green,
-        '  lmd build ' + 'development'.blue + ' --modules.name=path.js'.green,
+        '  lmd watch ' + 'development'.blue,
+        '  lmd watch ' + 'development'.blue + ' --no-warn --no-log'.green,
+        '  lmd watch ' + 'development'.blue + ' --js --css'.green,
         ''
     ];
 
@@ -65,32 +65,11 @@ module.exports = function () {
 
     var lmdFile =  cwd + '/.lmd/' + buildName + '.lmd.json';
 
-    var buildResult = new lmdPackage(lmdFile, argv),
-        buildConfig = buildResult.buildConfig;
+    var watchResult = new lmdPackage.watch(lmdFile, argv),
+        watchConfig = watchResult.watchConfig;
 
-    var configDir = fs.realpathSync(lmdFile);
-    configDir = configDir.split(common.PATH_SPLITTER);
-    configDir.pop();
-    configDir = configDir.join('/') + '/' + (buildConfig.root || "");
-
-    if (buildConfig.sourcemap) {
-        buildResult.sourceMap.pipe(createWritableFile(configDir + buildConfig.sourcemap));
-
-        buildResult.sourceMap.on('end', function () {
-            cli.ok('Writing Source Map to ' + buildConfig.sourcemap.green);
-        });
-    }
-
-    if (buildConfig.output) {
-        buildResult.pipe(createWritableFile(configDir + buildConfig.output));
-        if (buildConfig.log) {
-            buildResult.log.pipe(process.stdout);
-        }
-        buildResult.on('end', function () {
-            cli.ok('Writing LMD Package to ' + buildConfig.output.green);
-        });
-    } else {
-        buildResult.pipe(process.stdout);
+    if (watchConfig.log) {
+        watchResult.log.pipe(process.stdout);
     }
 
 };
