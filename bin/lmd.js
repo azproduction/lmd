@@ -22,8 +22,8 @@ var allowedActions = {
     list: 'To see LMD packages list',
     build: 'To build LMD package',
     watch: 'To start/stop LMD package watcher',
-    server: 'To start/stop LMD stats server'/*,
-    info: 'To see LMD package(s) list and info*/
+    server: 'To start/stop LMD stats server',
+    info: 'To see LMD extended package/build info'
 };
 
 var actionsAliases = {
@@ -45,7 +45,9 @@ var actionsAliases = {
 
     'server': 'server',
     'serv': 'server',
-    'stats': 'server'
+    'stats': 'server',
+
+    'info': 'info'
 };
 
 function printHelp(errorMessage) {

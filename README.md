@@ -1343,6 +1343,69 @@ lmd server development
 lmd server development --a localhost --p 8080
 ```
 
+### lmd info
+
+To see LMD extended package/build info
+
+`lmd info <build_name>`
+
+#### Options
+
+```
+--sort, --order-by  Sorts modules by that row  [default: "undefined"]
+```
+
+#### Example
+
+```
+lmd info development
+```
+
+#### Info result example
+
+```bash
+info:
+info:    LMD Package `index` (.lmd/index.lmd.json)
+info:
+info:    Modules (6)
+info:
+info:    name            depends 3-party x-exports x-require lazy greedy shortcut coverage sandbox
+info:    main            ✘       ✘       ✘         ✘         ✘    ✘      ✘        ✔        ✘
+info:    b-roster        ✘       ✘       ✘         ✘         ✘    ✘      ✘        ✔        ✘
+info:    undefined       ✘       ✘       ✘         ✘         ✘    ✘      ✘        ✔        ✘
+info:    b-unused-module ✘       ✘       ✘         ✘         ✘    ✘      ✘        ✔        ✘
+info:    b-dialog        ✘       ✘       ✘         ✘         ✘    ✘      ✔        ✔        ✘
+info:    b-talk          ✘       ✘       ✘         ✘         ✘    ✘      ✔        ✔        ✘
+info:
+info:    Flags
+info:
+info:    async                 ✔
+info:    ie                    ✘
+info:    parallel              ✔
+info:    shortcuts             ✔
+info:    stats                 ✔
+info:    stats_coverage        ✔
+info:    stats_coverage_async  ✘
+info:    stats_sendto          ✔
+info:    warn                  ✔
+info:    log                   ✔
+info:    pack                  ✘
+info:    lazy                  ✘
+info:
+info:    Paths
+info:
+info:    Root path    /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/modules
+info:    Result file  /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/index.lmd.js
+info:    Www root     /Users/azproduction/Documents/my/lmd/examples/mock_chat
+info:
+info:    Source Map
+info:
+info:    Result Source Map  /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/index.lmd.map
+info:    Source Map www     /
+info:    Is inline          ✔
+info:
+```
+
 ## Plugins and extending LMD
 
 Starts from 1.8.0 LMD rewritten it plugin system from Patch-Based to Event-Based Context Share (extended version of pub/sub pattern).
@@ -1822,6 +1885,7 @@ _Listener returns context:_ yes depend on moduleName value returns empty array o
 **v1.9.x**
 
   - Better LMD CLI
+  - lmd info CLI command
 
 ## Licence
 
