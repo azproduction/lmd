@@ -1265,7 +1265,7 @@ To create new LMD config
 
 `lmd create <build_name> [<parent_build_name>] [<flags>]`
 
-#### Example
+**Example**
 
 ```
 lmd create development
@@ -1280,7 +1280,7 @@ Updates existed LMD config
 
 `lmd update <build_name> <flags>`
 
-#### Example
+**Example**
 
 ```
 lmd update development --no-pack --async --js --css
@@ -1299,7 +1299,7 @@ To build LMD package
 
 `lmd build <build_name> [<flags>]`
 
-#### Example
+**Example**
 
 ```
 lmd build development
@@ -1313,7 +1313,7 @@ To start/stop LMD package watcher
 
 `lmd watch <build_name> [<flags>]`
 
-#### Example
+**Example**
 
 ```
 lmd watch development
@@ -1327,7 +1327,7 @@ To start/stop LMD stats server
 
 `lmd server <build_name> [<server_options>]`
 
-#### Options
+**Options**
 
 ```
 --address, -a          Client stats server address. Log receiver               [default: "0.0.0.0"]
@@ -1336,7 +1336,7 @@ To start/stop LMD stats server
 --admin-port, --ap     Admin interface server port. Default same as `address`
 ```
 
-#### Example
+**Example**
 
 ```
 lmd server development
@@ -1349,19 +1349,19 @@ To see LMD extended package/build info
 
 `lmd info <build_name>`
 
-#### Options
+**Options**
 
 ```
 --sort, --order-by  Sorts modules by that row  [default: "undefined"]
 ```
 
-#### Example
+**Example**
 
 ```
 lmd info development
 ```
 
-#### Info result example
+**Info result example**
 
 ```bash
 info:
