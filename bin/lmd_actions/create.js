@@ -12,7 +12,7 @@ function printHelp(errorMessage) {
         'Usage:'.bold.white.underline,
         '',
 
-        '  lmd create ' + '<build_name>'.blue + ' [' + '<parent_build_name>'.yellow + '] [' + '<flags>'.green + ']',
+        '  lmd create ' + '<build_name>'.blue + ' [' + '<parent_build_name>'.cyan + '] [' + '<flags>'.green + ']',
         '',
 
         'Example:'.bold.white.underline,
@@ -20,8 +20,8 @@ function printHelp(errorMessage) {
 
         '  lmd create ' + 'development'.blue,
         '  lmd create ' + 'development'.blue + ' --no-pack --async --js --css'.green,
-        '  lmd create ' + 'production'.blue + ' development'.yellow + ' --pack --ie'.green,
-        '  lmd create ' + 'testing'.blue + ' production'.yellow,
+        '  lmd create ' + 'production'.blue + ' development'.cyan + ' --pack --ie'.green,
+        '  lmd create ' + 'testing'.blue + ' production'.cyan,
         ''
     ];
 

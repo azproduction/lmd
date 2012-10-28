@@ -5,7 +5,6 @@ var fs = require('fs'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
     common = require(__dirname + '/../../lib/lmd_common.js'),
-    LmdStatsServer = require(__dirname + '/../../stats_server/index.js'),
     assembleLmdConfig = common.assembleLmdConfig,
     flagToOptionNameMap = JSON.parse(fs.readFileSync(__dirname + '/../../src/lmd_plugins.json'));
 
@@ -24,13 +23,19 @@ function printHelp(errorMessage) {
         'Usage:'.bold.white.underline,
         '',
 
-        '  lmd info ' + '<build_name>'.blue,
+        '  lmd info ' + '<build_name>'.blue + '[' + '+<mixin>...+<mixin>'.cyan + ']' + ' [' + '<flags>'.green + ']' + ' [' + '<options>'.yellow + ']',
         '',
 
         'Example:'.bold.white.underline,
         '',
 
         '  lmd info ' + 'development'.blue,
+        '  lmd info ' + 'development'.blue + ' --sort=coverage'.yellow,
+        '  lmd info ' + 'development'.blue + '+corp'.cyan,
+        '  lmd info ' + 'development'.blue + '+en+corp'.cyan,
+        '  lmd info ' + 'development'.blue + '+sourcemap'.cyan,
+        '  lmd info ' + 'development'.blue + '+sourcemap'.cyan + ' --no-pack --async --js --css'.green,
+        '  lmd info ' + 'development'.blue + ' --modules.name=path.js'.green,
         ''
     ];
 
@@ -189,12 +194,49 @@ function printFlags(config, availableFlags) {
     cli.ok('');
 }
 
+function printModulePaths(modules) {
+    modules = modules || {};
+
+    var modulesNames = Object.keys(modules);
+
+    if (!modulesNames.length) {
+        return;
+    }
+
+    cli.ok('Module Paths'.white.bold.underline);
+    cli.ok('');
+
+    var longestName = modulesNames.reduce(function (max, name) {
+        return max < name.length ? name.length : max;
+    }, 0);
+
+    modulesNames.forEach(function (name) {
+        cli.ok(name.cyan + new Array(longestName - name.length + 2).join(' ') + ' <- ' + modules[name].path.green);
+    });
+
+    cli.ok('');
+}
+
 module.exports = function () {
     var cwd = process.cwd(),
         status;
 
     var argv = optimist.argv,
-        buildName = argv._[1];
+        buildName,
+        mixinBuilds = argv._[1],
+        sortOrder = argv.sort;
+
+    if (mixinBuilds) {
+        mixinBuilds = mixinBuilds.split('+');
+
+        buildName = mixinBuilds.shift();
+    }
+
+    // Clear CLI options
+    delete argv.sort;
+    delete argv['order-by'];
+    delete argv._;
+    delete argv.$0;
 
     if (!init.check()) {
         return;
@@ -212,14 +254,39 @@ module.exports = function () {
         return;
     }
 
+    // Check mixins
+    if (mixinBuilds.length) {
+        var isCanContinue = mixinBuilds.every(function (buildName) {
+            status = create.checkFile(cwd, buildName);
+
+            if (status !== true) {
+                printHelp(status === false ? 'mixin build `' + buildName + '` is not exists' : status);
+                return false;
+            }
+            return true;
+        });
+
+        if (!isCanContinue) {
+            return;
+        }
+    }
+
+    mixinBuilds = mixinBuilds.map(function (build) {
+        return './' + build + '.lmd.json';
+    });
+
+    if (mixinBuilds.length) {
+        argv.mixins = mixinBuilds;
+    }
+
     var lmdFile =  cwd + '/.lmd/' + buildName + '.lmd.json';
 
     var rawConfig = JSON.parse(fs.readFileSync(lmdFile)),
         flags = Object.keys(flagToOptionNameMap),
         extraFlags = ["warn", "log", "pack", "lazy"],
-        config = assembleLmdConfig(lmdFile, flags),
+        config = assembleLmdConfig(lmdFile, flags, argv),
         root = fs.realpathSync(cwd + '/.lmd/' + config.root),
-        output = config.output ? fs.realpathSync(root + '/' + config.output) : false,
+        output = config.output ? (root + '/' + config.output) : 'STDOUT'.yellow,
         sourcemap = config.sourcemap ? fs.realpathSync(root + '/' + config.sourcemap) : false,
         www = config.www_root ? fs.realpathSync(cwd + '/.lmd/' + config.www_root + '/') : false;
 
@@ -228,27 +295,42 @@ module.exports = function () {
     cli.ok('');
 
     if (rawConfig.extends) {
-        cli.ok('Extends LMD Package `' + rawConfig.extends.green + '`');
+        cli.ok('Extends LMD Package `' + (rawConfig.extends + '').green + '`');
         cli.ok('');
     }
 
-    printModules(config.modules, argv.sort);
+    if (rawConfig.mixins) {
+        cli.ok('Mixins LMD Package `' + (rawConfig.mixins + '').green + '`');
+        cli.ok('');
+    }
+
+    printModules(config.modules, sortOrder);
+    printModulePaths(config.modules, sortOrder);
     printFlags(config, flags.concat(extraFlags));
 
     cli.ok('Paths'.white.bold.underline);
     cli.ok('');
-    cli.ok('Root path'.cyan + '    ' + printValue(root));
-    cli.ok('Result file'.cyan + '  ' + printValue(output));
-    cli.ok('Www root'.cyan + '     ' + printValue(www));
+    cli.ok('root'.cyan + '      ' + printValue(root));
+    cli.ok('output'.cyan + '    ' + printValue(output));
+    cli.ok('www_root'.cyan + '  ' + printValue(www));
 
     if (sourcemap) {
         cli.ok('');
         cli.ok('Source Map'.white.bold.underline);
         cli.ok('');
 
-        cli.ok('Result Source Map'.cyan + '  ' + printValue(sourcemap));
-        cli.ok('Source Map www'.cyan + '     ' + printValue(config.sourcemap_www || '/'));
-        cli.ok('Is inline'.cyan + '          ' + printValue(config.sourcemap_inline));
+        cli.ok('sourcemap'.cyan + '         ' + printValue(sourcemap));
+        cli.ok('sourcemap_www'.cyan + '     ' + printValue(config.sourcemap_www || '/'));
+        cli.ok('sourcemap_inline'.cyan + '  ' + printValue(config.sourcemap_inline));
+    }
+
+    if (config.errors && config.errors.length) {
+        cli.ok('');
+        cli.ok('Warnings'.red.bold.underline);
+        cli.ok('');
+        config.errors.forEach(function (error) {
+            cli.ok(error);
+        });
     }
 
     cli.ok('');

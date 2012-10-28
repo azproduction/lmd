@@ -5,6 +5,9 @@
  * @licence MIT
  */
 
+// Supress path.existsSync is now called `fs.existsSync`.
+require('path').existsSync = require('fs').existsSync;
+
 var fs = require('fs'),
     cli = require(__dirname + '/cli_messages.js');
 
@@ -47,7 +50,9 @@ var actionsAliases = {
     'serv': 'server',
     'stats': 'server',
 
-    'info': 'info'
+    'info': 'info',
+    'dry': 'info',
+    'dry-run': 'info'
 };
 
 function printHelp(errorMessage) {

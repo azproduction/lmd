@@ -187,6 +187,30 @@ info:    Writing LMD Package to index.lmd.js
 info:    Change detected in en.json at Thu Oct 25 2012 22:11:19 GMT+0600 (ALMT) Rebuilding...
 info:    Writing LMD Package to index.lmd.js
 
+# 11. You can use mixins to create multiply builds with only few configs
+$ cat .lmd/ru.lmd.json
+{
+    "root": "../i18n/",
+    "modules": {
+        "i18n": "ru.json"
+    }
+}
+
+$ cat i18n/ru.json
+{
+    "name": "Ваше имя #"
+}
+
+# Just add +mixin+another_mixin... and change output
+$ lmd build index+ru --output=index-ru.lmd.js
+info:    Building `index` (.lmd/index.lmd.json)
+info:    Extra mixins ./ru.lmd.json
+info:    Writing LMD Package to index-ru.lmd.js
+
+# 12. If you doubt the result of a build - you can make dry build with lmd info
+$ lmd info index+ru --output=index-ru.lmd.js
+
+# 13. You can run watch with mixins too
 ```
 
 Browse examples/getting_started for that project.
@@ -291,6 +315,10 @@ For templates
 {
     "path": "../modules/", // if starts with "/" it is absolute path else path will be relative to the config file
     "root": "../modules/", // alias to path
+
+    // # Inheritance
+    "extends": "./parent_index.lmd.js",           // Parent lmd config
+    "mixins": ["./mix.lmd.js", "./debug.lmd.js"], // Mixins configs
 
     "output": "../index.lmd.js",     // LMD will print build result there. Relative path to the root param
 
@@ -1886,6 +1914,9 @@ _Listener returns context:_ yes depend on moduleName value returns empty array o
 
   - Better LMD CLI
   - lmd info CLI command
+  - mixins config option
+  - mixins for lmd info, lmd build, lmd watch
+  - `config.lazy=false` by default now
 
 ## Licence
 

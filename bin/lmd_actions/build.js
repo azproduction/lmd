@@ -14,14 +14,17 @@ function printHelp(errorMessage) {
         'Usage:'.bold.white.underline,
         '',
 
-        '  lmd build ' + '<build_name>'.blue + ' [' + '<flags>'.green + ']',
+        '  lmd build ' + '<build_name>'.blue + '[' + '+<mixin>...+<mixin>'.cyan + ']' + ' [' + '<flags>'.green + ']',
         '',
 
         'Example:'.bold.white.underline,
         '',
 
         '  lmd build ' + 'development'.blue,
-        '  lmd build ' + 'development'.blue + ' --no-pack --async --js --css'.green,
+        '  lmd build ' + 'development'.blue + '+corp'.cyan,
+        '  lmd build ' + 'development'.blue + '+en+corp'.cyan,
+        '  lmd build ' + 'development'.blue + '+sourcemap'.cyan,
+        '  lmd build ' + 'development'.blue + '+sourcemap'.cyan + ' --no-pack --async --js --css'.green,
         '  lmd build ' + 'development'.blue + ' --modules.name=path.js'.green,
         ''
     ];
@@ -42,7 +45,14 @@ module.exports = function () {
         status;
 
     var argv = optimist.argv,
-        buildName = argv._[1];
+        buildName,
+        mixinBuilds = argv._[1];
+
+    if (mixinBuilds) {
+        mixinBuilds = mixinBuilds.split('+');
+
+        buildName = mixinBuilds.shift();
+    }
 
     delete argv._;
     delete argv.$0;
@@ -63,13 +73,41 @@ module.exports = function () {
         return;
     }
 
+    // Check mixins
+    if (mixinBuilds.length) {
+        var isCanContinue = mixinBuilds.every(function (buildName) {
+            status = create.checkFile(cwd, buildName);
+
+            if (status !== true) {
+                printHelp(status === false ? 'mixin build `' + buildName + '` is not exists' : status);
+                return false;
+            }
+            return true;
+        });
+
+        if (!isCanContinue) {
+            return;
+        }
+    }
+
+    mixinBuilds = mixinBuilds.map(function (build) {
+        return './' + build + '.lmd.json';
+    });
+
+    if (mixinBuilds.length) {
+        argv.mixins = mixinBuilds;
+    }
+
     var lmdFile =  cwd + '/.lmd/' + buildName + '.lmd.json';
 
     var buildResult = new lmdPackage(lmdFile, argv),
         buildConfig = buildResult.buildConfig;
 
-    if (buildConfig.log) {
+    if (buildConfig.log && buildConfig.output) {
         cli.ok('Building `' + buildName +  '` (.lmd/' + buildName + '.lmd.json)');
+        if (mixinBuilds.length) {
+            cli.ok('Extra mixins ' + mixinBuilds);
+        }
     }
 
     var configDir = fs.realpathSync(lmdFile);
@@ -80,14 +118,14 @@ module.exports = function () {
     if (buildConfig.sourcemap) {
         buildResult.sourceMap.pipe(createWritableFile(configDir + buildConfig.sourcemap));
 
-        if (buildConfig.log) {
+        if (buildConfig.log && buildConfig.output) {
             buildResult.sourceMap.on('end', function () {
                 cli.ok('Writing Source Map to ' + buildConfig.sourcemap.green);
             });
         }
     }
 
-    if (buildConfig.output) {
+    if (buildConfig.output && buildConfig.output) {
         buildResult.pipe(createWritableFile(configDir + buildConfig.output));
         if (buildConfig.log) {
             buildResult.log.pipe(process.stdout);

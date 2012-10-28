@@ -30,7 +30,7 @@ function printHelp(errorMessage) {
         'Usage:'.bold.white.underline,
         '',
 
-        '  lmd server ' + '<build_name>'.blue + ' [' + '<server_options>'.yellow + ']',
+        '  lmd server ' + '<build_name>'.blue + ' [' + '<options>'.yellow + ']',
         '',
 
         'Example:'.bold.white.underline,

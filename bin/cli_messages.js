@@ -21,3 +21,7 @@ exports.help = function (content, errorMessage) {
 exports.ok = function (message) {
     console.log('info'.green + ':    ' + message);
 };
+
+exports.warn = function (message) {
+    console.log('warn'.red + ':    ' + message);
+};

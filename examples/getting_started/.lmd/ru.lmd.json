@@ -1,0 +1,6 @@
+{
+    "root": "../i18n/",
+    "modules": {
+        "i18n": "ru.json"
+    }
+}
