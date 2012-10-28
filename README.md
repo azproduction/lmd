@@ -1325,13 +1325,16 @@ To see LMD packages/builds list
 
 To build LMD package
 
-`lmd build <build_name> [<flags>]`
+`lmd build <build_name>[+<mixin>...+<mixin>] [<flags>]`
 
 **Example**
 
 ```
 lmd build development
-lmd build development --no-pack --async --js --css
+lmd build development+corp
+lmd build development+en+corp
+lmd build development+sourcemap
+lmd build development+sourcemap --no-pack --async --js --css
 lmd build development --modules.name=path.js
 ```
 
@@ -1339,14 +1342,17 @@ lmd build development --modules.name=path.js
 
 To start/stop LMD package watcher
 
-`lmd watch <build_name> [<flags>]`
+`lmd watch <build_name>[+<mixin>...+<mixin>] [<flags>]`
 
 **Example**
 
 ```
 lmd watch development
-lmd watch development --no-warn --no-log
-lmd watch development --js --css
+lmd watch development+corp
+lmd watch development+en+corp
+lmd watch development+sourcemap
+lmd watch development+sourcemap --no-pack --async --js --css
+lmd watch development --modules.name=path.js
 ```
 
 ### lmd server
@@ -1375,7 +1381,7 @@ lmd server development --a localhost --p 8080
 
 To see LMD extended package/build info
 
-`lmd info <build_name>`
+`lmd info <build_name>[+<mixin>...+<mixin>] [<flags>] [<options>]`
 
 **Options**
 
@@ -1387,6 +1393,12 @@ To see LMD extended package/build info
 
 ```
 lmd info development
+lmd info development --sort=coverage
+lmd info development+corp
+lmd info development+en+corp
+lmd info development+sourcemap
+lmd info development+sourcemap --no-pack --async --js --css
+lmd info development --modules.name=path.js
 ```
 
 **Info result example**
