@@ -1,0 +1,68 @@
+body, html, .b-layout__table, .b-layout__cell {
+    width: 100%;
+    height: 100%;
+}
+
+.b-layout__cell {
+    background-image: url("foil.png");
+    text-align: center;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.b-layout__cell {
+    text-shadow: 0 1px 3px rgba(0,0,0,.4), 0 0 30px rgba(0,0,0,.075);
+}
+
+.b-layout__header {
+    color: #111;
+    font-size: 6em;
+    font-weight: bold;
+}
+
+.b-layout__group {
+    width: 50%;
+    margin-left: 25%;
+}
+
+.b-layout__disclaimer {
+    color: #333;
+    font-size: 2em;
+}
+
+.b-layout__button {
+    border: 0 none;
+    border-radius: 6px 6px 6px 6px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 1px 5px rgba(0, 0, 0, 0.25);
+    color: #FFFFFF;
+    font-size: 24px;
+    font-weight: 200;
+    padding: 14px 24px;
+    margin: 5px;
+}
+
+.b-layout__button_type_basic {
+    text-decoration: none;
+    background-color: #22b0cc;
+    border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+    color: #FFFFFF;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+    transition: background-color 0.5s ease;
+}
+
+.b-layout__button_type_basic:hover {
+    background-color: #417ccc;
+}
+
+.b-layout__buttons {
+    padding: 50px 0;
+}
+
+.b-layout__extra {
+    padding: 25px;
+}
+
+.b-layout__extra a {
+    text-shadow: none;
+    color: #AAA;
+    margin: 0 5px;
+}
