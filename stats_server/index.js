@@ -8,7 +8,7 @@ var fs = require('fs'),
     express = require("express"),
     common = require(__dirname + '/../lib/lmd_common.js'),
     assembleLmdConfig = common.assembleLmdConfig,
-    flagToOptionNameMap = JSON.parse(fs.readFileSync(__dirname + '/../src/lmd_plugins.json'));
+    flagToOptionNameMap = common.LMD_PLUGINS;
 
 require('colors');
 

@@ -1,4 +1,5 @@
-var fs = require('fs');
+var fs = require('fs'),
+    common = require(__dirname + '/../lib/lmd_common.js');
 
 /**
  *
@@ -29,16 +30,16 @@ function parseJsdoc(code, _blocks, _expressions) {
     return _blocks;
 }
 
-var LMD_JS_SRC_PATH = __dirname + '/../src/';
+var LMD_JS_SRC_PATH = common.LMD_JS_SRC_PATH;
 
-var pluginsList = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_plugins.json', 'utf8'));
+var LMD_PLUGINS = common.LMD_PLUGINS;
 
 var pluginsRequireList = {},
     pluginsCode = '';
 
 // Collect plugins code
-for (var flagName in pluginsList) {
-    var plugins = pluginsList[flagName].require;
+for (var flagName in LMD_PLUGINS) {
+    var plugins = LMD_PLUGINS[flagName].require;
 
     if (typeof plugins !== "undefined") {
         if (typeof plugins === "string") {

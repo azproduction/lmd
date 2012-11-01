@@ -6,7 +6,7 @@ var fs = require('fs'),
     create = require(__dirname + '/create.js'),
     common = require(__dirname + '/../../lib/lmd_common.js'),
     assembleLmdConfig = common.assembleLmdConfig,
-    flagToOptionNameMap = JSON.parse(fs.readFileSync(__dirname + '/../../src/lmd_plugins.json'));
+    flagToOptionNameMap = common.LMD_PLUGINS;
 
 var optimist = require('optimist')
     .alias('sort', 'order-by')
@@ -305,7 +305,7 @@ module.exports = function () {
     }
 
     printModules(config.modules, sortOrder);
-    printModulePaths(config.modules, sortOrder);
+    printModulePaths(config.modules);
     printFlags(config, flags.concat(extraFlags));
 
     cli.ok('Paths'.white.bold.underline);

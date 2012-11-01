@@ -7,7 +7,7 @@ var fs = require('fs'),
     common = require(__dirname + '/../../lib/lmd_common.js'),
     LmdStatsServer = require(__dirname + '/../../stats_server/index.js'),
     assembleLmdConfig = common.assembleLmdConfig,
-    flagToOptionNameMap = JSON.parse(fs.readFileSync(__dirname + '/../../src/lmd_plugins.json'));
+    flagToOptionNameMap = common.LMD_PLUGINS;
 
 var optimist = require('optimist')
     .alias('address', 'a')

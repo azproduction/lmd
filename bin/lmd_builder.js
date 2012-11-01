@@ -5,8 +5,6 @@
  * @licence MIT
  */
 
-var LMD_JS_SRC_PATH = __dirname + '/../src/';
-
 var JSHINT_CONFIG = {
     debug:      true,
     eqnull:     true,
@@ -17,36 +15,6 @@ var JSHINT_CONFIG = {
     undef:      true,
     nonew:      true,
     maxerr:     Infinity
-};
-
-var JSHINT_GLOBALS = {
-    Array               : 0,
-    Boolean             : 0,
-    Date                : 0,
-    decodeURI           : 0,
-    decodeURIComponent  : 0,
-    encodeURI           : 0,
-    encodeURIComponent  : 0,
-    Error               : 0,
-    'eval'              : 0,
-    EvalError           : 0,
-    Function            : 0,
-    hasOwnProperty      : 0,
-    isFinite            : 0,
-    isNaN               : 0,
-    JSON                : 0,
-    Math                : 0,
-    Number              : 0,
-    Object              : 0,
-    parseInt            : 0,
-    parseFloat          : 0,
-    RangeError          : 0,
-    ReferenceError      : 0,
-    RegExp              : 0,
-    String              : 0,
-    SyntaxError         : 0,
-    TypeError           : 0,
-    URIError            : 0
 };
 
 var fs = require('fs'),
@@ -61,7 +29,10 @@ var fs = require('fs'),
     common = require(__dirname + '/../lib/lmd_common.js'),
     assembleLmdConfig = common.assembleLmdConfig;
 
+var JSHINT_GLOBALS = common.GLOBALS;
 var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
+var LMD_JS_SRC_PATH = common.LMD_JS_SRC_PATH;
+var LMD_PLUGINS = common.LMD_PLUGINS;
 
 /**
  * LmdBuilder LMD Package Builder
@@ -162,7 +133,7 @@ LmdBuilder.prototype.init = function () {
 
     this.configDir = fs.realpathSync(this.configFile);
     this.configDir = this.configDir.split(CROSS_PLATFORM_PATH_SPLITTER);
-    this.flagToOptionNameMap = JSON.parse(fs.readFileSync(LMD_JS_SRC_PATH + 'lmd_plugins.json', 'utf8'));
+    this.flagToOptionNameMap = LMD_PLUGINS;
     this.configDir.pop();
     this.configDir = this.configDir.join('/');
 
