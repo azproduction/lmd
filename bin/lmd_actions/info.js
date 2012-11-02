@@ -12,6 +12,10 @@ var optimist = require('optimist')
     .alias('sort', 'order-by')
     .describe('sort', 'Sorts modules by that row')
     .default('sort', 'undefined')
+
+    .describe('deep', 'Prints deep module analytics')
+    .boolean('deep')
+    .default('deep', true)
     ;
 
 var YES = '✔'.green,
@@ -70,8 +74,8 @@ function printValue(value) {
     return value;
 }
 
-function printModules(modules, sortColumnName) {
-    modules = modules || {};
+function printModules(config, deepModulesInfo, sortColumnName) {
+    var modules = config.modules || {};
 
     var modulesNames = Object.keys(modules);
 
@@ -82,14 +86,15 @@ function printModules(modules, sortColumnName) {
     cli.ok(('Modules (' + modulesNames.length + ')').white.bold.underline);
     cli.ok('');
 
-    var headers = ['name', 'depends', '3-party', 'x-exports', 'x-require', 'lazy', 'greedy', 'shortcut', 'coverage', 'sandbox'];
+    var headers = ['name', 'depends', 'type', 'lazy', 'greedy', 'coverage', 'sandbox'];
 
     var columnLengths = headers.map(function (item) {
         return item.length;
     });
 
     var moduleRows = modulesNames.map(function (moduleName) {
-        var module = modules[moduleName];
+        var module = modules[moduleName],
+            moduleExtra = deepModulesInfo[moduleName];
 
         if (moduleName.length > columnLengths[0]) {
             columnLengths[0] = moduleName.length;
@@ -99,15 +104,16 @@ function printModules(modules, sortColumnName) {
             columnLengths[1] = module.depends.length;
         }
 
+        if (moduleExtra.type && moduleExtra.type.length > columnLengths[2]) {
+            columnLengths[2] = moduleExtra.type.length;
+        }
+
         return [
             moduleName,
             module.depends ? module.depends : false,
-            !!module.is_third_party,
-            !!module.extra_exports,
-            !!module.extra_require,
+            moduleExtra.type,
             !!module.is_lazy,
             !!module.is_greedy,
-            !!module.is_shortcut,
             !!module.is_coverage,
             !!module.is_sandbox
         ];
@@ -194,16 +200,33 @@ function printFlags(config, availableFlags) {
     cli.ok('');
 }
 
-function printModulePaths(modules) {
+function discoverModuleType(moduleName, modulesNames, globalsNames) {
+    if (modulesNames.indexOf(moduleName) != -1) {
+        return 'in-package';
+    }
+
+    if (globalsNames.indexOf(moduleName) != -1) {
+        return 'global';
+    }
+
+    if (/\.[a-z]{1,3}$/.test(moduleName)) {
+        return 'off-package?';
+    }
+
+    return 'global?';
+};
+
+function printModulePathsAndDepends(modules, deepModulesInfo, isDeepAnalytics) {
     modules = modules || {};
 
-    var modulesNames = Object.keys(modules);
+    var modulesNames = Object.keys(modules),
+        globalsNames = Object.keys(common.GLOBALS);
 
     if (!modulesNames.length) {
         return;
     }
 
-    cli.ok('Module Paths'.white.bold.underline);
+    cli.ok('Module Paths, Depends and Features'.white.bold.underline);
     cli.ok('');
 
     var longestName = modulesNames.reduce(function (max, name) {
@@ -212,6 +235,32 @@ function printModulePaths(modules) {
 
     modulesNames.forEach(function (name) {
         cli.ok(name.cyan + new Array(longestName - name.length + 2).join(' ') + ' <- ' + modules[name].path.green);
+        if (!isDeepAnalytics) {
+            return;
+        }
+        var depends = deepModulesInfo[name].depends;
+        if (depends.length) {
+            depends.forEach(function (name) {
+                var moduleType = discoverModuleType(name, modulesNames, globalsNames);
+                switch (moduleType) {
+                    case 'in-package':
+                        cli.ok(' +-' + name.toString().cyan);
+                        break;
+                    case 'global':
+                        cli.ok(' +-' + name.toString().cyan + ' (' + moduleType + ')');
+                        break;
+                    default:
+                        cli.ok(' +-' + name.toString().yellow + ' (' + moduleType + ')');
+                }
+            });
+
+            cli.ok('');
+        }
+        var features = Object.keys(deepModulesInfo[name].features);
+        if (features.length) {
+            cli.ok('  ' + 'Uses'.green + ': ' + features.join(', '));
+            cli.ok('');
+        }
     });
 
     cli.ok('');
@@ -224,7 +273,8 @@ module.exports = function () {
     var argv = optimist.argv,
         buildName,
         mixinBuilds = argv._[1],
-        sortOrder = argv.sort;
+        sortOrder = argv.sort,
+        isDeepAnalytics = argv.deep;
 
     if (mixinBuilds) {
         mixinBuilds = mixinBuilds.split('+');
@@ -234,6 +284,7 @@ module.exports = function () {
 
     // Clear CLI options
     delete argv.sort;
+    delete argv.deep;
     delete argv['order-by'];
     delete argv._;
     delete argv.$0;
@@ -304,8 +355,9 @@ module.exports = function () {
         cli.ok('');
     }
 
-    printModules(config.modules, sortOrder);
-    printModulePaths(config.modules);
+    var deepModulesInfo = common.collectModulesInfo(config);
+    printModules(config, deepModulesInfo, sortOrder);
+    printModulePathsAndDepends(config.modules, deepModulesInfo, isDeepAnalytics);
     printFlags(config, flags.concat(extraFlags));
 
     cli.ok('Paths'.white.bold.underline);
@@ -324,12 +376,23 @@ module.exports = function () {
         cli.ok('sourcemap_inline'.cyan + '  ' + printValue(config.sourcemap_inline));
     }
 
-    if (config.errors && config.errors.length) {
-        cli.ok('');
-        cli.ok('Warnings'.red.bold.underline);
-        cli.ok('');
-        config.errors.forEach(function (error) {
-            cli.ok(error);
+    var errors = config.errors;
+
+    // pipe warnings
+    for (var noduleName in deepModulesInfo) {
+        deepModulesInfo[noduleName].warns.forEach(function (warning) {
+            errors.push(warning);
+        });
+    }
+
+    errors = errors.concat(common.collectFlagsWarnings(config, deepModulesInfo));
+
+    if (errors && errors.length) {
+        cli.warn('');
+        cli.warn('Warnings'.red.bold.underline);
+        cli.warn('');
+        errors.forEach(function (error) {
+            cli.warn(error);
         });
     }
 
