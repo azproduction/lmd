@@ -553,123 +553,6 @@ LmdBuilder.prototype.removeTailSemicolons = function (code) {
 };
 
 /**
- * Checks if code is plain module
- *
- * @param code
- * @return {String} df|fe|plain|amd
- */
-LmdBuilder.prototype.getModuleType = function (code) {
-    var ast = parser.parse(code);
-
-    // ["toplevel",[["defun","depA",["require"],[]]]]
-    if (ast && ast.length === 2 &&
-        ast[1] && ast[1].length === 1 &&
-        ast[1][0][0] === "defun"
-        ) {
-        return "fd";
-    }
-
-    // ["toplevel",[["stat",["function",null,["require"],[]]]]]
-    if (ast && ast.length === 2 &&
-        ast[1] && ast[1].length === 1 &&
-        ast[1][0][0] === "stat" &&
-        ast[1][0][1] &&
-        ast[1][0][1][0] === "function"
-        ) {
-        return "fe";
-    }
-
-    if (ast) {
-        var isAmd = ast[1].every(function (ast) {
-            return ast[0] === "stat" &&
-                ast[1][0] === "call" &&
-                ast[1][1][0] === "name" &&
-                ast[1][1][1] === "define";
-        });
-
-        if (isAmd) {
-            return "amd";
-        }
-    }
-
-    return "plain";
-};
-
-/**
- * Wrapper for plain files
- *
- * @param {String} code
- *
- * @returns {String} wrapped code
- */
-LmdBuilder.prototype.wrapPlainModule = function (code) {
-    return '(function (require, exports, module) { /* wrapped by builder */\n' + code + '\n})';
-};
-
-/**
- * Wrapper for AMD files
- *
- * @param {String} code
- *
- * @returns {String} wrapped code
- */
-LmdBuilder.prototype.wrapAmdModule = function (code) {
-    return '(function (require) { /* wrapped by builder */\nvar define = require.define;\n' + code + '\n})';
-};
-
-/**
- * Wrapper for non-lmd modules files
- *
- * @param {String}               code
- * @param {Object|String}        extra_exports
- * @param {Object|String|String} extra_exports
- *
- * @returns {String} wrapped code
- */
-LmdBuilder.prototype.wrapNonLmdModule = function (code, extra_exports, extra_require) {
-    var exports = [],
-        requires = [],
-        exportCode;
-
-    // add exports
-    // extra_exports = {name: code, name: code}
-    if (typeof extra_exports === "object") {
-        for (var exportName in extra_exports) {
-            exportCode = extra_exports[exportName];
-            exports.push('    ' + JSON.stringify(exportName) + ': ' + exportCode);
-        }
-        code += '\n\n/* added by builder */\nreturn {\n' + exports.join(',\n') + '\n};';
-    } else if (extra_exports) {
-        // extra_exports = string
-        code += '\n\n/* added by builder */\nreturn ' + extra_exports + ';';
-    }
-
-    // add require
-    if (typeof extra_require === "object") {
-        // extra_require = [name, name, name]
-        if (extra_require instanceof Array) {
-            for (var i = 0, c = extra_require.length, moduleName; i < c; i++) {
-                moduleName = extra_require[i];
-                requires.push('require(' + JSON.stringify(moduleName) + ');');
-            }
-            code = '/* added by builder */\n' + requires.join('\n') + '\n\n' + code;
-        } else {
-            // extra_require = {name: name, name: name}
-            for (var localName in extra_require) {
-                moduleName = extra_require[localName];
-                requires.push(localName + ' = require(' + JSON.stringify(moduleName) + ')');
-            }
-            code = '/* added by builder */\nvar ' + requires.join(',\n    ') + ';\n\n' + code;
-        }
-    } else if (extra_require) {
-        // extra_require = string
-        code = '/* added by builder */\nrequire(' + JSON.stringify(extra_require) + ');\n\n' + code;
-    }
-
-    return '(function (require) { /* wrapped by builder */\n' + code + '\n})';
-};
-
-/**
  * JSON escaper
  *
  * @param file
@@ -1250,24 +1133,22 @@ LmdBuilder.prototype.build = function (config) {
         this.warn(config.errors[i], config.warn);
     }
 
-    var lazy = config.lazy || false,
+    var self = this,
+        lazy = config.lazy || false,
         mainModuleName = config.main,
         pack = lazy ? true : (config.pack || false),
-        moduleContent,
         lmdModules = [],
         lmdMain,
         lmdFile,
-        isJson,
-        isModule,
-        moduleType,
         coverageResult,
         globalsObjects,
         modulesOptions = {},
         is_using_shortcuts = false,
         is_using_amd = false,
-        parseErrorText,
         module,
-        modules;
+        modules,
+        moduleInfo,
+        modulesInfo;
 
     if (typeof config.ie === "undefined") {
         config.ie = true;
@@ -1286,10 +1167,19 @@ LmdBuilder.prototype.build = function (config) {
 
     if (config.modules) {
         modules = config.modules;
+        modulesInfo = common.collectModulesInfo(config);
+
         // build modules string
         for (var index in modules) {
             module = modules[index];
-            if (module.is_shortcut) {
+            moduleInfo = modulesInfo[index];
+
+            // pipe warnings to errors
+            moduleInfo.warns.forEach(function (warning) {
+                self.warn(warning, config.warn);
+            });
+
+            if (moduleInfo.type === "shortcut") {
                 is_using_shortcuts = true;
                 if (module.name === mainModuleName) {
                     this.warn('Main module can not be a shortcut. Your app will throw an error.', config.warn);
@@ -1298,159 +1188,78 @@ LmdBuilder.prototype.build = function (config) {
                 }
                 continue;
             }
-            moduleContent = fs.readFileSync(module.path, 'utf8');
-
-            try {
-                JSON.parse(moduleContent);
-                isJson = true;
-            } catch (e) {
-                isJson = false;
-            }
 
             if (config.sourcemap) {
                 if (this.isModuleCanBeUnderSourceMap(module)) {
-                    moduleContent = this.createToken(module.path) + moduleContent;
-                    module.lines = this.calculateModuleLines(moduleContent);
+                    var originalCodeWithToken = this.createToken(module.path) + moduleInfo.originalCode;
+                    // reapply wrapper
+                    moduleInfo.code = common.wrapModule(originalCodeWithToken, module, moduleInfo.type);
+                    module.lines = this.calculateModuleLines(moduleInfo.code);
                 }
             }
 
-            if (!isJson) {
-                moduleType = "plain";
-                parseErrorText = '';
-                try {
-                    moduleType = this.getModuleType(moduleContent);
-                    isModule = true
-                } catch(e) {
-                    parseErrorText = e.toString();
-                    isModule = false;
-                }
+            if (moduleInfo.type === "amd") {
+                is_using_amd = true;
+            }
 
-                // #12 Warn if parse error in .js file
-                if (!isModule && /.js$/.test(module.path)) {
-                    this.warn('File "**' + module.path + '**" has extension **.js** and LMD detect an parse error. \n' +
-                              parseErrorText.red +
-                              '\nThis module will be string. Please check the source.', config.warn);
-                }
+            switch (moduleInfo.type) {
+                case "amd":
+                case "fd":
+                case "fe":
+                case "plain":
+                    // #26 Code coverage
+                    if (module.is_coverage) {
+                        var skipLines = ({
+                            fd: 1,
+                            fe: 1,
+                            plain: 0,
+                            amd: -1
+                        })[moduleInfo.type];
 
-                if (isModule) {
-                    if (module.is_third_party) {
-                        // create lmd module from non-lmd module
-                        moduleContent = this.wrapNonLmdModule(moduleContent, module.extra_exports, module.extra_require);
-                        if (module.extra_require && module.is_sandbox) {
-                            this.error('Your module "**' + module.path + '**" have to require() some deps, but it sandboxed. ' +
-                                      'Remove sandbox flag to allow module require().');
-                        }
-                    } else {
-                        switch (moduleType) {
-                            case "plain":
-                                // wrap plain module
-                                moduleContent = this.wrapPlainModule(moduleContent);
-                                break;
+                        coverageResult = lmdCoverage.interpret(module.name, module.path, moduleInfo.code, skipLines);
+                        modulesOptions[module.name] = coverageResult.options;
+                        modulesOptions[module.name].coverage = 1;
+                        moduleInfo.code = coverageResult.code;
+                    }
 
-                            case "amd":
-                                is_using_amd = true;
-                                /*if (!modulesOptions[module.name]) {
-                                    modulesOptions[module.name] = {};
-                                }
-                                modulesOptions[module.name].amd = 1;*/
-                                moduleContent = this.wrapAmdModule(moduleContent);
-                                break;
+                    // #14 Check direct access of globals in lazy modules
+                    if (config.warn && module.is_lazy) {
+                        globalsObjects = this.checkForDirectGlobalsAccess(module.path, moduleInfo.code);
 
-                            default:
-                                // wipe tail ;
-                                moduleContent = this.removeTailSemicolons(moduleContent);
+                        if (globalsObjects.length) {
+                             this.warn("Lazy module **" + module.path.split('/').slice(-2).join('/') + "** uses some globals directly (" + globalsObjects.join(', ') +  "). " +
+                                       "Replace them with require('" + globalsObjects[0] + "') etc", config.warn);
                         }
                     }
-                }
 
-                // #26 Code coverage
-                if (isModule && module.is_coverage) {
-                    var skipLines = ({
-                        fd: 1,
-                        fe: 1,
-                        plain: 0,
-                        amd: -1
-                    })[moduleType];
-
-                    coverageResult = lmdCoverage.interpret(module.name, module.path, moduleContent, skipLines);
-                    modulesOptions[module.name] = coverageResult.options;
-                    modulesOptions[module.name].coverage = 1;
-                    moduleContent = coverageResult.code;
-
-                    // Check for different require name (first argument)
-                    globalsObjects = this.checkForDirectGlobalsAccess(module.path, moduleContent);
-                    if (globalsObjects.indexOf('require') !== -1) {
-                        this.error("In module **" + module.path + "** you are using different 'require' name. " +
-                                   "You must declare first argument of your module-function as 'require' to use coverage!");
+                    if (module.is_lazy || pack) {
+                        moduleInfo.code = this.compress(moduleInfo.code, config.pack_options);
                     }
-                }
 
-                // #14 Check direct access of globals in lazy modules
-                if (config.warn && isModule && module.is_lazy) {
-                    globalsObjects = this.checkForDirectGlobalsAccess(module.path, moduleContent);
-
-                    if (globalsObjects.length) {
-                         this.warn("Lazy module **" + module.path.split('/').slice(-2).join('/') + "** uses some globals directly (" + globalsObjects.join(', ') +  "). " +
-                                   "Replace them with require('" + globalsObjects[0] + "') etc", config.warn);
+                    if (module.name !== mainModuleName && module.is_lazy) {
+                        moduleInfo.code = moduleInfo.code.replace(/^function[^\(]*/, 'function');
+                        if (moduleInfo.code.indexOf('(function(') !== 0) {
+                            moduleInfo.code = '(' + moduleInfo.code + ')';
+                        }
+                        moduleInfo.code = this.escape(moduleInfo.code);
                     }
-                }
-
-                if (isModule && (module.is_lazy || pack)) {
-                    moduleContent = this.compress(moduleContent, config.pack_options);
-                }
+                    break;
+                case "string":
+                    moduleInfo.code = this.escape(moduleInfo.code);
+                    break;
             }
 
             if (module.name === mainModuleName) {
-                lmdMain = moduleContent;
+                lmdMain = moduleInfo.code;
             } else {
-                if (isModule && !isJson && module.is_lazy) {
-                    moduleContent = moduleContent.replace(/^function[^\(]*/, 'function');
-                    if (moduleContent.indexOf('(function(') !== 0) {
-                        moduleContent = '(' + moduleContent + ')';
-                    }
-                    moduleContent = this.escape(moduleContent);
-                } else if (!isModule) {
-                    moduleContent = this.escape(moduleContent);
-                }
-
-                lmdModules.push(this.escape(module.name) + ': ' + moduleContent);
+                lmdModules.push(this.escape(module.name) + ': ' + moduleInfo.code);
             }
         }
 
-        if (is_using_shortcuts && !config.shortcuts) {
-            this.warn('Some of your modules are shortcuts, but config flag **shortcuts** is undefined or falsy. ' +
-                      'Enable that flag for proper work.', config.warn);
-        }
-
-        if (!is_using_shortcuts && config.shortcuts) {
-            this.warn('Config flag **shortcuts** is enabled, but there is no shortcuts in your package. ' +
-                      'Disable that flag to optimize your package.', config.warn);
-        }
-
-        if (is_using_amd && !config.amd) {
-            this.warn('Some of your modules are AMD Modules, but config flag **amd** is undefined or falsy. ' +
-                      'Enable that flag for proper work.', config.warn);
-        }
-
-        if (!is_using_amd && config.amd) {
-            this.warn('Config flag **amd** is enabled, but there is no AMD Modules in your package. ' +
-                      'Disable that flag to optimize your package.', config.warn);
-        }
-
-        if (config.stats_coverage && (config.cache || config.cache_async)) {
-            this.warn('LMD will cache your modules under code coverage.', config.warn);
-        }
-
-        if (config.async_plain && config.async_plainonly) {
-            this.warn('You are using both config flags `async_plain` and `async_plainonly`. Disable one to optimise your source.', config.warn);
-        }
-
-        if (!config.stats_coverage && config.stats_coverage_async) {
-            this.warn('You are using `stats_coverage_async` without `stats_coverage`. Enable `stats_coverage` flag.', config.warn);
-        }
-
-        if (!config.async && config.stats_coverage_async) {
-            this.warn('You are using `stats_coverage_async` but not using `async`. Disable `stats_coverage_async` flag.', config.warn);
+        if (config.warn) {
+            common.collectFlagsWarnings(config, modulesInfo).forEach(function (warning) {
+                self.warn(warning, config.warn);
+            });
         }
 
         var sandboxedModules = this.getSandboxedModules(modules, config);

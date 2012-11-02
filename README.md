@@ -1386,7 +1386,8 @@ To see LMD extended package/build info
 **Options**
 
 ```
---sort, --order-by  Sorts modules by that row  [default: "undefined"]
+--sort, --order-by  Sorts modules by that row     [default: "undefined"]
+--deep              Prints deep module analytics  [boolean]  [default: true]
 ```
 
 **Example**
@@ -1409,13 +1410,31 @@ info:    LMD Package `index` (.lmd/index.lmd.json)
 info:
 info:    Modules (6)
 info:
-info:    name            depends 3-party x-exports x-require lazy greedy shortcut coverage sandbox
-info:    main            ✘       ✘       ✘         ✘         ✘    ✘      ✘        ✔        ✘
-info:    b-roster        ✘       ✘       ✘         ✘         ✘    ✘      ✘        ✔        ✘
-info:    undefined       ✘       ✘       ✘         ✘         ✘    ✘      ✘        ✔        ✘
-info:    b-unused-module ✘       ✘       ✘         ✘         ✘    ✘      ✘        ✔        ✘
-info:    b-dialog        ✘       ✘       ✘         ✘         ✘    ✘      ✔        ✔        ✘
-info:    b-talk          ✘       ✘       ✘         ✘         ✘    ✘      ✔        ✔        ✘
+info:    name            depends type     lazy greedy coverage sandbox
+info:    main            ✘       plain    ✘    ✘      ✔        ✘
+info:    b-roster        ✘       plain    ✘    ✘      ✔        ✘
+info:    undefined       ✘       fe       ✘    ✘      ✔        ✘
+info:    b-unused-module ✘       plain    ✘    ✘      ✔        ✘
+info:    b-dialog        ✘       shortcut ✘    ✘      ✔        ✘
+info:    b-talk          ✘       shortcut ✘    ✘      ✔        ✘
+info:
+info:    Module Paths, Depends and Features
+info:
+info:    main             <- /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/modules/index.js
+info:     +-b-roster
+info:
+info:    b-roster         <- /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/modules/b-roster.js
+info:     +-b-dialog
+info:     +-b-talk
+info:
+info:      Uses: async, parallel, stats_sendto
+info:
+info:    undefined        <- /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/modules/utils.js
+info:     +-document (global?)
+info:
+info:    b-unused-module  <- /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/modules/b-unused-module.js
+info:    b-dialog         <- @js/lmd/modules/b-dialog.js
+info:    b-talk           <- @js/lmd/modules/b-talk.js
 info:
 info:    Flags
 info:
@@ -1434,15 +1453,15 @@ info:    lazy                  ✘
 info:
 info:    Paths
 info:
-info:    Root path    /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/modules
-info:    Result file  /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/index.lmd.js
-info:    Www root     /Users/azproduction/Documents/my/lmd/examples/mock_chat
+info:    root      /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/modules
+info:    output    /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/modules/../index.lmd.js
+info:    www_root  /Users/azproduction/Documents/my/lmd/examples/mock_chat
 info:
 info:    Source Map
 info:
-info:    Result Source Map  /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/index.lmd.map
-info:    Source Map www     /
-info:    Is inline          ✔
+info:    sourcemap         /Users/azproduction/Documents/my/lmd/examples/mock_chat/js/lmd/index.lmd.map
+info:    sourcemap_www     /
+info:    sourcemap_inline  ✔
 info:
 ```
 
@@ -1929,6 +1948,14 @@ _Listener returns context:_ yes depend on moduleName value returns empty array o
   - mixins config option
   - mixins for lmd info, lmd build, lmd watch
   - `config.lazy=false` by default now
+  - better `lmd info`: deep static analytics with depends, new `lmd info` flag `[--deep=true]`
+  - content-based warnings in `lmd info` and `lmd build` for:
+    - js
+    - css
+    - async
+    - parallel
+    - amd
+    - shortcuts
 
 ## Licence
 
