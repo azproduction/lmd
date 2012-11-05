@@ -456,7 +456,7 @@ LmdBuilder.prototype.optimizeLmdSource = function (lmd_js_code) {
             ast = wipeLmdEvents(ast);
         }
 
-        return walker.with_walkers({
+        ast = walker.with_walkers({
             // looking for first var with sandbox item;
             "call" : function () {
                 if (this[1] && this[2][0]) {
@@ -472,11 +472,12 @@ LmdBuilder.prototype.optimizeLmdSource = function (lmd_js_code) {
                             // if no event triggers (no lmd_trigger(event_name,...))
                             // delete all lmd_on(event_name,...) statements
                             if (eventDescriptor.trigger === 0) {
-                                return ["name", "null"];
+                                return ["stat"]; // wipe statement = return empty statement - ;
                             }
 
                             // Shorten event names: Using UglifyJS AST find all event names
                             // from lmd_trigger and lmd_on and replace them with corresponding numbers
+                            //console.log(this);
                             this[2][0] = ["num", eventDescriptor.eventIndex];
                             break;
 
@@ -491,7 +492,7 @@ LmdBuilder.prototype.optimizeLmdSource = function (lmd_js_code) {
                                 // if parent is statement -> return void
                                 // to prevent loony arrays eg ["pewpew", "ololo"];
                                 if (walker.parent()[0] === "stat") {
-                                    return ["name", "null"];
+                                    return ["stat"]; // wipe statement = return empty statement - ;
                                 }
 
                                 /*
@@ -528,6 +529,42 @@ LmdBuilder.prototype.optimizeLmdSource = function (lmd_js_code) {
         }, function () {
             return walker.walk(ast);
         });
+
+        // #52 optimise constant expressions like [main][0]
+        ast = walker.with_walkers({
+            "sub": function () {
+                // Looking for this pattern
+                // [ 'sub', [ 'array', [ [Object], [Object] ] ], [ 'num', 1 ] ]
+                if (this[1][0] === "array" && this[2][0] === "num") {
+
+                    var isConstantArray = this[1][1].every(function (item) {
+                        return item[0] === "num" ||
+                               item[0] === "string" ||
+                               item[0] === "name" ||
+                               item[0] === "array" ||
+                               item[0] === "object";
+                    });
+
+                    if (isConstantArray) {
+                        var index = this[2][1];
+
+                        /*
+                         [main][0]
+
+                          --->
+
+                         main
+                        */
+
+                        return this[1][1][index];
+                    }
+                }
+            }
+        }, function () {
+            return walker.walk(ast);
+        });
+
+        return ast;
     }
 
     var ast = parser.parse(lmd_js_code);
