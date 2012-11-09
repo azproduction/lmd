@@ -83,7 +83,7 @@ LMD is inspired by AMD and provides similar module interface
 
 See [Getting Started](https://github.com/azproduction/lmd/blob/master/docs/getting_started.md) and
 [Project structure](https://github.com/azproduction/lmd/blob/master/docs/project_structure.md)
-all docs are located here https://github.com/azproduction/lmd/tree/master/examples
+and [Docs](https://github.com/azproduction/lmd/tree/master/docs)
 
 ## LMD Config file
 
@@ -127,4 +127,3 @@ See [grunt-contrib-lmd](https://github.com/azproduction/grunt-contrib-lmd) for d
 ## Running tests
 
 `phantomjs` is required to run test via `npm test` see [test](/azproduction/lmd/tree/master/test) for details
-
