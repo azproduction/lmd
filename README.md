@@ -1852,7 +1852,19 @@ _Listener returns context:_ no
 
 _Listener returns context:_ yes depend on moduleName value returns empty array or replaces stats_results
 
+## Grunt integration and task
 
+Install this grunt plugin next to your project's [grunt.js gruntfile][getting_started] with: `npm install grunt-contrib-lmd`
+
+Then add this line to your project's `grunt.js` gruntfile:
+
+```javascript
+grunt.loadNpmTasks('grunt-contrib-lmd');
+```
+
+[getting_started]: https://github.com/gruntjs/grunt/blob/master/docs/getting_started.md
+
+See https://github.com/azproduction/grunt-contrib-lmd for details
 
 ## Running tests
 
@@ -1956,6 +1968,7 @@ _Listener returns context:_ yes depend on moduleName value returns empty array o
     - parallel
     - amd
     - shortcuts
+  - Grunt.js integration section
 
 ## Licence
 
