@@ -4,4 +4,4 @@
     return function () {
         return true;
     }
-})
+});
