@@ -21,8 +21,8 @@
 
     "www_root": "../../../",         // Relative path of the www root (where your index.html located)
 
-    "warn": true,                    // Print lmd build warnings
-    "log": true,                     // Print build/watch/whatever log
+    "warn": true,                    // Print lmd build warnings [default=true]
+    "log": true,                     // Print build/watch/whatever log [default=true]
 
     "modules": {
         // basic module descriptor -- only path

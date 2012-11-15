@@ -5,7 +5,7 @@
         "name": "Mikhail Davydov",
         "email": "azazel.private@gmail.com"
     },
-    "version": "1.9.4",
+    "version": "1.9.5",
     "bin": {
         "lmd": "./bin/lmd"
     },

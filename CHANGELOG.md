@@ -95,3 +95,5 @@
     - amd
     - shortcuts
   - Grunt.js integration section
+  - finally `lmd -v`
+  - `log` and `warn` are true by default

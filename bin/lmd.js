@@ -76,12 +76,17 @@ function printHelp(errorMessage) {
     cli.help(help, errorMessage);
 }
 
-if (!actionsAliases.hasOwnProperty(action)) {
+if (process.argv.length === 3 && argv.v || argv.version) {
+    console.log(require(__dirname + '/../package.json').version);
+
+} else if (!actionsAliases.hasOwnProperty(action)) {
     if (process.argv.length >= 4) {
         require('./lmd_actions/old.js')(process.argv);
     } else {
         printHelp();
     }
+
 } else {
     require('./lmd_actions/' + actionsAliases[action] + '.js')(process.argv);
+
 }

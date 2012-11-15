@@ -8,8 +8,6 @@
     },
     "main": "main",
     "ie": false,
-    "warn": true,
-    "log": true,
     "pack": true,
     "lazy": false
 }

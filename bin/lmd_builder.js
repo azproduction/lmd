@@ -54,7 +54,7 @@ var LMD_PLUGINS = common.LMD_PLUGINS;
  *      .pipe(process.stdout);
  */
 var LmdBuilder = function (configFile, options) {
-    this.options = options || {};
+    this.options = this.defaults(options);
     var self = this;
 
     // apply config
@@ -95,7 +95,7 @@ var LmdBuilder = function (configFile, options) {
  *      .log.pipe(process.stdout);
  */
 LmdBuilder.watch = function (configFile, options) {
-    this.options = options || {};
+    this.options = this.defaults(options);
     var self = this;
 
     this.configFile = configFile;
@@ -123,6 +123,27 @@ LmdBuilder.watch = function (configFile, options) {
 // Share prototype
 LmdBuilder.watch.prototype =
 LmdBuilder.prototype = new Stream();
+
+/**
+ * Applies defaults
+ *
+ * @param {Object} options
+ *
+ * @return {Object}
+ */
+LmdBuilder.prototype.defaults = function (options) {
+    options = options || {};
+
+    if (typeof options.warn === "undefined") {
+        options.warn = true;
+    }
+
+    if (typeof options.log === "undefined") {
+        options.log = true;
+    }
+
+    return options;
+};
 
 /**
  * Common init for LmdBuilder and LmdBuilder.watch
