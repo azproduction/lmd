@@ -127,3 +127,7 @@ See [grunt-contrib-lmd](https://github.com/azproduction/grunt-contrib-lmd) for d
 ## Running tests
 
 `phantomjs` is required to run test via `npm test` see [test](/azproduction/lmd/tree/master/test) for details
+
+--
+
+If you like LMD - ★ it via `npm star lmd`
