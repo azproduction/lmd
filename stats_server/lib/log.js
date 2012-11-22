@@ -22,7 +22,8 @@
  * SOFTWARE.
  */
 
-var fs = require("fs");
+var fs = require("fs"),
+    path = require('path');
 
 require('colors');
 
@@ -37,7 +38,7 @@ exports.attachTo = function (app, logDir) {
         }
 
         var fileName = req.params.instanceId.replace(/\/|\\|\./g, '_') + '.json';
-        fs.writeFile(logDir + '/' + fileName, req.body.json, "utf-8", function (err) {
+        fs.writeFile(path.join(logDir, fileName), req.body.json, "utf-8", function (err) {
             if (err) {
                 res.send(500);
             } else {

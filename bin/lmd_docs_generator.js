@@ -1,4 +1,5 @@
 var fs = require('fs'),
+    path = require('path'),
     common = require(__dirname + '/../lib/lmd_common.js');
 
 /**
@@ -49,7 +50,7 @@ for (var flagName in LMD_PLUGINS) {
         plugins.forEach(function (pluginName) {
             // require once
             if (!pluginsRequireList[pluginName]) {
-                pluginsCode += fs.readFileSync(LMD_JS_SRC_PATH + 'plugin/' + pluginName, 'utf8') + "\n\n";
+                pluginsCode += fs.readFileSync(path.join(LMD_JS_SRC_PATH, 'plugin', pluginName), 'utf8') + "\n\n";
                 pluginsRequireList[pluginName] = true;
             }
         });

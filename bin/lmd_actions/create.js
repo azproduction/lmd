@@ -1,6 +1,7 @@
 require('colors');
 
 var fs = require('fs'),
+    path = require('path'),
     cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
     common = require(__dirname + '/../../lib/lmd_common.js');
@@ -33,7 +34,7 @@ function checkFile(cwd, name) {
     if (isGoodFileName) {
         return 'bad build name `' + name + '`';
     }
-    var lmdConfig = cwd + '/.lmd/' + name + '.lmd.json';
+    var lmdConfig = path.join(cwd, '.lmd', name + '.lmd.json');
     if (fs.existsSync(lmdConfig)) {
         if (fs.statSync(lmdConfig).isFile()) {
             // already exists
@@ -65,7 +66,7 @@ function template(buildName, parentConfig, options) {
 }
 
 function createBuild(cwd, buildName, parentBuild, options) {
-    var lmdConfig = cwd + '/.lmd/' + buildName + '.lmd.json',
+    var lmdConfig = path.join(cwd, '.lmd', buildName + '.lmd.json'),
         parentConfig = parentBuild ? parentBuild + '.lmd.json' : null;
 
     fs.writeFileSync(lmdConfig, template(buildName, parentConfig, options), 'utf8');

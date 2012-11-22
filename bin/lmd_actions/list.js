@@ -3,8 +3,7 @@ require('colors');
 var fs = require('fs'),
     cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
-    create = require(__dirname + '/create.js'),
-    common = require(__dirname + '/../../lib/lmd_common.js');
+    create = require(__dirname + '/create.js');
 
 function printHelp(errorMessage) {
     var help = [

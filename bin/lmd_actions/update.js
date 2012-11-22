@@ -1,6 +1,7 @@
 require('colors');
 
 var fs = require('fs'),
+    path = require('path'),
     cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
@@ -36,8 +37,8 @@ function template(json, options) {
 }
 
 function updateBuild(cwd, buildName, options) {
-    var lmdConfig = cwd + '/.lmd/' + buildName + '.lmd.json',
-        json = JSON.parse(fs.readFileSync(lmdConfig, 'utf8'));
+    var lmdConfig = path.join(cwd, '.lmd', buildName + '.lmd.json'),
+        json = common.readConfig(lmdConfig);
 
     fs.writeFileSync(lmdConfig, template(json, options), 'utf8');
 }

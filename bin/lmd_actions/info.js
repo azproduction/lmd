@@ -1,6 +1,7 @@
 require('colors');
 
 var fs = require('fs'),
+    path = require('path'),
     cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
@@ -200,27 +201,10 @@ function printFlags(config, availableFlags) {
     cli.ok('');
 }
 
-function discoverModuleType(moduleName, modulesNames, globalsNames) {
-    if (modulesNames.indexOf(moduleName) != -1) {
-        return 'in-package';
-    }
-
-    if (globalsNames.indexOf(moduleName) != -1) {
-        return 'global';
-    }
-
-    if (/\.[a-z]{1,3}$/.test(moduleName)) {
-        return 'off-package?';
-    }
-
-    return 'global?';
-};
-
-function printModulePathsAndDepends(modules, deepModulesInfo, isDeepAnalytics) {
-    modules = modules || {};
-
-    var modulesNames = Object.keys(modules),
-        globalsNames = Object.keys(common.GLOBALS);
+function printModulePathsAndDepends(config, deepModulesInfo, isDeepAnalytics) {
+    var modules = config.modules || {},
+        modulesNames = Object.keys(modules),
+        globalsNames = common.getGlobals(config);
 
     if (!modulesNames.length) {
         return;
@@ -241,7 +225,7 @@ function printModulePathsAndDepends(modules, deepModulesInfo, isDeepAnalytics) {
         var depends = deepModulesInfo[name].depends;
         if (depends.length) {
             depends.forEach(function (name) {
-                var moduleType = discoverModuleType(name, modulesNames, globalsNames);
+                var moduleType = common.discoverModuleType(name, modulesNames, globalsNames);
                 switch (moduleType) {
                     case 'in-package':
                         cli.ok(' +-' + name.toString().cyan);
@@ -330,14 +314,14 @@ module.exports = function () {
         argv.mixins = mixinBuilds;
     }
 
-    var lmdFile =  cwd + '/.lmd/' + buildName + '.lmd.json';
+    var lmdFile = path.join(cwd, '.lmd', buildName + '.lmd.json');
 
-    var rawConfig = JSON.parse(fs.readFileSync(lmdFile)),
+    var rawConfig = common.readConfig(lmdFile),
         flags = Object.keys(flagToOptionNameMap),
         extraFlags = ["warn", "log", "pack", "lazy"],
         config = assembleLmdConfig(lmdFile, flags, argv),
         root = fs.realpathSync(cwd + '/.lmd/' + config.root),
-        output = config.output ? (root + '/' + config.output) : 'STDOUT'.yellow,
+        output = config.output ? path.join(root, config.output) : 'STDOUT'.yellow,
         sourcemap = config.sourcemap ? fs.realpathSync(root + '/' + config.sourcemap) : false,
         www = config.www_root ? fs.realpathSync(cwd + '/.lmd/' + config.www_root + '/') : false;
 
@@ -357,7 +341,7 @@ module.exports = function () {
 
     var deepModulesInfo = common.collectModulesInfo(config);
     printModules(config, deepModulesInfo, sortOrder);
-    printModulePathsAndDepends(config.modules, deepModulesInfo, isDeepAnalytics);
+    printModulePathsAndDepends(config, deepModulesInfo, isDeepAnalytics);
     printFlags(config, flags.concat(extraFlags));
 
     cli.ok('Paths'.white.bold.underline);

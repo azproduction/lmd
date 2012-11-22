@@ -1,10 +1,10 @@
 require('colors');
 
 var fs = require('fs'),
+    path = require('path'),
     cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
-    common = require(__dirname + '/../../lib/lmd_common.js'),
     lmdPackage = require(__dirname + '/../lmd_builder.js');
 
 var optimist = require('optimist');
@@ -98,7 +98,7 @@ module.exports = function () {
         argv.mixins = mixinBuilds;
     }
 
-    var lmdFile =  cwd + '/.lmd/' + buildName + '.lmd.json';
+    var lmdFile =  path.join(cwd, '.lmd', buildName + '.lmd.json');
 
     var buildResult = new lmdPackage(lmdFile, argv),
         buildConfig = buildResult.buildConfig;
@@ -110,13 +110,10 @@ module.exports = function () {
         }
     }
 
-    var configDir = fs.realpathSync(lmdFile);
-    configDir = configDir.split(common.PATH_SPLITTER);
-    configDir.pop();
-    configDir = configDir.join('/') + '/' + (buildConfig.root || "");
+    var configDir = path.join(path.dirname(fs.realpathSync(lmdFile)), buildConfig.root || "");
 
     if (buildConfig.sourcemap) {
-        buildResult.sourceMap.pipe(createWritableFile(configDir + buildConfig.sourcemap));
+        buildResult.sourceMap.pipe(createWritableFile(path.join(configDir, buildConfig.sourcemap)));
 
         if (buildConfig.log && buildConfig.output) {
             buildResult.sourceMap.on('end', function () {
@@ -126,7 +123,7 @@ module.exports = function () {
     }
 
     if (buildConfig.output && buildConfig.output) {
-        buildResult.pipe(createWritableFile(configDir + buildConfig.output));
+        buildResult.pipe(createWritableFile(path.join(configDir, buildConfig.output)));
         if (buildConfig.log) {
             buildResult.log.pipe(process.stdout);
             buildResult.on('end', function () {

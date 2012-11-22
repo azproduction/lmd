@@ -97,3 +97,5 @@
   - Grunt.js integration section
   - finally `lmd -v`
   - `log` and `warn` are true by default
+  - global check of lazy modules is deisabled
+  - info of unused modules, suspicious globals and off-package modules paths

@@ -5,32 +5,18 @@
  * @licence MIT
  */
 
-var JSHINT_CONFIG = {
-    debug:      true,
-    eqnull:     true,
-    boss:       true,
-    loopfunc:   true,
-    evil:       true,
-    laxbreak:   true,
-    undef:      true,
-    nonew:      true,
-    maxerr:     Infinity
-};
-
 var fs = require('fs'),
     Stream = require('stream'),
+    path = require('path'),
     uglifyCompress = require("uglify-js"),
     SourceMapGenerator = require('source-map').SourceMapGenerator,
     colors = require('colors'),
     parser = uglifyCompress.parser,
     uglify = uglifyCompress.uglify,
-    JsHint = require('jshint').JSHINT,
     lmdCoverage = require(__dirname + '/../lib/coverage_apply.js'),
     common = require(__dirname + '/../lib/lmd_common.js'),
     assembleLmdConfig = common.assembleLmdConfig;
 
-var JSHINT_GLOBALS = common.GLOBALS;
-var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
 var LMD_JS_SRC_PATH = common.LMD_JS_SRC_PATH;
 var LMD_PLUGINS = common.LMD_PLUGINS;
 
@@ -149,14 +135,10 @@ LmdBuilder.prototype.defaults = function (options) {
  * Common init for LmdBuilder and LmdBuilder.watch
  */
 LmdBuilder.prototype.init = function () {
-
     var self = this;
 
-    this.configDir = fs.realpathSync(this.configFile);
-    this.configDir = this.configDir.split(CROSS_PLATFORM_PATH_SPLITTER);
+    this.configDir = path.dirname(this.configFile);
     this.flagToOptionNameMap = LMD_PLUGINS;
-    this.configDir.pop();
-    this.configDir = this.configDir.join('/');
 
     /**
      * Build log
@@ -630,7 +612,7 @@ LmdBuilder.prototype.escape = function (file) {
  * @returns {String}
  */
 LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, modules_options) {
-    var lmd_js = fs.readFileSync(LMD_JS_SRC_PATH + 'lmd.js', 'utf8'),
+    var lmd_js = fs.readFileSync(path.join(LMD_JS_SRC_PATH, 'lmd.js'), 'utf8'),
         result;
 
     // Apply patch if LMD package in cache Mode
@@ -779,7 +761,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
             plugins.forEach(function (pluginName) {
                 // require once
                 if (config[flagName] && !pluginsRequireList[pluginName]) {
-                    pluginsCode += fs.readFileSync(LMD_JS_SRC_PATH + 'plugin/' + pluginName, 'utf8') + "\n\n";
+                    pluginsCode += fs.readFileSync(path.join(LMD_JS_SRC_PATH, 'plugin', pluginName), 'utf8') + "\n\n";
                     pluginsRequireList[pluginName] = true;
                 }
             });
@@ -805,7 +787,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
 
                     match = lmd_js.match(includePattern);
                     if (match && match[1]) {
-                        patchContent = fs.readFileSync(LMD_JS_SRC_PATH + 'plugin/' + match[1], 'utf8');
+                        patchContent = fs.readFileSync(path.join(LMD_JS_SRC_PATH, 'plugin', match[1]), 'utf8');
                     } else {
                         break;
                     }
@@ -900,8 +882,7 @@ LmdBuilder.prototype.fsWatch = function (config) {
         },
         rebuild = function (stat, filename) {
             if (stat && filename) {
-                filename = filename.split(CROSS_PLATFORM_PATH_SPLITTER).pop();
-                log('info'.green + ':    Change detected in ' + filename.toString().green + ' at ' + stat.mtime.toString().blue);
+                log('info'.green + ':    Change detected in ' + path.basename(filename).toString().green + ' at ' + stat.mtime.toString().blue);
             } else if (stat) {
                 log('info'.green + ':    Change detected at ' + stat.mtime.toString().blue);
             } else {
@@ -911,8 +892,8 @@ LmdBuilder.prototype.fsWatch = function (config) {
             log(' Rebuilding...\n');
 
             var buildResult = self.build(self.compileConfig(self.configFile, self.options)),
-                lmdFile = self.configDir + '/' + config.root + '/' + config.output,
-                lmdSourceMapFile = self.configDir + '/' + config.root + '/' + config.sourcemap;
+                lmdFile = path.join(self.configDir, config.root, config.output),
+                lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
 
             log('info'.green + ':    Writing LMD Package to ' + config.output.green + '\n');
             fs.writeFileSync(lmdFile, buildResult.source, 'utf8');
@@ -1007,27 +988,6 @@ LmdBuilder.prototype.warn = function (text, isWarn) {
 };
 
 /**
- * Using JsHint, it checks for direct global vars access
- *
- * @param {String} moduleName
- * @param {String} moduleCode
- */
-LmdBuilder.prototype.checkForDirectGlobalsAccess = function (moduleName, moduleCode) {
-    new JsHint(moduleCode, JSHINT_CONFIG, JSHINT_GLOBALS);
-    var globalsObjects = [];
-    for (var i = 0, c = JsHint.errors.length, error; i < c; i++) {
-        error = JsHint.errors[i];
-        if (error.raw === '\'{a}\' is not defined.') {
-            if (globalsObjects.indexOf(error.a) === -1) {
-                globalsObjects.push(error.a);
-            }
-        }
-    }
-
-    return globalsObjects;
-};
-
-/**
  * Generates module token
  *
  * @param {String} modulePath
@@ -1075,10 +1035,10 @@ LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
  * @return {Object} {source: cleanSource, sourceMap: sourceMap}
  */
 LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, config) {
-    var generatedFile = this.configDir + '/' + config.root + '/' + config.output,
-        root = this.configDir + '/' + config.root + '/' + config.www_root,
+    var generatedFile = path.join(this.configDir, config.root, config.output),
+        root = path.join(this.configDir, config.root, config.www_root),
         www = config.sourcemap_www,
-        sourceMapFile = this.configDir + '/' + config.root + '/' + config.sourcemap,
+        sourceMapFile = path.join(this.configDir, config.root, config.sourcemap),
         isInline = config.sourcemap_inline,
         isWarn = config.warn;
 
@@ -1278,16 +1238,6 @@ LmdBuilder.prototype.build = function (config) {
                         modulesOptions[module.name] = coverageResult.options;
                         modulesOptions[module.name].coverage = 1;
                         moduleInfo.code = coverageResult.code;
-                    }
-
-                    // #14 Check direct access of globals in lazy modules
-                    if (config.warn && module.is_lazy) {
-                        globalsObjects = this.checkForDirectGlobalsAccess(module.path, moduleInfo.code);
-
-                        if (globalsObjects.length) {
-                             this.warn("Lazy module **" + module.path.split('/').slice(-2).join('/') + "** uses some globals directly (" + globalsObjects.join(', ') +  "). " +
-                                       "Replace them with require('" + globalsObjects[0] + "') etc", config.warn);
-                        }
                     }
 
                     if (module.is_lazy || pack) {

@@ -1,6 +1,7 @@
 require('colors');
 
 var fs = require('fs'),
+    path = require('path'),
     cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
@@ -31,14 +32,6 @@ function printHelp(errorMessage) {
 
     cli.help(help, errorMessage);
 }
-
-var createWritableFile = function (fileName) {
-    return fs.createWriteStream(fileName, {
-        flags: "w",
-        encoding: "utf8",
-        mode: 0666
-    });
-};
 
 module.exports = function () {
     var cwd = process.cwd(),
@@ -98,7 +91,7 @@ module.exports = function () {
         argv.mixins = mixinBuilds;
     }
 
-    var lmdFile =  cwd + '/.lmd/' + buildName + '.lmd.json';
+    var lmdFile =  path.join(cwd, '.lmd', buildName + '.lmd.json');
 
     var watchResult = new lmdPackage.watch(lmdFile, argv),
         watchConfig = watchResult.watchConfig;

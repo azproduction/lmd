@@ -1,6 +1,7 @@
 require('colors');
 
 var fs = require('fs'),
+    path = require('path'),
     cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
@@ -86,12 +87,12 @@ module.exports = function () {
         return;
     }
 
-    var lmdFile =  cwd + '/.lmd/' + buildName + '.lmd.json';
+    var lmdFile =  path.join(cwd, '.lmd', buildName + '.lmd.json');
 
     var config = assembleLmdConfig(lmdFile, Object.keys(flagToOptionNameMap)),
-        logDir = cwd + '/.lmd/logs/',
-        currentLogDir = logDir + buildName + '/',
-        wwwDir = cwd + '/.lmd/' + config.www_root + '/';
+        logsDir = path.join(cwd, '.lmd/logs'),
+        currentLogDir = path.join(logsDir, buildName),
+        wwwDir = path.join(cwd, '.lmd', config.www_root);
 
     if (!config.www_root) {
         printHelp("Build configured without required parameter `www_root`");
@@ -103,7 +104,7 @@ module.exports = function () {
         return;
     }
 
-    if (!ensureDirExists(logDir)) {
+    if (!ensureDirExists(logsDir)) {
         return;
     }
 

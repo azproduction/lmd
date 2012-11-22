@@ -23,6 +23,7 @@
  */
 
 var fs = require("fs"),
+    path = require('path'),
     util = require("util"),
     express = require('express');
 
@@ -45,7 +46,7 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
 				files.forEach(function (file) {
 					reports.push({
 						id : file,
-						date : fs.statSync(logDir + '/' + file).ctime + ''
+						date : fs.statSync(path.join(logDir, file)).ctime + ''
 					});
 				});
 				reports.sort(function (first, second) {
@@ -76,12 +77,12 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
             fileName = lmdModules[moduleName].path;
         } else {
             // www_path -> path
-            fileName = wwwDir + moduleName;
+            fileName = path.join(wwwDir, moduleName);
         }
 
         // shortcut -> path
         if (fileName.charAt(0) === '@') {
-            fileName = wwwDir + fileName.replace('@', '');
+            fileName = path.join(wwwDir, fileName.replace('@', ''));
         }
 		readReport(req.params.report, function (err, report) {
 			if (err) {
@@ -116,19 +117,19 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
             fileName = lmdModules[moduleName].path;
         } else {
             // www_path -> path
-            fileName = wwwDir + '/' + moduleName;
+            fileName = path.join(wwwDir, moduleName);
         }
 
         // shortcut -> path
         if (fileName.charAt(0) === '@') {
-            fileName = wwwDir + '/' + fileName.replace('@', '');
+            fileName = path.join(wwwDir, fileName.replace('@', ''));
         }
 
         return fs.readFileSync(fileName, 'utf8');
     }
 
-	function readReport (report, callback) {
-		fs.readFile(logDir + "/" + report, function (err, data) {
+	function readReport(report, callback) {
+		fs.readFile(path.join(logDir, report), function (err, data) {
 			if (err) {
 				console.error(err);
 				callback.call(null, err);
@@ -261,26 +262,5 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
                 suggestions: getSuggestions(report)
             });
 		}
-	}
-
-	function readMultipleReports (reports, callback) {
-		var howMany = reports.length;
-		var result = [];
-		if (howMany == 0) {
-			return callback.call(this, "No reports to read");
-		}
-		reports.forEach(function (report) {
-			readReport(report, function (err, data) {
-				if (err) {
-					callback.call(this, err);
-				} else {
-					result.push(data);
-					howMany -= 1;
-					if (howMany < 1) {
-						callback.call(this, null, result);
-					}
-				}
-			});
-		});
 	}
 };

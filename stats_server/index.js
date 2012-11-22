@@ -5,14 +5,13 @@
  * @licence MIT
  */
 var fs = require('fs'),
+    path = require('path'),
     express = require("express"),
     common = require(__dirname + '/../lib/lmd_common.js'),
     assembleLmdConfig = common.assembleLmdConfig,
     flagToOptionNameMap = common.LMD_PLUGINS;
 
 require('colors');
-
-var CROSS_PLATFORM_PATH_SPLITTER = common.PATH_SPLITTER;
 
 /**
  *
@@ -53,15 +52,9 @@ function LmdStatsServer(data) {
     }
 
     this.logDir = fs.realpathSync(this.logDir);
-
     this.wwwDir = fs.realpathSync(this.wwwDir);
-
     this.configFile = fs.realpathSync(this.configFile);
-
-    this.configDir = fs.realpathSync(this.configFile);
-    this.configDir = this.configDir.split(CROSS_PLATFORM_PATH_SPLITTER);
-    this.configDir.pop();
-    this.configDir = this.configDir.join('/');
+    this.configDir = path.dirname(this.configFile);
 
     this.config = assembleLmdConfig(this.configFile, Object.keys(flagToOptionNameMap));
 
@@ -89,8 +82,8 @@ function LmdStatsServer(data) {
     console.log('info'.green +  ':    LMD Config: ' + this.configFile.green);
 
     this.app.listen(this.port, this.address);
-    require('./lib/admin.js').attachTo(this.adminApp, this.logDir, this.wwwDir, this.config, this.modules);
-    require('./lib/log.js').attachTo(this.app, this.logDir);
+    require(__dirname + '/lib/admin.js').attachTo(this.adminApp, this.logDir, this.wwwDir, this.config, this.modules);
+    require(__dirname + '/lib/log.js').attachTo(this.app, this.logDir);
 
     console.log('info'.green +  ':    Hit Ctrl+C to stop');
 }
