@@ -2,7 +2,6 @@ require('colors');
 
 var fs = require('fs'),
     path = require('path'),
-    cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
     common = require(__dirname + '/../../lib/lmd_common.js'),
@@ -23,7 +22,7 @@ var YES = '✔'.green,
     NO = '✘'.red,
     NO_YES = [NO, YES];
 
-function printHelp(errorMessage) {
+function printHelp(cli, errorMessage) {
     var help = [
         'Usage:'.bold.white.underline,
         '',
@@ -75,7 +74,7 @@ function printValue(value) {
     return value;
 }
 
-function printModules(config, deepModulesInfo, sortColumnName) {
+function printModules(cli, config, deepModulesInfo, sortColumnName) {
     var modules = config.modules || {};
 
     var modulesNames = Object.keys(modules);
@@ -168,7 +167,7 @@ function printModules(config, deepModulesInfo, sortColumnName) {
     cli.ok('');
 }
 
-function printFlags(config, availableFlags) {
+function printFlags(cli, config, availableFlags) {
     var longestName = availableFlags.reduce(function (max, current) {
         if (typeof config[current] === "undefined") {
             return max;
@@ -201,7 +200,7 @@ function printFlags(config, availableFlags) {
     cli.ok('');
 }
 
-function printModulePathsAndDepends(config, deepModulesInfo, isDeepAnalytics) {
+function printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytics) {
     var modules = config.modules || {},
         modulesNames = Object.keys(modules),
         globalsNames = common.getGlobals(config);
@@ -250,12 +249,11 @@ function printModulePathsAndDepends(config, deepModulesInfo, isDeepAnalytics) {
     cli.ok('');
 }
 
-module.exports = function () {
-    var cwd = process.cwd(),
-        status;
+module.exports = function (cli, argv, cwd) {
+    argv = optimist.parse(argv);
 
-    var argv = optimist.argv,
-        buildName,
+    var buildName,
+        status,
         mixinBuilds = argv._[1],
         sortOrder = argv.sort,
         isDeepAnalytics = argv.deep;
@@ -273,19 +271,19 @@ module.exports = function () {
     delete argv._;
     delete argv.$0;
 
-    if (!init.check()) {
+    if (!init.check(cli, cwd)) {
         return;
     }
 
     if (!buildName) {
-        printHelp();
+        printHelp(cli);
         return;
     }
 
     status = create.checkFile(cwd, buildName);
 
     if (status !== true) {
-        printHelp(status === false ? 'build `' + buildName + '` is not exists' : status);
+        printHelp(cli, status === false ? 'build `' + buildName + '` is not exists' : status);
         return;
     }
 
@@ -295,7 +293,7 @@ module.exports = function () {
             status = create.checkFile(cwd, buildName);
 
             if (status !== true) {
-                printHelp(status === false ? 'mixin build `' + buildName + '` is not exists' : status);
+                printHelp(cli, status === false ? 'mixin build `' + buildName + '` is not exists' : status);
                 return false;
             }
             return true;
@@ -340,9 +338,9 @@ module.exports = function () {
     }
 
     var deepModulesInfo = common.collectModulesInfo(config);
-    printModules(config, deepModulesInfo, sortOrder);
-    printModulePathsAndDepends(config, deepModulesInfo, isDeepAnalytics);
-    printFlags(config, flags.concat(extraFlags));
+    printModules(cli, config, deepModulesInfo, sortOrder);
+    printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytics);
+    printFlags(cli, config, flags.concat(extraFlags));
 
     cli.ok('Paths'.white.bold.underline);
     cli.ok('');

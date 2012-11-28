@@ -2,13 +2,11 @@ require('colors');
 
 var fs = require('fs'),
     path = require('path'),
-    cli = require(__dirname + '/../cli_messages.js'),
+    optimist = require('optimist'),
     init = require(__dirname + '/init.js'),
     common = require(__dirname + '/../../lib/lmd_common.js');
 
-var optimist = require('optimist');
-
-function printHelp(errorMessage) {
+function printHelp(cli, errorMessage) {
     var help = [
         'Usage:'.bold.white.underline,
         '',
@@ -72,30 +70,29 @@ function createBuild(cwd, buildName, parentBuild, options) {
     fs.writeFileSync(lmdConfig, template(buildName, parentConfig, options), 'utf8');
 }
 
-module.exports = function () {
-    var cwd = process.cwd(),
-        status;
+module.exports = function (cli, argv, cwd) {
+    argv = optimist.parse(argv);
 
-    var argv = optimist.argv,
+    var status,
         buildName = argv._[1],
         parentBuild = argv._[2];
 
     delete argv._;
     delete argv.$0;
 
-    if (!init.check()) {
+    if (!init.check(cli, cwd)) {
         return;
     }
 
     if (!buildName) {
-        printHelp();
+        printHelp(cli);
         return;
     }
 
     status = checkFile(cwd, buildName);
 
     if (status) {
-        printHelp(status === true ? 'build `' + buildName + '` is already exists' : status);
+        printHelp(cli, status === true ? 'build `' + buildName + '` is already exists' : status);
         return;
     }
 
@@ -103,7 +100,7 @@ module.exports = function () {
         status = checkFile(cwd, parentBuild);
 
         if (status !== true) {
-            printHelp(status === false ? 'parent build `' + parentBuild + '` is not exists' : status);
+            printHelp(cli, status === false ? 'parent build `' + parentBuild + '` is not exists' : status);
             return;
         }
     }

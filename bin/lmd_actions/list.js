@@ -1,11 +1,10 @@
 require('colors');
 
 var fs = require('fs'),
-    cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js');
 
-function printHelp(errorMessage) {
+function printHelp(cli, errorMessage) {
     var help = [
         'Usage:'.bold.white.underline,
         '',
@@ -17,7 +16,7 @@ function printHelp(errorMessage) {
     cli.help(help, errorMessage);
 }
 
-function listOfFiles(cwd) {
+function listOfFiles(cli, cwd) {
     var lmdDir = cwd + '/.lmd';
 
     var files = fs.readdirSync(lmdDir)
@@ -44,12 +43,10 @@ function listOfFiles(cwd) {
     cli.ok('');
 }
 
-module.exports = function () {
-    var cwd = process.cwd();
-
-    if (!init.check()) {
+module.exports = function (cli, argv, cwd) {
+    if (!init.check(cli, cwd)) {
         return;
     }
 
-    listOfFiles(cwd);
+    listOfFiles(cli, cwd);
 };

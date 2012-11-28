@@ -1,5 +1,4 @@
-var fs = require('fs'),
-    cli = require(__dirname + '/../cli_messages.js');
+var fs = require('fs');
 
 function checkLmdDir(cwd) {
     var lmdDir = cwd + '/.lmd';
@@ -18,7 +17,7 @@ function createLmdStructure(cwd) {
     fs.mkdirSync(lmdDir);
 }
 
-function printHelp(errorMessage) {
+function printHelp(cli, errorMessage) {
     var help = [
         'Usage:'.bold.white.underline,
         '',
@@ -30,12 +29,10 @@ function printHelp(errorMessage) {
     cli.help(help, errorMessage);
 }
 
-module.exports = function (argv) {
-    var cwd = process.cwd();
-
+module.exports = function (cli, argv, cwd) {
     var status = checkLmdDir(cwd);
     if (status) {
-        printHelp(status === true ? '.lmd is already initialised' : status);
+        printHelp(cli, status === true ? '.lmd is already initialised' : status);
         return;
     }
 
@@ -45,12 +42,10 @@ module.exports = function (argv) {
     cli.ok('');
 };
 
-module.exports.check = function () {
-    var cwd = process.cwd();
-
+module.exports.check = function (cli, cwd) {
     var status = checkLmdDir(cwd);
     if (status !== true) {
-        printHelp(status ? status : 'run `lmd init` to initialise LMD in ' + cwd);
+        printHelp(cli, status ? status : 'run `lmd init` to initialise LMD in ' + cwd);
         return false;
     }
 

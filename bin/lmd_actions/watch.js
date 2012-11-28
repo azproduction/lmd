@@ -10,7 +10,7 @@ var fs = require('fs'),
 
 var optimist = require('optimist');
 
-function printHelp(errorMessage) {
+function printHelp(cli, errorMessage) {
     var help = [
         'Usage:'.bold.white.underline,
         '',
@@ -33,11 +33,10 @@ function printHelp(errorMessage) {
     cli.help(help, errorMessage);
 }
 
-module.exports = function () {
-    var cwd = process.cwd(),
-        status;
+module.exports = function (cli, argv, cwd) {
+    argv = optimist.parse(argv);
 
-    var argv = optimist.argv,
+    var status,
         buildName,
         mixinBuilds = argv._[1];
 
@@ -50,19 +49,19 @@ module.exports = function () {
     delete argv._;
     delete argv.$0;
 
-    if (!init.check()) {
+    if (!init.check(cli, cwd)) {
         return;
     }
 
     if (!buildName) {
-        printHelp();
+        printHelp(cli);
         return;
     }
 
     status = create.checkFile(cwd, buildName);
 
     if (status !== true) {
-        printHelp(status === false ? 'build `' + buildName + '` is not exists' : status);
+        printHelp(cli, status === false ? 'build `' + buildName + '` is not exists' : status);
         return;
     }
 
@@ -72,7 +71,7 @@ module.exports = function () {
             status = create.checkFile(cwd, buildName);
 
             if (status !== true) {
-                printHelp(status === false ? 'mixin build `' + buildName + '` is not exists' : status);
+                printHelp(cli, status === false ? 'mixin build `' + buildName + '` is not exists' : status);
                 return false;
             }
             return true;
@@ -97,7 +96,7 @@ module.exports = function () {
         watchConfig = watchResult.watchConfig;
 
     if (watchConfig.log) {
-        watchResult.log.pipe(process.stdout);
+        watchResult.log.pipe(cli.stream);
     }
 
 };

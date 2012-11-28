@@ -1,4 +1,22 @@
-exports.help = function (content, errorMessage) {
+require('colors');
+
+var LogWriter = function (stream) {
+    this.stream = stream;
+};
+
+LogWriter.prototype.log = function (message) {
+    this.stream.write(message + '\n');
+};
+
+LogWriter.prototype.ok = function (message) {
+    this.log('info'.green + ':    ' + message);
+};
+
+LogWriter.prototype.warn = function (message) {
+    this.log('warn'.red + ':    ' + message);
+};
+
+LogWriter.prototype.help = function (content, errorMessage) {
     var help = [
         '',
         'LMD Builder',
@@ -15,13 +33,7 @@ exports.help = function (content, errorMessage) {
         return 'help'.cyan + ':    ' + line;
     }).join('\n');
 
-    console.log(help);
+    this.log(help);
 };
 
-exports.ok = function (message) {
-    console.log('info'.green + ':    ' + message);
-};
-
-exports.warn = function (message) {
-    console.log('warn'.red + ':    ' + message);
-};
+exports.LogWriter = LogWriter;
