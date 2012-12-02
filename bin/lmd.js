@@ -13,11 +13,6 @@ var fs = require('fs'),
 
 require('colors');
 
-var argv = require('optimist').argv;
-
-// lmd init
-var action = process.argv[2];
-
 var allowedActions = {
     init: 'Initializes LMD for project',
     create: 'To create new LMD config',
@@ -55,7 +50,7 @@ var actionsAliases = {
     'dry-run': 'info'
 };
 
-function printHelp(errorMessage) {
+function printHelp(cli, errorMessage) {
     var help = [
         'Usage:'.bold.white.underline,
         '',
@@ -76,17 +71,29 @@ function printHelp(errorMessage) {
     cli.help(help, errorMessage);
 }
 
-if (process.argv.length === 3 && argv.v || argv.version) {
-    console.log(require(__dirname + '/../package.json').version);
+function init(stdout, argv, cwd) {
+    var options = require('optimist').parse(argv),
+        action = argv[2],
+        logWriter = new cli.LogWriter(stdout);
 
-} else if (!actionsAliases.hasOwnProperty(action)) {
-    if (process.argv.length >= 4) {
-        require('./lmd_actions/old.js')(process.argv);
+    if (argv.length === 3 && options.v || options.version) {
+        stdout.write(require(__dirname + '/../package.json').version + '\n');
+
+    } else if (!actionsAliases.hasOwnProperty(action)) {
+        if (argv.length >= 4) {
+            require(__dirname + '/lmd_actions/old.js')(logWriter, argv.slice(2), cwd);
+        } else {
+            printHelp(logWriter);
+        }
+
     } else {
-        printHelp();
+        require(__dirname + '/lmd_actions/' + actionsAliases[action] + '.js')(logWriter, argv.slice(2), cwd);
+
     }
+}
+exports.init = init;
 
-} else {
-    require('./lmd_actions/' + actionsAliases[action] + '.js')(process.argv);
-
+// if !main
+if (!module.parent || (module.parent && module.parent.filename.match(/\/lmd\/bin\/lmd$/))) {
+    init(process.stdout, process.argv, process.cwd());
 }

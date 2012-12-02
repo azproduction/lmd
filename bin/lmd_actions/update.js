@@ -2,14 +2,13 @@ require('colors');
 
 var fs = require('fs'),
     path = require('path'),
-    cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
     common = require(__dirname + '/../../lib/lmd_common.js');
 
 var optimist = require('optimist');
 
-function printHelp(errorMessage) {
+function printHelp(cli, errorMessage) {
     var help = [
         'Usage:'.bold.white.underline,
         '',
@@ -43,29 +42,28 @@ function updateBuild(cwd, buildName, options) {
     fs.writeFileSync(lmdConfig, template(json, options), 'utf8');
 }
 
-module.exports = function () {
-    var cwd = process.cwd(),
-        status;
+module.exports = function (cli, argv, cwd) {
+    argv = optimist.parse(argv);
 
-    var argv = optimist.argv,
+    var status,
         buildName = argv._[1];
 
     delete argv._;
     delete argv.$0;
 
-    if (!init.check()) {
+    if (!init.check(cli, cwd)) {
         return;
     }
 
     if (!buildName) {
-        printHelp();
+        printHelp(cli);
         return;
     }
 
     status = create.checkFile(cwd, buildName);
 
     if (status !== true) {
-        printHelp(status === false ? 'build `' + buildName + '` is not exists' : status);
+        printHelp(cli, status === false ? 'build `' + buildName + '` is not exists' : status);
         return;
     }
 
@@ -95,6 +93,6 @@ module.exports = function () {
 
         updateBuild(cwd, buildName, argv);
     } else {
-        printHelp();
+        printHelp(cli);
     }
 };

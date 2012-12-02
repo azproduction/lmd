@@ -1225,6 +1225,7 @@ LmdBuilder.prototype.build = function (config) {
                 case "fd":
                 case "fe":
                 case "plain":
+                case "3-party":
                     // #26 Code coverage
                     if (module.is_coverage) {
                         var skipLines = ({

@@ -2,14 +2,12 @@ require('colors');
 
 var fs = require('fs'),
     path = require('path'),
-    cli = require(__dirname + '/../cli_messages.js'),
+    optimist = require('optimist'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
     lmdPackage = require(__dirname + '/../lmd_builder.js');
 
-var optimist = require('optimist');
-
-function printHelp(errorMessage) {
+function printHelp(cli, errorMessage) {
     var help = [
         'Usage:'.bold.white.underline,
         '',
@@ -40,11 +38,10 @@ var createWritableFile = function (fileName) {
     });
 };
 
-module.exports = function () {
-    var cwd = process.cwd(),
-        status;
+module.exports = function (cli, argv, cwd) {
+    argv = optimist.parse(argv);
 
-    var argv = optimist.argv,
+    var status,
         buildName,
         mixinBuilds = argv._[1];
 
@@ -57,19 +54,19 @@ module.exports = function () {
     delete argv._;
     delete argv.$0;
 
-    if (!init.check()) {
+    if (!init.check(cli, cwd)) {
         return;
     }
 
     if (!buildName) {
-        printHelp();
+        printHelp(cli);
         return;
     }
 
     status = create.checkFile(cwd, buildName);
 
     if (status !== true) {
-        printHelp(status === false ? 'build `' + buildName + '` is not exists' : status);
+        printHelp(cli, status === false ? 'build `' + buildName + '` is not exists' : status);
         return;
     }
 
@@ -79,7 +76,7 @@ module.exports = function () {
             status = create.checkFile(cwd, buildName);
 
             if (status !== true) {
-                printHelp(status === false ? 'mixin build `' + buildName + '` is not exists' : status);
+                printHelp(cli, status === false ? 'mixin build `' + buildName + '` is not exists' : status);
                 return false;
             }
             return true;
@@ -125,13 +122,13 @@ module.exports = function () {
     if (buildConfig.output && buildConfig.output) {
         buildResult.pipe(createWritableFile(path.join(configDir, buildConfig.output)));
         if (buildConfig.log) {
-            buildResult.log.pipe(process.stdout);
+            buildResult.log.pipe(cli.stream);
             buildResult.on('end', function () {
                 cli.ok('Writing LMD Package to ' + buildConfig.output.green);
             });
         }
     } else {
-        buildResult.pipe(process.stdout);
+        buildResult.pipe(cli.stream);
     }
 
 };

@@ -26,7 +26,7 @@ var optimist = require('optimist')
     .describe('admin-port', 'Admin interface server port. Default same as `address`')
     ;
 
-function printHelp(errorMessage) {
+function printHelp(cli, errorMessage) {
     var help = [
         'Usage:'.bold.white.underline,
         '',
@@ -64,26 +64,32 @@ function ensureDirExists(path) {
     return true;
 }
 
-module.exports = function () {
-    var cwd = process.cwd(),
-        status;
+module.exports = function (cli, argv, cwd) {
+    argv = optimist.parse(argv);
 
-    var argv = optimist.argv,
+    var status,
         buildName = argv._[1];
 
-    if (!init.check()) {
+    if (!init.check(cli, cwd)) {
         return;
     }
 
     if (!buildName) {
-        printHelp();
+        printHelp(cli);
         return;
     }
 
     status = create.checkFile(cwd, buildName);
 
     if (status !== true) {
-        printHelp(status === false ? 'build `' + buildName + '` is not exists' : status);
+        if (status !== false) {
+            printHelp(cli, status);
+        } else if (buildName.indexOf('+') !== -1) {
+            // Warn if mixins
+            printHelp(cli, 'mixins `' + buildName + '` are not allowed with server action');
+        } else {
+            printHelp(cli, 'build `' + buildName + '` is not exists');
+        }
         return;
     }
 
@@ -95,12 +101,12 @@ module.exports = function () {
         wwwDir = path.join(cwd, '.lmd', config.www_root);
 
     if (!config.www_root) {
-        printHelp("Build configured without required parameter `www_root`");
+        printHelp(cli, "Build configured without required parameter `www_root`");
         return;
     }
 
     if (!config.stats) {
-        printHelp("Build configured without `stats` flag");
+        printHelp(cli, "Build configured without `stats` flag");
         return;
     }
 
