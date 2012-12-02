@@ -21,7 +21,8 @@
 
             if (!module) {
                 // if undefined - try to pick up module from globals (like jQuery)
-                module = global[moduleName];
+                // or load modules from nodejs/worker environment
+                module = lmd_trigger('js:request-environment-module', moduleName, module)[1] || global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
                 var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, require)[1];

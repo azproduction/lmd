@@ -26,7 +26,7 @@ var node_global_environment = {
                 }
             };
         }
-        if (!/non_lmd_module\.js/.test(name)) {
+        if (!/non_lmd_module\.js/.test(name) && !/npm_module/.test(name)) {
             throw new Error('NETWORK_ERROR');
         }
         

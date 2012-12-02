@@ -108,4 +108,22 @@
            typeof module.ololo === "function" &&
            module.someVariable === "string", "require() can load plain 3-party non-lmd modules, N exports");
     });
+
+    if (ENV_NAME === "Node") {
+        test("require() node.js npm, node, local modules", function () {
+            expect(3);
+
+            var module = require('npm_module_1');
+            ok(typeof module === "object" &&
+                typeof module.some_function === "function", 'require() + node:true can load nodejs npm modules');
+
+            module = require('./path/to/non_lmd_module.js');
+            ok(typeof module === "object" &&
+                typeof module.some_function === "function", 'require() + node:true can load node.js modules from local fs');
+
+            var fs = require('fs');
+            ok(typeof fs === "object" &&
+                typeof fs.readFile === "function", 'require() + node:true can load embedded node.js modules');
+        });
+    }
 })
