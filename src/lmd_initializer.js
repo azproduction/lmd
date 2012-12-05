@@ -15,7 +15,9 @@
  *   - if no cache - it loads fallback script
  */
 (function (global, document, scriptId, prefix, getAttribute, removeItem) {
-    var globalEval = global.eval,
+    var globalEval = function (code) {
+            return global.Function('return ' + code)();
+        },
         scriptElement = document.getElementById(scriptId),
         actualVersion = scriptElement[getAttribute](prefix + 'version'),
         storageKey = scriptElement[getAttribute](prefix + 'key'),
@@ -55,7 +57,7 @@
             } catch (e) {}
             if (lmd && main) {
                 // do not catch module's errors
-                lmd(global, main, json.modules, json.options);
+                lmd(global, main, json.modules, json.options, {stats_host: json.host});
                 return;
             }
             // if error or version do not match - wipe cache

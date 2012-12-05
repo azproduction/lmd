@@ -115,7 +115,9 @@
     "stats": true,
     "stats_coverage": true,
     "stats_coverage_async": true,
-    "stats_sendto": true
+    "stats_sendto": true,
+    "stats_auto": true            // stats host url (eg "http://yourhost:port") or true;
+                                  // true=default url -> 'http://' + location.hostname + ':8081'
 }
 ```
 

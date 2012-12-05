@@ -105,6 +105,7 @@ var sandbox = {
     lmd: lmd,                           // lmd function itself      if $P.CACHE
     main: main,                         // main module code         if $P.CACHE
     version: version,                   // module version           if $P.CACHE
+    stats_host: stats_host,             // stats host               if $P.STATS_AUTO
     coverage_options: coverage_options, // ...                      if $P.STATS_COVERAGE
 
     on: lmd_on,                         // lmd_on

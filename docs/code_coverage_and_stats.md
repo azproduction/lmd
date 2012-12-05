@@ -57,12 +57,15 @@ require.stats.sendTo('http://localhost:8081'); // you may specify report_name to
 
 ### Code coverage
 
- - Flag: `stats`, `stats_coverage`, `stats_sendto`, `stats_coverage_async`
+ - Flag: `stats`, `stats_coverage`, `stats_sendto`, `stats_coverage_async`, `stats_auto`
 
 Add `stats_coverage` flag to your config file or use list of module names to cover only them. Rebuild your package.
 Now you can see coverage report in `require.stats()` object. See [src/plugin/stats.js#L46](/azproduction/lmd/blob/master/src/plugin/stats.js#L46) for more information.
 
 You can enable `stats_sendto` flag to push your reports to the Stats Server.
+You can set `stats_auto` flag/property to enable automatic push your reports to specified Stats Server.
+`stats_auto: true` will automatically send your reports to `'http://' + location.hostname + ':8081'`
+you may also define your own stats host url (eg `stats_auto: "http://yourhost:12345"`)
 You may also enable `stats_coverage_async` to profile all your async modules without processing them on server. All async modules
 will be parsed and processed on client.
 

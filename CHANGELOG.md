@@ -99,3 +99,4 @@
   - `log` and `warn` are true by default
   - global check of lazy modules is deisabled
   - info of unused modules, suspicious globals and off-package modules paths
+  - `"stats_auto": true` automatic statistics push

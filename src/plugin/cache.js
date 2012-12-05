@@ -15,6 +15,7 @@
             try {
                 sb.global.localStorage['lmd'] = sb.global.JSON.stringify({
                     version: sb.version,
+                    /*if ($P.STATS_AUTO) {*/host: sb.stats_host,/*}*/
                     modules: sb.modules,
                     // main module function
                     main: '(' + sb.main + ')',

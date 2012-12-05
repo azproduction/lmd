@@ -1,10 +1,12 @@
-(function /*if ($P.CACHE) {*/lmd/*}*/(global, main, modules, modules_options/*if ($P.CACHE) {*/, version/*}*/) {
+(function /*if ($P.CACHE) {*/lmd/*}*/(global, main, modules, modules_options/*if ($P.CACHE || $P.STATS_AUTO) {*/, options/*}*/) {
     var initialized_modules = {},
         global_eval = function (code) {
             return global.Function('return ' + code)();
         },
         /*if ($P.CSS || $P.JS || $P.ASYNC) {*/global_noop = function () {},/*}*/
         /*if ($P.CSS || $P.JS || $P.STATS_SENDTO) {*/global_document = global.document,/*}*/
+        /*if ($P.CACHE) {*/version = options.version,/*}*/
+        /*if ($P.STATS_AUTO) {*/stats_host = options.stats_host,/*}*/
         local_undefined,
         /**
          * @param {String} moduleName module name or path to file
@@ -130,6 +132,7 @@
             /*if ($P.CACHE) {*/lmd: lmd,/*}*/
             /*if ($P.CACHE) {*/main: main,/*}*/
             /*if ($P.CACHE) {*/version: version,/*}*/
+            /*if ($P.STATS_AUTO) {*/stats_host: stats_host,/*}*/
 
             on: lmd_on,
             trigger: lmd_trigger,

@@ -30,6 +30,7 @@
     "stats_coverage": true,
     "stats_coverage_async": false,
     "stats_sendto": true,
+    "stats_auto": true,
 
     "warn": true,
     "log": true

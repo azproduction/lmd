@@ -198,9 +198,24 @@ LmdBuilder.prototype.closeStreams = function () {
  * @param {Object} data
  */
 LmdBuilder.prototype.template = function (data) {
+    var options;
+
+    if (data.version || data.stats_host) {
+        options = {};
+        if (data.version) {
+            options.version = data.version;
+        }
+
+        if (data.stats_host) {
+            options.stats_host = data.stats_host;
+        }
+
+        options = JSON.stringify(options);
+    }
+
     return data.lmd_js + '(' + data.global + ',' + data.lmd_main + ',' + data.lmd_modules + ',' + data.modules_options +
         // if version passed
-        (data.version ? ',' + data.version : '') +
+        (options ? ',' + options : '') +
     ')';
 };
 
@@ -629,7 +644,8 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, mod
         lmd_modules: lmd_modules,
         modules_options: JSON.stringify(modules_options),
         // if version passed -> module will be cached
-        version: config.cache ? JSON.stringify(config.version) : false
+        version: config.cache ? config.version : false,
+        stats_host: config.stats_auto || false
     });
 
     return result;

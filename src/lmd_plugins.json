@@ -4,7 +4,7 @@
         "require": "async.js"
     },
     "cache": {
-        "preprocess": ["$P.CACHE"],
+        "preprocess": ["$P.CACHE", "$P.CACHE || $P.STATS_AUTO"],
         "require": "cache.js"
     },
     "js": {
@@ -61,6 +61,10 @@
     "stats_sendto": {
         "preprocess": ["$P.STATS_SENDTO", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
         "require": "stats_sendto.js"
+    },
+    "stats_auto": {
+        "preprocess": ["$P.STATS_AUTO", "$P.CACHE || $P.STATS_AUTO"],
+        "require": "stats_auto.js"
     },
     "async_plain": {
         "preprocess": ["$P.ASYNC_PLAIN", "$P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY"],
