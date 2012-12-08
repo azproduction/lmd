@@ -131,15 +131,15 @@ See [LMD CLI](https://github.com/azproduction/lmd/blob/master/docs/cli.md)
 
 ## Grunt integration and task
 
-Install this grunt plugin next to your project's [grunt.js gruntfile](https://github.com/gruntjs/grunt/blob/master/docs/getting_started.md) with: `npm install grunt-contrib-lmd`
+Install this grunt plugin next to your project's [grunt.js gruntfile](https://github.com/gruntjs/grunt/blob/master/docs/getting_started.md) with: `npm install grunt-lmd`
 
 Then add this line to your project's `grunt.js` gruntfile:
 
 ```javascript
-grunt.loadNpmTasks('grunt-contrib-lmd');
+grunt.loadNpmTasks('grunt-lmd');
 ```
 
-See [grunt-contrib-lmd](https://github.com/azproduction/grunt-contrib-lmd) for details
+See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
 
 ## Running tests
 
