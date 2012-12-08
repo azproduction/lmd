@@ -7,9 +7,10 @@ LMD is inspired by AMD and provides similar module interface
 ## Why LMD? Why not AMD (RequireJS)?
 
  - Module design is similar to Node.js
+   - Actually LMD can work with any JavaScript modules
    - There is no define wrapper!
    - You can use node modules without dirty hacks like `typeof exports ? :`
-   - But you can use old-school function-wrapped-modules. Like IEFE? - Good!
+   - But you can use old-school function-wrapped-modules. Like IIFE? - Good!
    - You can use strings as string without any "template" plugins
    - You can use JSON file as Object
  - Total and honest isolation
@@ -46,6 +47,22 @@ LMD is inspired by AMD and provides similar module interface
  - More
    - Can load CSS
    - Can work with Node.js and Worker environment
+
+
+## What's on the board
+
+  * All builders/loaders stuff bla-bla-bla
+  * Build Analyzer (1-click code coverage, depends, startup perfomance)
+
+![](https://raw.github.com/azproduction/lmd/master/images/coverage_package.png)
+
+  * Smart and simple CLI tool
+
+![](https://raw.github.com/azproduction/lmd/master/images/lmd_cli.png)
+
+  * GUI for LMD (in development)
+
+![](https://raw.github.com/azproduction/lmd/master/images/lmd_gui.png)
 
 ## Other features
 
