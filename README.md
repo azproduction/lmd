@@ -62,7 +62,7 @@ LMD is inspired by AMD and provides similar module interface
 
   * GUI for LMD (in development)
 
-![](https://raw.github.com/azproduction/lmd/master/images/lmd_gui.png)
+![](https://raw.github.com/azproduction/lmd/master/images/lmd_gui_prototype.png)
 
 ## Other features
 
