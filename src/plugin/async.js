@@ -71,10 +71,11 @@
                             module = sb.trigger('*:coverage-apply', moduleName, module)[1];
                         }
 
+                        sb.trigger('async:before-callback', moduleName, module);
                         module = sb.eval(module);
+                    } else {
+                        sb.trigger('async:before-callback', moduleName, module);
                     }
-
-                    sb.trigger('async:before-callback', moduleName, typeof module === "function" ? xhr.responseText : module);
                     // 4. Then callback it
                     callback(sb.register(moduleName, module));
                 } else {

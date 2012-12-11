@@ -1,0 +1,23 @@
+{
+    "root": "../",
+    "output": "index.lmd.js",
+    "main": "main",
+
+    "modules": {
+        "main": "js/main.js",
+        "ololo": "@js/ololo.js",
+        "pewpew": "@js/pewpew.js",
+        "$": {
+            "path": "js/jquery-1.8.3.js",
+            "exports": "jQuery"
+        }
+    },
+    "shortcuts": true,
+
+    "async": true,
+    "async_plainonly": true,
+
+    "cache": true,
+    "cache_async": true,
+    "version": "1.0"
+}
