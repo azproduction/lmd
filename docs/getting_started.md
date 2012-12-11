@@ -2,7 +2,7 @@
 
 ```bash
 # Your dir structure is
-+-gettring_started/
++-getting_started/
   +-i18n/
   | +-en.json
   +-js/
@@ -11,7 +11,7 @@
   | +-name.html
   +-index.html
 
-# 0. install LMD
+# 0. Install LMD
 npm install lmd -g
 
 # 1. List all files
@@ -59,7 +59,7 @@ $ cat .lmd/index.lmd.json
     "main": "main"
 }
 
-# 4. Lets add our modules
+# 4. Let's add our modules
 $ lmd up index --modules.main=js/main.js --modules.i18n=i18n/en.json --modules.name=tpls/name.html
 info:
 info:    Build `index` (.lmd/index.lmd.json) updated
@@ -69,7 +69,7 @@ info:
 info:      modules  {"main":"js/main.js","i18n":"i18n/en.json","template":"tpls/name.html"}
 info:
 
-# 5. Lets tweak a bit: desable ie optimisations, enable, verbose logs, warnings and module compression
+# 5. Let's tweak a bit: disable ie optimisations, enable verbose logs, warnings and module compression
 $ lmd up index --no-ie --warn --log --pack --no-lazy
 info:
 info:    Build `index` (.lmd/index.lmd.json) updated
@@ -88,13 +88,13 @@ $ lmd build index
 info:    Building `index` (.lmd/index.lmd.json)
 info:    Writing LMD Package to index.lmd.js
 
-# 7. Lets start HTTP server and see results
+# 7. Let's start HTTP server and see results
 $ http-server
 Starting up http-server, serving ./ on port: 8080
 http-server successfully started: http://localhost:8080
 Hit CTRL-C to stop the server
 
-# 8. Lets start LMD Watcher
+# 8. Let's start LMD Watcher
 $ lmd watch index
 info:    Now watching 4 module files. Ctrl+C to stop
 info:    Rebuilding...
@@ -102,7 +102,7 @@ info:    Writing LMD Package to index.lmd.js
 
 # 9. Change i18n/en.json a bit...
 
-# 10. And wuala! LMD Watcher automatically rebuilds your index.lmd.js file
+# 10. And voila! LMD Watcher automatically rebuilds your index.lmd.js file
 info:    Change detected in en.json at Thu Oct 25 2012 22:11:19 GMT+0600 (ALMT) Rebuilding...
 info:    Writing LMD Package to index.lmd.js
 
