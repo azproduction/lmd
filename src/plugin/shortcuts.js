@@ -22,7 +22,9 @@ function rewrite_shortcut(moduleName, module) {
         sb.trigger('shortcuts:before-resolve', moduleName, module);
 
         moduleName = module.replace('@', '');
-        module = sb.modules[moduleName];
+        // #66 Shortcut self reference should be resolved as undefined->global name
+        var newModule = sb.modules[moduleName];
+        module = newModule === module ? sb.undefined : newModule;
     }
     return [moduleName, module];
 }
