@@ -193,7 +193,8 @@ function printFlags(cli, config, availableFlags) {
         cli.ok(
             flag.cyan +
             (longestName > flag.length ? new Array(longestName - flag.length).join(' ') : '  ') +
-            printValue(value)
+            printValue(value) +
+            (config.plugins_depends[flag] ? ' (depend of ' + config.plugins_depends[flag].join(', ').cyan + ')' : '')
         );
     });
 
@@ -377,6 +378,10 @@ module.exports = function (cli, argv, cwd) {
             cli.warn(error);
         });
     }
+
+    common.collectFlagsNotifications(config).forEach(function (notification) {
+        cli.ok(notification);
+    });
 
     cli.ok('');
 };
