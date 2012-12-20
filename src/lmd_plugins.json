@@ -76,5 +76,9 @@
     },
     "amd": {
         "require": "amd.js"
+    },
+    "promise": {
+        "preprocess": ["$P.PROMISE"],
+        "require": "promise.js"
     }
 }

@@ -17,12 +17,14 @@
      * @param {Function}     [callback]   callback(result) undefined on error HTMLScriptElement on success
      */
     sb.require.js = function (moduleName, callback) {
-        callback = callback || sb.noop;
+        /*if ($P.PROMISE) {*/var createPromiseResult = sb.trigger('*:create-promise');/*}*/
+        var returnResult = /*if ($P.PROMISE) {*/createPromiseResult[1] || /*}*/sb.require;
+        callback = /*if ($P.PROMISE) {*/createPromiseResult[0] || /*}*/callback || sb.noop;
 
         if (typeof moduleName !== "string") {
             callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.js)[1];
             if (!callback) {
-                return sb.require;
+                return returnResult;
             }
         }
 
@@ -41,7 +43,7 @@
         // If module exists
         if (module) {
             callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
-            return sb.require;
+            return returnResult;
         }
 
         sb.trigger('*:before-init', moduleName, module);
@@ -49,13 +51,13 @@
         callback = sb.trigger('*:request-race', moduleName, callback)[1];
         // if already called
         if (!callback) {
-            return sb.require;
+            return returnResult;
         }
         // by default return undefined
         if (!sb.document) {
             module = sb.trigger('js:request-environment-module', moduleName, module)[1];
             callback(module);
-            return sb.require;
+            return returnResult;
         }
 
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
@@ -81,7 +83,7 @@
         head = sb.document.getElementsByTagName("head")[0];
         head.insertBefore(script, head.firstChild);
 
-        return sb.require;
+        return returnResult;
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_ENDIF/*}*/
     };
 

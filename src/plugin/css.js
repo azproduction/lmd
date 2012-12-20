@@ -21,12 +21,14 @@
      * @param {Function}     [callback]   callback(result) undefined on error HTMLLinkElement on success
      */
     sb.require.css = function (moduleName, callback) {
-        callback = callback || sb.noop;
+        /*if ($P.PROMISE) {*/var createPromiseResult = sb.trigger('*:create-promise');/*}*/
+        var returnResult = /*if ($P.PROMISE) {*/createPromiseResult[1] || /*}*/sb.require;
+        callback = /*if ($P.PROMISE) {*/createPromiseResult[0] || /*}*/callback || sb.noop;
 
         if (typeof moduleName !== "string") {
             callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.css)[1];
             if (!callback) {
-                return sb.require;
+                return returnResult;
             }
         }
 
@@ -44,7 +46,7 @@
         // If module exists or its a worker or node.js environment
         if (module || !sb.document) {
             callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
-            return sb.require;
+            return returnResult;
         }
 
         sb.trigger('*:before-init', moduleName, module);
@@ -52,7 +54,7 @@
         callback = sb.trigger('*:request-race', moduleName, callback)[1];
         // if already called
         if (!callback) {
-            return sb.require;
+            return returnResult;
         }
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
         // Create stylesheet link
@@ -102,7 +104,7 @@
             }
         }());
 
-        return sb.require;
+        return returnResult;
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_ENDIF/*}*/
     };
 
