@@ -304,58 +304,30 @@ sb.on('lmd-register:before-register', function (moduleName, module) {
     stats_type(moduleName, !module ? 'global' : typeof sb.modules[moduleName] === "undefined" ? 'off-package' : 'in-package');
 });
 
-
     /**
-     * @event lmd-require:before-check before module cache check
+     * @event *:before-check before module cache check
      *
      * @param {String} moduleName
      * @param {Object} module
+     * @param {String} type
      *
      * @retuns no
      */
-sb.on('lmd-require:before-check', function (moduleName) {
-    stats_require(moduleName);
-});
-
-    /**
-     * @event css:before-check before module cache check in css()
-     *
-     * @param {String} moduleName
-     * @param {Object} module
-     *
-     * @retuns no
-     */
-sb.on('css:before-check', function (moduleName, module) {
-    if (!(module || !sb.document) || sb.initialized[moduleName]) {
-        stats_require(moduleName);
-    }
-});
-
-    /**
-     * @event js:before-check before module cache check in js()
-     *
-     * @param {String} moduleName
-     * @param {Object} module
-     *
-     * @retuns no
-     */
-sb.on('js:before-check', function (moduleName, module) {
-    if (!module || sb.initialized[moduleName]) {
-        stats_require(moduleName);
-    }
-});
-
-    /**
-     * @event async:before-check before module cache check in async()
-     *
-     * @param {String} moduleName
-     * @param {Object} module
-     *
-     * @retuns no
-     */
-sb.on('async:before-check', function (moduleName, module) {
-    if (!module || sb.initialized[moduleName]) {
-        stats_require(moduleName);
+sb.on('*:before-check', function (moduleName, module, type) {
+    switch (type) {
+        case "css":
+            if (!(module || !sb.document) || sb.initialized[moduleName]) {
+                stats_require(moduleName);
+            }
+            break;
+        case "js":
+        case "async":
+            if (!module || sb.initialized[moduleName]) {
+                stats_require(moduleName);
+            }
+            break;
+        default:
+            stats_require(moduleName);
     }
 });
 

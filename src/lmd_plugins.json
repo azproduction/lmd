@@ -1,6 +1,6 @@
 {
     "async": {
-        "preprocess": ["$P.ASYNC", "$P.CSS || $P.JS || $P.ASYNC"],
+        "preprocess": ["$P.ASYNC", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE"],
         "require": "async.js"
     },
     "cache": {
@@ -8,11 +8,11 @@
         "require": "cache.js"
     },
     "js": {
-        "preprocess": ["$P.JS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
+        "preprocess": ["$P.JS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
         "require": "js.js"
     },
     "css": {
-        "preprocess": ["$P.CSS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
+        "preprocess": ["$P.CSS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
         "require": "css.js"
     },
     "node": {
@@ -87,5 +87,9 @@
     "promise": {
         "preprocess": ["$P.PROMISE"],
         "require": "promise.js"
+    },
+    "image": {
+        "preprocess": ["$P.IMAGE", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE"],
+        "require": "image.js"
     }
 }

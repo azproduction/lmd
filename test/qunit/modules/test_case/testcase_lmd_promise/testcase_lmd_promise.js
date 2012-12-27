@@ -267,6 +267,25 @@
         require.js('./modules/loader_race/non_lmd_module.js' + rnd).then(check_result, check_result);
     });
 
+    asyncTest("require.js().then() shortcut", function () {
+        expect(5);
+
+        require.js('sk_js_js').then(function (script_tag) {
+            ok(typeof script_tag === "object" &&
+               script_tag.nodeName.toUpperCase() === "SCRIPT", "should return script tag on success");
+
+            ok(require('sk_js_js') === script_tag, "require should return the same result");
+            require.js('sk_js_js').then(function (script_tag2) {
+                ok(script_tag2 === script_tag, 'should load once');
+                ok(require('sk_js_js') === require('/modules/shortcuts/js.js'), "should be defined using path-to-module");
+                ok(typeof require('shortcuts_js') === "function", 'Should create a global function shortcuts_js as in module function');
+                start();
+            })
+        });
+    });
+
+// -- CSS
+
     asyncTest("require.css().then()", function () {
         expect(6);
 
@@ -280,7 +299,7 @@
 
             return require.css('./modules/loader/some_css_404.css' + rnd);
         }).then(function () {
-            ok(true, "promise should no be resolved");
+            ok(false, "promise should no be resolved");
         }, function () {
             ok(true, "promise should be rejected");
             ok(typeof require('./modules/loader/some_css_404.css' + rnd) === "undefined", "should not cache errorous modules");
@@ -335,18 +354,70 @@
         });
     });
 
-    asyncTest("require.js().then() shortcut", function () {
+// -- image
+
+    asyncTest("require.image().then()", function () {
         expect(5);
 
-        require.js('sk_js_js').then(function (script_tag) {
-            ok(typeof script_tag === "object" &&
-               script_tag.nodeName.toUpperCase() === "SCRIPT", "should return script tag on success");
+        require.image('./modules/loader/image.gif' + rnd).then(function (img_tag) {
+            ok(typeof img_tag === "object" &&
+                img_tag.nodeName.toUpperCase() === "IMG", "should return img tag on success");
 
-            ok(require('sk_js_js') === script_tag, "require should return the same result");
-            require.js('sk_js_js').then(function (script_tag2) {
-                ok(script_tag2 === script_tag, 'should load once');
-                ok(require('sk_js_js') === require('/modules/shortcuts/js.js'), "should be defined using path-to-module");
-                ok(typeof require('shortcuts_js') === "function", 'Should create a global function shortcuts_js as in module function');
+            ok(require('./modules/loader/image.gif' + rnd) === img_tag, "should cache img tag on success");
+
+            return require.image('./modules/loader/image_404.gif' + rnd)
+        }).then(function () {
+            ok(false, "promise should no be resolved");
+        }, function () {
+            ok(true, "promise should be rejected");
+
+            ok(typeof require('./modules/loader/image_404.gif' + rnd) === "undefined", "should not cache errorous modules");
+            require.image('module_as_string').then(function (module_as_string) {
+                require.async('module_as_string').then(function (module_as_string_expected) {
+                    ok(module_as_string === module_as_string_expected, 'require.image() acts like require.async() if in-package/declared module passed');
+                    start();
+                });
+            });
+        });
+    });
+
+    asyncTest("require.image().then() image loader without callback", function () {
+        expect(1);
+
+        var promise = require.image('./modules/loader/image_callbackless.gif' + rnd);
+
+        ok(typeof promise === "object" && typeof promise.then === "function", "must return promise");
+        start();
+    });
+
+    asyncTest("require.image().then() race calls", function () {
+        expect(1);
+        var result;
+
+        var check_result = function (linkTag) {
+            if (typeof result === "undefined") {
+                result = linkTag;
+            } else {
+                ok(result === linkTag, "Must perform one call. Results must be the same");
+                start();
+            }
+        };
+
+        require.image('./modules/loader_race/image.gif' + rnd).then(check_result, check_result);
+        require.image('./modules/loader_race/image.gif' + rnd).then(check_result, check_result);
+    });
+
+    asyncTest("require.image().then() shortcut", function () {
+        expect(4);
+
+        require.image('sk_image_image').then(function (img_tag) {
+            ok(typeof img_tag === "object" &&
+                img_tag.nodeName.toUpperCase() === "IMG", "should return img tag on success");
+
+            ok(require('sk_image_image') === img_tag, "require should return the same result");
+            require.image('sk_image_image').then(function (img_tag2) {
+                ok(img_tag2 === img_tag, 'should load once');
+                ok(require('sk_image_image') === require('/modules/shortcuts/image.gif'), "should be defined using path-to-module");
                 start();
             })
         });

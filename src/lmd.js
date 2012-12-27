@@ -3,7 +3,7 @@
         global_eval = function (code) {
             return global.Function('return ' + code)();
         },
-        /*if ($P.CSS || $P.JS || $P.ASYNC) {*/global_noop = function () {},/*}*/
+        /*if ($P.CSS || $P.JS || $P.ASYNC || $P.IMAGE) {*/global_noop = function () {},/*}*/
         /*if ($P.CSS || $P.JS || $P.STATS_SENDTO) {*/global_document = global.document,/*}*/
         local_undefined,
         /**
@@ -88,7 +88,7 @@
         require = function (moduleName) {
             var module = modules[moduleName];
 
-            lmd_trigger('lmd-require:before-check', moduleName, module);
+            lmd_trigger('*:before-check', moduleName, module);
             // Already inited - return as is
             if (initialized_modules[moduleName] && module) {
                 return module;
@@ -126,7 +126,7 @@
             require: require,
             initialized: initialized_modules,
 
-            /*if ($P.CSS || $P.JS || $P.ASYNC) {*/noop: global_noop,/*}*/
+            /*if ($P.CSS || $P.JS || $P.ASYNC || $P.IMAGE) {*/noop: global_noop,/*}*/
             /*if ($P.CSS || $P.JS || $P.STATS_SENDTO) {*/document: global_document,/*}*/
             /*if ($P.CACHE) {*/lmd: lmd,/*}*/
             /*if ($P.CACHE) {*/main: main,/*}*/

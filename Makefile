@@ -11,6 +11,12 @@ build_test:
 	@cd test/qunit; node $(LMD_BUILD) build worker_test
 	@cd test/qunit; node $(LMD_BUILD) build promise_test
 
+build_stats:
+	@cd test/qunit; node $(LMD_BUILD) build test --stats_auto --stats --stats_sendto
+	@cd test/qunit; node $(LMD_BUILD) build node_test
+	@cd test/qunit; node $(LMD_BUILD) build worker_test
+	@cd test/qunit; node $(LMD_BUILD) build promise_test
+
 coverage: build_test
 	rm -rf coverage/*
 	jscoverage --exclude=modules --exclude=vendors --exclude=mock ./test/qunit ./test/coverage
@@ -23,6 +29,9 @@ run_qunit:
 
 run_coverage:
 	http-server ./test/coverage/
+
+run_stats:
+	@cd test/qunit; node $(LMD_BUILD) server test
 
 help:
 	@echo "USAGE:\n\tmake\n\tmake test\ntmake coverage\n\tmake run_qunit\n\tmake run_coverage"

@@ -38,7 +38,7 @@
             module = replacement[1];
         }
 
-        sb.trigger('async:before-check', moduleName, module);
+        sb.trigger('*:before-check', moduleName, module, 'async');
         // If module exists or its a node.js env
         if (module) {
             callback(sb.initialized[moduleName] ? module : sb.require(moduleName));

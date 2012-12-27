@@ -6,3 +6,5 @@ test/qunit/out/*.js
 test/qunit/out/*.map
 examples/mock_chat/logs/*
 examples/mock_chat/js/*/.lmd/logs/*
+npm-debug.log
+test/qunit/.lmd/logs/

@@ -11,6 +11,7 @@
 
         "sk_css_css": "@/modules/shortcuts/css.css",
         "sk_js_js": "@/modules/shortcuts/js.js",
+        "sk_image_image": "@/modules/shortcuts/image.gif",
 
         "Q": {
             "path": "vendors/q.js",
@@ -20,6 +21,7 @@
 
     "js": true,
     "css": true,
+    "image": true,
 
     "async": true,
     "async_plain": true,

@@ -39,7 +39,7 @@
             module = replacement[1];
         }
 
-        sb.trigger('js:before-check', moduleName, module);
+        sb.trigger('*:before-check', moduleName, module, 'js');
         // If module exists
         if (module) {
             callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
