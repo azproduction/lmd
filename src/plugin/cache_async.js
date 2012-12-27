@@ -11,9 +11,9 @@
 (function (sb) {
 
 function cache_async(moduleName, module) {
-    if (sb.global.localStorage && sb.version) {
+    if (sb.global.localStorage && sb.options.version) {
         try {
-            sb.global.localStorage['lmd:' + sb.version + ':' + moduleName] = sb.global.JSON.stringify(module);
+            sb.global.localStorage['lmd:' + sb.options.version + ':' + moduleName] = sb.global.JSON.stringify(module);
         } catch(e) {}
     }
 }

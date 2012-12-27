@@ -10,18 +10,17 @@
 
     // If possible to dump and version passed (fallback mode)
     // then dump application source
-    if (sb.global.localStorage && version/*if ($P.OPERA_MOBILE) {*/ && /_/.test(function(_){}) /*}*/) {
+    if (sb.global.localStorage && sb.options.version/*if ($P.OPERA_MOBILE) {*/ && /_/.test(function(_){}) /*}*/) {
         (function () {
             try {
                 sb.global.localStorage['lmd'] = sb.global.JSON.stringify({
-                    version: sb.version,
-                    /*if ($P.STATS_AUTO) {*/host: sb.stats_host,/*}*/
                     modules: sb.modules,
                     // main module function
                     main: '(' + sb.main + ')',
                     // lmd function === arguments.callee
                     lmd: '(' + sb.lmd + ')',
-                    options: sb.modules_options
+                    modules_options: sb.modules_options,
+                    options: sb.options
                 });
             } catch(e) {}
         }());

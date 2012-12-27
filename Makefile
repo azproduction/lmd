@@ -9,6 +9,7 @@ build_test:
 	@cd test/qunit; node $(LMD_BUILD) build test
 	@cd test/qunit; node $(LMD_BUILD) build node_test
 	@cd test/qunit; node $(LMD_BUILD) build worker_test
+	@cd test/qunit; node $(LMD_BUILD) build promise_test
 
 coverage: build_test
 	rm -rf coverage/*

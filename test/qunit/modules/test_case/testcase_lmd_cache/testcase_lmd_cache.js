@@ -22,17 +22,18 @@
     module('LMD cache @ ' + ENV_NAME);
 
     asyncTest("localStorage cache + cache_async test", function () {
-        expect(10);
+        expect(11);
 
         ok(typeof ls['lmd'] === "string", 'LMD Should create cache');
 
         var lmd = JSON.parse(ls['lmd']);
 
-        ok(lmd.version === PACKAGE_VERSION, 'Should save version');
         ok(typeof lmd.modules === 'object', 'Should save modules');
         ok(typeof lmd.main === 'string', 'Should save main function as string');
         ok(typeof lmd.lmd === 'string', 'Should save lmd source as string');
-        ok(typeof lmd.options === 'object', 'Should save modules options');
+        ok(typeof lmd.options === 'object', 'Should save options');
+        ok(typeof lmd.modules_options === 'object', 'Should save modules options');
+        ok(lmd.options.version === PACKAGE_VERSION, 'Should save version');
 
         require.async('./modules/async/module_function_async.js', function (module_function_async) {
             var key = 'lmd:' + PACKAGE_VERSION + ':' + './modules/async/module_function_async.js';

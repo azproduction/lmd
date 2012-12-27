@@ -10,7 +10,7 @@
  */
 (function (sb) {
     var timeout,
-        host = sb.stats_host;
+        host = sb.options.stats_host;
 
     if (!host) return;
 
