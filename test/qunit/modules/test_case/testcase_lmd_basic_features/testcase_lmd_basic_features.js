@@ -85,7 +85,7 @@
     });
 
     test("require() shortcuts", function () {
-        expect(2);
+        expect(3);
 
         var dateObject = require('sk_to_global_object');
         ok(dateObject.toString().replace(/\s|\n/g,'') === "functionDate(){[nativecode]}", "require() should follow shortcuts: require global by shortcut");
@@ -94,6 +94,10 @@
         ok(typeof json === "object" &&
            json.ok === true &&
            json === require('module_as_json'), "require() should follow shortcuts: require in-package module by shortcut");
+
+        // #66
+        var selfReferenceShortcut = require('setTimeout'); // "setTimeout": "@setTimeout"
+        ok(typeof selfReferenceShortcut === "function", 'Shortcut self reference should be resolved as undefined->global name');
     });
 
     test("require() third party", function () {
