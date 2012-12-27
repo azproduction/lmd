@@ -1008,6 +1008,19 @@ LmdBuilder.prototype.warn = function (text, isWarn) {
 };
 
 /**
+ * Formats and prints an info
+ *
+ * @param {String} text simple markdown syntax
+ *
+ * @example
+ *     Pewpew **ololo** - ololo will be green
+ */
+LmdBuilder.prototype.info = function (text) {
+    text = this.formatLog(text);
+    this.log.emit('data', 'warn'.green + ':    ' + text + '\n');
+};
+
+/**
  * Generates module token
  *
  * @param {String} modulePath
@@ -1290,6 +1303,10 @@ LmdBuilder.prototype.build = function (config) {
                 self.warn(warning, config.warn);
             });
         }
+
+        common.collectFlagsNotifications(config).forEach(function (notification) {
+            self.info(notification);
+        });
 
         var sandboxedModules = this.getSandboxedModules(modules, config);
         for (var moduleName in sandboxedModules) {

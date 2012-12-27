@@ -100,3 +100,4 @@
   - global check of lazy modules is deisabled
   - info of unused modules, suspicious globals and off-package modules paths
   - `"stats_auto": true` automatic statistics push
+  - plugins depends

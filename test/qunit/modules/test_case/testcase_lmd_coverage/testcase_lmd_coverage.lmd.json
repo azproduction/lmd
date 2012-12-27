@@ -23,7 +23,6 @@
 
     "parallel": true,
 
-    "stats": true,
     "stats_coverage": [
         "coverage_fully_covered",
         "coverage_not_conditions",

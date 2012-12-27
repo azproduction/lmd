@@ -36,7 +36,8 @@
     },
     "cache_async": {
         "preprocess": ["$P.CACHE_ASYNC"],
-        "require": "cache_async.js"
+        "require": "cache_async.js",
+        "depends": ["cache"]
     },
     "parallel": {
         "preprocess": ["$P.PARALLEL"],
@@ -52,27 +53,33 @@
     },
     "stats_coverage": {
         "preprocess": ["$P.STATS_COVERAGE"],
-        "require": "stats_coverage.js"
+        "require": "stats_coverage.js",
+        "depends": ["stats"]
     },
     "stats_coverage_async": {
         "preprocess": ["$P.STATS_COVERAGE_ASYNC"],
-        "require": "stats_coverage_async.js"
+        "require": "stats_coverage_async.js",
+        "depends": ["stats", "stats_coverage"]
     },
     "stats_sendto": {
         "preprocess": ["$P.STATS_SENDTO", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
-        "require": "stats_sendto.js"
+        "require": "stats_sendto.js",
+        "depends": ["stats"]
     },
     "stats_auto": {
         "preprocess": ["$P.STATS_AUTO", "$P.CACHE || $P.STATS_AUTO"],
-        "require": "stats_auto.js"
+        "require": "stats_auto.js",
+        "depends": ["stats", "stats_sendto"]
     },
     "async_plain": {
         "preprocess": ["$P.ASYNC_PLAIN", "$P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY"],
-        "require": "async_plain.js"
+        "require": "async_plain.js",
+        "depends": ["async"]
     },
     "async_plainonly": {
         "preprocess": ["$P.ASYNC_PLAINONLY", "$P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY"],
-        "require": "async_plain.js"
+        "require": "async_plain.js",
+        "depends": ["async"]
     },
     "amd": {
         "require": "amd.js"
