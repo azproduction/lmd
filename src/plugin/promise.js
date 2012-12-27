@@ -35,7 +35,7 @@ sb.on('*:create-promise', function () {
             if (typeof argument === "undefined") {
                 dfd.reject();
             } else {
-                dfd.resolve.apply(dfd, arguments);
+                dfd.resolve(/*if ($P.PARALLEL) {*/arguments.length === 1 ? /*}*/argument/*if ($P.PARALLEL) {*/ : Array.prototype.slice.call(arguments)/*}*/);
             }
         };
 
