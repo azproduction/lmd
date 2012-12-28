@@ -50,8 +50,13 @@ var LmdBuilder = function (configFile, options) {
 
     // Let return instance before build
     this.buildConfig = self.compileConfig(configFile, self.options);
+
+    var isFatalErrors = !this.isAllModulesExists(this.buildConfig);
+    if (isFatalErrors) {
+        this.readable = false;
+    }
     process.nextTick(function () {
-        if (self.isAllModulesExists(self.buildConfig)) {
+        if (!isFatalErrors) {
             if (configFile) {
                 var buildResult = self.build(self.buildConfig);
 
@@ -60,6 +65,8 @@ var LmdBuilder = function (configFile, options) {
             } else {
                 self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.json'.green + ' [output.lmd.js]\n');
             }
+        } else {
+            self.printFatalErrors(self.buildConfig);
         }
         self.closeStreams();
     });
@@ -94,8 +101,13 @@ LmdBuilder.watch = function (configFile, options) {
 
     // Let return instance before build
     self.watchConfig = self.compileConfig(self.configFile, self.options);
+
+    var isFatalErrors = !this.isAllModulesExists(this.watchConfig);
+    if (isFatalErrors) {
+        this.readable = false;
+    }
     process.nextTick(function () {
-        if (self.isAllModulesExists(self.watchConfig)) {
+        if (!isFatalErrors) {
             if (configFile) {
                 if (self.watchConfig.output) {
                     self.fsWatch(self.watchConfig);
@@ -104,6 +116,8 @@ LmdBuilder.watch = function (configFile, options) {
             }
 
             self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.json'.green + ' ' + 'output.lmd.js'.green + '\n');
+        } else {
+            self.printFatalErrors(self.watchConfig);
         }
         self.closeStreams();
     });
@@ -177,19 +191,38 @@ LmdBuilder.prototype.compileConfig = function (configFile, options) {
 
 /**
  *
+ * @param buildConfig
+ * @return {Boolean}
  */
 LmdBuilder.prototype.isAllModulesExists = function (buildConfig) {
-    var modules = buildConfig.modules || {},
-        isAllExists = true;
+    var modules = buildConfig.modules || {};
 
     for (var moduleName in modules) {
         if (!modules[moduleName].is_exists) {
-            isAllExists = false;
-            this.error('Module "' + moduleName.cyan + '": "' + modules[moduleName].originalPath.red + '" is not exists. Looking for ' + modules[moduleName].path.red);
+            return false;
         }
     }
 
-    return isAllExists;
+    return true;
+};
+
+/**
+ *
+ * @param buildConfig
+ */
+LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
+    var modules = buildConfig.modules || {},
+        projectRoot = buildConfig.path || buildConfig.root,
+        errorMessage;
+
+    for (var moduleName in modules) {
+        if (!modules[moduleName].is_exists) {
+            errorMessage = 'Module "' + moduleName.cyan + '": "' + modules[moduleName].originalPath.red + '" (' + modules[moduleName].path.red + ') is not exists. ' +
+                'Project root: "' + projectRoot.green + '". ';
+
+            this.error(errorMessage);
+        }
+    }
 };
 
 /**
@@ -931,7 +964,15 @@ LmdBuilder.prototype.fsWatch = function (config) {
 
             log(' Rebuilding...\n');
 
-            var buildResult = self.build(self.compileConfig(self.configFile, self.options)),
+            var buildConfig = self.compileConfig(self.configFile, self.options),
+                isFatalErrors = !self.isAllModulesExists(buildConfig);
+
+            if (isFatalErrors) {
+                self.printFatalErrors(buildConfig);
+                return;
+            }
+
+            var buildResult = self.build(buildConfig),
                 lmdFile = path.join(self.configDir, config.root, config.output),
                 lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
 

@@ -100,6 +100,13 @@ module.exports = function (cli, argv, cwd) {
     var buildResult = new lmdPackage(lmdFile, argv),
         buildConfig = buildResult.buildConfig;
 
+    // fatal error
+    if (buildResult.readable === false && buildConfig.log && buildConfig.output) {
+        console.log(buildResult.readable, buildConfig.log, buildConfig.output);
+        buildResult.log.pipe(cli.stream);
+        return;
+    }
+
     if (buildConfig.log && buildConfig.output) {
         cli.ok('Building `' + buildName +  '` (.lmd/' + buildName + '.lmd.json)');
         if (mixinBuilds.length) {
