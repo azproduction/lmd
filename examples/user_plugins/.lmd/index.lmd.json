@@ -1,0 +1,11 @@
+{
+    "root": "../",
+    "output": "index.lmd.js",
+    "modules": {
+        "main": "js/main.js"
+    },
+    "main": "main",
+    "plugins": {
+        "user_plugin": "plugins/user_plugin.js"
+    }
+}

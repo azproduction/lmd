@@ -1,0 +1,6 @@
+{
+    "root": "../plugins/",
+    "plugins": {
+        "invalid": "invalid_user_plugin.js"
+    }
+}
