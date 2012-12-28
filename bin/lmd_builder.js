@@ -51,13 +51,15 @@ var LmdBuilder = function (configFile, options) {
     // Let return instance before build
     this.buildConfig = self.compileConfig(configFile, self.options);
     process.nextTick(function () {
-        if (configFile) {
-            var buildResult = self.build(self.buildConfig);
+        if (self.isAllModulesExists(self.buildConfig)) {
+            if (configFile) {
+                var buildResult = self.build(self.buildConfig);
 
-            self.emit('data', buildResult.source);
-            self.sourceMap.emit('data', buildResult.sourceMap.toString());
-        } else {
-            self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.json'.green + ' [output.lmd.js]\n');
+                self.emit('data', buildResult.source);
+                self.sourceMap.emit('data', buildResult.sourceMap.toString());
+            } else {
+                self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.json'.green + ' [output.lmd.js]\n');
+            }
         }
         self.closeStreams();
     });
@@ -93,15 +95,16 @@ LmdBuilder.watch = function (configFile, options) {
     // Let return instance before build
     self.watchConfig = self.compileConfig(self.configFile, self.options);
     process.nextTick(function () {
-
-        if (configFile) {
-            if (self.watchConfig.output) {
-                self.fsWatch(self.watchConfig);
-                return;
+        if (self.isAllModulesExists(self.watchConfig)) {
+            if (configFile) {
+                if (self.watchConfig.output) {
+                    self.fsWatch(self.watchConfig);
+                    return;
+                }
             }
-        }
 
-        self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.json'.green + ' ' + 'output.lmd.js'.green + '\n');
+            self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.json'.green + ' ' + 'output.lmd.js'.green + '\n');
+        }
         self.closeStreams();
     });
 };
@@ -170,6 +173,23 @@ LmdBuilder.prototype.init = function () {
  */
 LmdBuilder.prototype.compileConfig = function (configFile, options) {
     return assembleLmdConfig(configFile, Object.keys(this.flagToOptionNameMap), options);
+};
+
+/**
+ *
+ */
+LmdBuilder.prototype.isAllModulesExists = function (buildConfig) {
+    var modules = buildConfig.modules || {},
+        isAllExists = true;
+
+    for (var moduleName in modules) {
+        if (!modules[moduleName].is_exists) {
+            isAllExists = false;
+            this.error('Module "' + moduleName.cyan + '": "' + modules[moduleName].originalPath.red + '" is not exists. Looking for ' + modules[moduleName].path.red);
+        }
+    }
+
+    return isAllExists;
 };
 
 /**

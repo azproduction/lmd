@@ -138,7 +138,8 @@ function printModules(cli, config, deepModulesInfo, sortColumnName) {
     moduleRows.unshift(headers);
 
     moduleRows.forEach(function (row, rowIndex) {
-        var rowString = '';
+        var rowString = '',
+            isError = false;
 
         row.forEach(function (item, index) {
             var length = item.length || 1,
@@ -154,14 +155,22 @@ function printModules(cli, config, deepModulesInfo, sortColumnName) {
                 item = item.cyan;
             }
 
-            if (index) {
+            // type=not-found
+            if (index === 2 && item === "not-exists") {
+                item = item.red;
+                isError = true;
+            } else if (index) {
                 item = printValue(item);
             }
 
             rowString += item + (maxColumnLength > length ? new Array(maxColumnLength - length).join(' ') : '  ');
         });
 
-        cli.ok(rowString);
+        if (isError) {
+            cli.error(rowString);
+        } else {
+            cli.ok(rowString);
+        }
     });
 
     cli.ok('');
@@ -218,7 +227,15 @@ function printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytic
     }, 0);
 
     modulesNames.forEach(function (name) {
-        cli.ok(name.cyan + new Array(longestName - name.length + 2).join(' ') + ' <- ' + modules[name].path.green);
+        var moduleInfo = name.cyan + new Array(longestName - name.length + 2).join(' ') + ' <- ';
+
+        if (modules[name].is_exists) {
+            moduleInfo += modules[name].path.green;
+            cli.ok(moduleInfo);
+        } else {
+            moduleInfo += modules[name].path.red + ' (not exists)';
+            cli.error(moduleInfo);
+        }
         if (!isDeepAnalytics) {
             return;
         }
