@@ -4,7 +4,7 @@
             return global.Function('return ' + code)();
         },
         /*if ($P.CSS || $P.JS || $P.ASYNC || $P.IMAGE) {*/global_noop = function () {},/*}*/
-        /*if ($P.CSS || $P.JS || $P.STATS_SENDTO) {*/global_document = global.document,/*}*/
+        global_document = global.document,
         local_undefined,
         /**
          * @param {String} moduleName module name or path to file
@@ -127,7 +127,7 @@
             initialized: initialized_modules,
 
             /*if ($P.CSS || $P.JS || $P.ASYNC || $P.IMAGE) {*/noop: global_noop,/*}*/
-            /*if ($P.CSS || $P.JS || $P.STATS_SENDTO) {*/document: global_document,/*}*/
+            document: global_document,
             /*if ($P.CACHE) {*/lmd: lmd,/*}*/
             /*if ($P.CACHE) {*/main: main,/*}*/
 

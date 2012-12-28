@@ -1,7 +1,7 @@
 {
     "async": {
         "preprocess": ["$P.ASYNC", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE"],
-        "require": "async.js"
+        "require": ["off_package.js", "async.js"]
     },
     "cache": {
         "preprocess": ["$P.CACHE", "$P.CACHE || $P.STATS_AUTO"],
@@ -9,11 +9,11 @@
     },
     "js": {
         "preprocess": ["$P.JS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
-        "require": "js.js"
+        "require": ["off_package.js", "js.js"]
     },
     "css": {
         "preprocess": ["$P.CSS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
-        "require": "css.js"
+        "require": ["off_package.js", "css.js"]
     },
     "node": {
         "preprocess": ["$P.WORKER || $P.NODE", "$P.NODE"],
@@ -90,6 +90,6 @@
     },
     "image": {
         "preprocess": ["$P.IMAGE", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE"],
-        "require": "image.js"
+        "require": ["off_package.js", "image.js"]
     }
 }
