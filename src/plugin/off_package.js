@@ -2,6 +2,10 @@
  * @name sandbox
  */
 (function (sb) {
+    var domOnlyLoaders = {
+        css: true,
+        image: true
+    };
     /**
      * @event *:request-off-package
      *
@@ -33,7 +37,7 @@
 
         sb.trigger('*:before-check', moduleName, module, type);
         // If module exists or its a node.js env
-        if (module) {
+        if (module || (domOnlyLoaders[type] && !sb.document)) {
             callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
             return [[returnResult, moduleName, module, true], callback, type];
         }

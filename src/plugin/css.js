@@ -21,41 +21,20 @@
      * @param {Function}     [callback]   callback(result) undefined on error HTMLLinkElement on success
      */
     sb.require.css = function (moduleName, callback) {
-        /*if ($P.PROMISE) {*/var createPromiseResult = sb.trigger('*:create-promise');/*}*/
-        var returnResult = /*if ($P.PROMISE) {*/createPromiseResult[1] || /*}*/sb.require;
-        callback = /*if ($P.PROMISE) {*/createPromiseResult[0] || /*}*/callback || sb.noop;
+        var replacement = sb.trigger('*:request-off-package', moduleName, callback, 'css'), // [[returnResult, moduleName, module, true], callback, type]
+            returnResult = replacement[0][0];
 
-        if (typeof moduleName !== "string") {
-            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.css)[1];
-            if (!callback) {
-                return returnResult;
-            }
+        if (replacement[0][3]) { // isReturnASAP
+            return returnResult;
         }
 
-        var module = sb.modules[moduleName],
+        var module = replacement[0][2],
             isNotLoaded = 1,
             head;
 
-        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
-        if (replacement) {
-            moduleName = replacement[0];
-            module = replacement[1];
-        }
+        callback = replacement[1];
+        moduleName = replacement[0][1];
 
-        sb.trigger('*:before-check', moduleName, module, 'css');
-        // If module exists or its a worker or node.js environment
-        if (module || !sb.document) {
-            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
-            return returnResult;
-        }
-
-        sb.trigger('*:before-init', moduleName, module);
-
-        callback = sb.trigger('*:request-race', moduleName, callback)[1];
-        // if already called
-        if (!callback) {
-            return returnResult;
-        }
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
         // Create stylesheet link
         var link = sb.document.createElement("link"),
