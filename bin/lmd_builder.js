@@ -251,27 +251,12 @@ LmdBuilder.prototype.closeStreams = function () {
  * @param {Object} data
  */
 LmdBuilder.prototype.template = function (data) {
-    var options = {};
-    if (data.version) {
-        options.version = data.version;
-    }
-
-    if (data.stats_host) {
-        options.stats_host = data.stats_host;
-    }
-
-    if (data.promise) {
-        options.promise = data.promise;
-    }
-
-    options = JSON.stringify(options);
-
     return data.lmd_js + '(' +
         data.global + ',' +
         data.lmd_main + ',' +
         data.lmd_modules + ',' +
         data.modules_options + ',' +
-        options +
+        data.options +
     ')';
 };
 
@@ -693,16 +678,42 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, mod
     }
     lmd_modules = '{\n' + lmd_modules.join(',\n') + '\n}';
 
+    var options = {},
+        version = config.cache ? config.version : false,
+        stats_host = config.stats_auto || false,
+        promise = config.promise || false;
+
+    // if version passed -> module will be cached
+    if (version) {
+        options.version = version;
+    }
+
+    if (stats_host) {
+        options.stats_host = stats_host;
+    }
+
+    if (promise) {
+        options.promise = promise;
+    }
+
+    var userPlugin;
+
+    for (var userPluginName in config.plugins) {
+        userPlugin = config.plugins[userPluginName];
+        if (userPlugin.isOk && userPlugin.options && !options[userPlugin.name]) {
+            options[userPlugin.name] = userPlugin.options;
+        }
+    }
+
+    options = JSON.stringify(options);
+
     result = this.template({
         lmd_js: lmd_js,
         global: config.global || 'this',
         lmd_main: lmd_main,
         lmd_modules: lmd_modules,
         modules_options: JSON.stringify(modules_options),
-        // if version passed -> module will be cached
-        version: config.cache ? config.version : false,
-        stats_host: config.stats_auto || false,
-        promise: config.promise || false
+        options: options
     });
 
     return result;
@@ -840,6 +851,15 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
             });
         }
     }
+    // Collect user plugins
+    var userPlugin;
+    for (var userPluginName in config.plugins) {
+        userPlugin = config.plugins[userPluginName];
+        if (userPlugin.isOk) {
+            pluginsCode += userPlugin.code + "\n\n";
+        }
+    }
+
     // Apply plugins code
     lmd_js = lmd_js.replace("/*{{LMD_PLUGINS_LOCATION}}*/", pluginsCode);
 

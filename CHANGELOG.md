@@ -102,3 +102,4 @@
   - `"stats_auto": true` automatic statistics push
   - plugins depends
   - image loader plugin
+  - user custom plugins

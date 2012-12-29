@@ -1,0 +1,16 @@
+{
+    "root": "../../../plugins/",
+
+    "plugins": {
+        "user_plugin": "user_plugin.js",
+        "user_plugin_with_options": {
+            "path": "user_plugin_with_options.js",
+            "options": {
+                "pewpew": "ololo"
+            }
+        },
+        "invalid": "invalid_user_plugin.js",
+        "not-found": "x/invalid_user_plugin.js",
+        "stats": "invalid_user_plugin.js"
+    }
+}
