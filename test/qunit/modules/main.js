@@ -19,4 +19,7 @@
 
     // AMD Modules
     require('testcase_lmd_amd');
+
+    // User Plugins
+    require('testcase_lmd_user_plugins');
 });

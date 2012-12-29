@@ -12,7 +12,8 @@
         "testcase_lmd_loader": "test_case/testcase_lmd_loader/testcase_lmd_loader.js",
         "testcase_lmd_coverage": "test_case/testcase_lmd_coverage/testcase_lmd_coverage.js",
         "testcase_lmd_cache": "test_case/testcase_lmd_cache/testcase_lmd_cache.js",
-        "testcase_lmd_amd":"test_case/testcase_lmd_amd/testcase_lmd_amd.js"
+        "testcase_lmd_amd":"test_case/testcase_lmd_amd/testcase_lmd_amd.js",
+        "testcase_lmd_user_plugins": "test_case/testcase_lmd_user_plugins/testcae_lmd_user_plugins.js"
 
     },
 

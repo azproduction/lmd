@@ -250,6 +250,34 @@ function printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytic
     cli.ok('');
 }
 
+function printUserPlugins(cli, config) {
+    var plugins = config.plugins || {},
+        pluginsNames = Object.keys(plugins);
+
+    if (!pluginsNames.length) {
+        return;
+    }
+
+    cli.ok('User plugins'.white.bold.underline);
+    cli.ok('');
+
+    var longestName = pluginsNames.reduce(function (max, name) {
+        return max < name.length ? name.length : max;
+    }, 0);
+
+    pluginsNames.forEach(function (name) {
+        var message = name.cyan + new Array(longestName - name.length + 2).join(' ') + ' <- ';
+
+        if (plugins[name].isOk) {
+            cli.ok(message + plugins[name].path.green);
+        } else {
+            cli.warn(message + plugins[name].path.red);
+        }
+    });
+
+    cli.ok('');
+}
+
 module.exports = function (cli, argv, cwd) {
     argv = optimist.parse(argv);
 
@@ -341,6 +369,7 @@ module.exports = function (cli, argv, cwd) {
     var deepModulesInfo = common.collectModulesInfo(config);
     printModules(cli, config, deepModulesInfo, sortOrder);
     printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytics);
+    printUserPlugins(cli, config);
     printFlags(cli, config, flags.concat(extraFlags));
 
     cli.ok('Paths'.white.bold.underline);
