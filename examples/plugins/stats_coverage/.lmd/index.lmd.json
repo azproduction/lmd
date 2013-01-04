@@ -1,0 +1,18 @@
+{
+    "root": "../js",
+    "output": "../index.lmd.js",
+    "www_root": "../",
+    "modules": {
+        "main": "main.js",
+        "unused": "unused-module.js",
+        "sha512": "sha512.js",
+        "md5": "md5.js",
+        "statsLogger": "statsLogger.js"
+    },
+    "main": "main",
+    "ie": false,
+    "css": true,
+
+    "stats": true,
+    "stats_coverage": ["main", "sha512" , "md5", "unused"]
+}

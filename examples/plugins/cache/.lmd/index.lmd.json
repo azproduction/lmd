@@ -4,10 +4,15 @@
     "www_root": "../",
     "modules": {
         "main": "main.js",
-        "sha512": "@/js/sha512.js"
+        "sha512": {
+            "path": "sha512.js",
+            "exports": "hex_sha512"
+        }
     },
     "main": "main",
     "ie": false,
-    "async": true,
-    "shortcuts": true
+
+    "cache": true,
+    "pack": true,
+    "version": "0.0.1"
 }
