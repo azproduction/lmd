@@ -1,9 +1,0 @@
-{
-    "root": "../modules/",
-    "extends": "./index.common.lmd.json",
-    "modules": {
-        "*": "*.js",
-        "i18n": "i18n.ru.json",
-        "config": "cfgs/development.json"
-    }
-}

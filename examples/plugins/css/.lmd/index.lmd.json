@@ -1,0 +1,11 @@
+{
+    "root": "../js",
+    "output": "../index.lmd.js",
+    "www_root": "../",
+    "modules": {
+        "*": "*.js"
+    },
+    "main": "main",
+    "ie": false,
+    "css": true
+}
