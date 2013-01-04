@@ -4,7 +4,7 @@ node_modules/
 test/coverage/*
 test/qunit/out/*.js
 test/qunit/out/*.map
-examples/mock_chat/logs/*
-examples/mock_chat/js/*/.lmd/logs/*
+examples/demos/mock_chat/logs/*
+examples/demos/mock_chat/js/*/.lmd/logs/*
 npm-debug.log
 test/qunit/.lmd/logs/
