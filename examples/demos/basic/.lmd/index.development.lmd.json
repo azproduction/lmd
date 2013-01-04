@@ -1,0 +1,10 @@
+{
+    "root": "../modules/",
+    "extends": "./index.common.lmd.json",
+    "output": "../out/index.development.lmd.js",
+    "modules": {
+        "*": "*.js",
+        "i18n": "i18n.ru.json",
+        "config": "cfgs/development.json"
+    }
+}
