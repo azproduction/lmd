@@ -662,18 +662,18 @@ LmdBuilder.prototype.escape = function (file) {
  * 
  * @param {Array}   lmd_modules
  * @param {String}  lmd_main
- * @param {Boolean} pack
+ * @param {Boolean} is_optimize_lmd
  * @param {Object}  modules_options
  *
  * @returns {String}
  */
-LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, pack, modules_options) {
+LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, is_optimize_lmd, modules_options) {
     var lmd_js = fs.readFileSync(path.join(LMD_JS_SRC_PATH, 'lmd.js'), 'utf8'),
         result;
 
     // Apply patch if LMD package in cache Mode
     lmd_js = this.patchLmdSource(lmd_js, config);
-    if (pack) {
+    if (is_optimize_lmd) {
         lmd_js = this.optimizeLmdSource(lmd_js);
     }
     lmd_modules = '{\n' + lmd_modules.join(',\n') + '\n}';
@@ -1270,13 +1270,12 @@ LmdBuilder.prototype.build = function (config) {
         cache = config.cache || false,
         mainModuleName = config.main,
         pack = (lazy || cache) ? true : (config.pack || false),
+        isOptimizeLmd = pack || config.optimize || false,
         lmdModules = [],
         lmdMain,
         lmdFile,
         coverageResult,
         modulesOptions = {},
-        is_using_shortcuts = false,
-        is_using_amd = false,
         module,
         modules,
         moduleInfo,
@@ -1312,7 +1311,6 @@ LmdBuilder.prototype.build = function (config) {
             });
 
             if (moduleInfo.type === "shortcut") {
-                is_using_shortcuts = true;
                 if (module.name === mainModuleName) {
                     this.warn('Main module can not be a shortcut. Your app will throw an error.', config.warn);
                 } else {
@@ -1328,10 +1326,6 @@ LmdBuilder.prototype.build = function (config) {
                     moduleInfo.code = common.wrapModule(originalCodeWithToken, module, moduleInfo.type);
                     module.lines = this.calculateModuleLines(moduleInfo.code);
                 }
-            }
-
-            if (moduleInfo.type === "amd") {
-                is_using_amd = true;
             }
 
             switch (moduleInfo.type) {
@@ -1396,7 +1390,7 @@ LmdBuilder.prototype.build = function (config) {
             }
             modulesOptions[moduleName].sandbox = 1;
         }
-        lmdFile = this.render(config, lmdModules, lmdMain, pack, modulesOptions);
+        lmdFile = this.render(config, lmdModules, lmdMain, isOptimizeLmd, modulesOptions);
 
         var sourceMap = '';
         if (config.sourcemap) {

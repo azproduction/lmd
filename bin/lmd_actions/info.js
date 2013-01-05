@@ -362,7 +362,7 @@ module.exports = function (cli, argv, cwd) {
 
     var rawConfig = common.readConfig(lmdFile),
         flags = Object.keys(flagToOptionNameMap),
-        extraFlags = ["warn", "log", "pack", "lazy"],
+        extraFlags = common.SOURCE_TWEAK_FLAGS,
         config = assembleLmdConfig(lmdFile, flags, argv),
         root = fs.realpathSync(cwd + '/.lmd/' + config.root),
         output = config.output ? path.join(root, config.output) : 'STDOUT'.yellow,

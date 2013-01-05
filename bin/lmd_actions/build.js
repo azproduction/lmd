@@ -108,7 +108,7 @@ module.exports = function (cli, argv, cwd) {
     }
 
     if (buildConfig.log && buildConfig.output) {
-        cli.ok('Building `' + buildName +  '` (.lmd/' + buildName + '.lmd.json)');
+        cli.ok('Building `' + buildName.green +  '` (' + ('.lmd/' + buildName + '.lmd.json').green + ')');
         if (mixinBuilds.length) {
             cli.ok('Extra mixins ' + mixinBuilds);
         }

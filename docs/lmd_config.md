@@ -77,6 +77,7 @@
                             // eg: module_name.js + *.lmd.json lmd will looking for module_name.lmd.json etc
 
     // # Modules output format
+    "optimize": false,      // if true - LMD will optimize itself source, but not pack [default=false]
     "lazy": false,          // if true - all modules will be evaled on demand [default=false]
     "pack": false,          // if true - module will be packed using uglifyjs [default=false]
     "pack_options": {},     // object with UglifyJS pack options @see UglifyJS documents or
