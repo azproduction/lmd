@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LMD cache plugin example</title>
+    <script type="text/javascript" src="http://yandex.st/jquery/1.8.2/jquery.min.js"></script>
+    <!--
+    Replace <script src="index.lmd.js"></script> with this code, where:
+      - id            special id indicates that this script is LMD-initializer
+      - data-src      original lmd.js file (fallback if no cache or no localStorage)
+      - data-version  version of lmd.js file
+      - data-key      localStorage key
+    -->
+    <script id="lmd-initializer"
+            data-src="index.lmd-0.0.1-ru_RU.js"
+            data-version="0.0.1"
+            data-key="lmd">
+/**
+ * This file is not part of lmd.js.
+ *
+ * This is localStorage loader with script fallback.
+ *
+ * @see /README.md near "Local Storage cache" for more info
+ * @see live example /lmd/examples/mock_chat/index_cache.html near "lmd-initializer"
+ *
+ * How it works:
+ *
+ *   - if browser not support localStorage - it loads fallback script
+ *   - if support localStorage and cache exists
+ *     - and version is not expired - it start application from cache
+ *     - version expired - it wipes cache and it loads fallback script
+ *   - if no cache - it loads fallback script
+ */
+(function(a,b,c,d,e,f){var n,o,p,q,r,s,t,g=function(b){return a.Function("return "+b)()},h=b.getElementById(c),i=h[e](d+"version"),j=h[e](d+"key"),k=h[e](d+"src"),l=a.localStorage,m=/^lmd:([^:]+):(.*)$/;if(l&&(q=l[j])){try{o=a.JSON.parse(q),o&&o.options.version===i&&(r=g(o.main),s=g(o.lmd));for(j in l)t=j.match(m),t&&(t[1]===i?o.modules[t[2]]=a.JSON.parse(l[j]):l[f](j))}catch(u){}if(s&&r)return s(a,r,o.modules,o.modules_options,o.options),void 0;l[f](j);for(j in l)m.test(j)&&l[f](j)}p=b.getElementsByTagName("head")[0],n=b.createElement("script"),n.setAttribute("src",k),p.insertBefore(n,p.firstChild)})(this,this.document,"lmd-initializer","data-","getAttribute","removeItem");
+    </script>
+</head>
+<body>
+    <input type="text" placeholder="Type something" class="b-input"/>
+    <button class="b-button">Calculate SHA-512</button>
+    <input type="text" placeholder="SHA-512 Result" class="b-result"/>
+</body>
+</html>

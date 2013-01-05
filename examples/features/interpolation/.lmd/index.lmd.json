@@ -1,0 +1,23 @@
+{
+    "name": "Config interpolation example: v${version}, ie=<%= ie %>",
+
+    "disclaimer": "lang is a user defined property it is not inheritable",
+    "lang": "ru",
+
+    "root": "../js",
+    "output": "../index.lmd-<%= version %><%= lang === 'ru' ? '-ru_RU' : '' %>.js",
+    "www_root": "../",
+    "modules": {
+        "main": "main.js",
+        "sha512": {
+            "path": "sha512.js",
+            "exports": "hex_sha512"
+        }
+    },
+    "main": "main",
+    "ie": false,
+
+    "cache": true,
+    "pack": true,
+    "version": "0.0.1"
+}
