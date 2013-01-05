@@ -1,4 +1,6 @@
 {
+    "name": "Abstract build",
+
     "root": "../modules/",
     "modules": {
         "main": "main.js",

@@ -1,4 +1,5 @@
 {
+    "name": "Promise test - DOM Environment",
     "root": "../modules/",
 
     "output": "../out/promise_test.lmd.js",

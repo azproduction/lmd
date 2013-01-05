@@ -1,4 +1,5 @@
 {
+    "name": "Extends `test` - Worker environment",
     "root": "../modules/",
 
     "extends": "./test.lmd.json",

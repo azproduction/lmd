@@ -1,8 +1,10 @@
 require('colors');
 
 var fs = require('fs'),
+    path = require('path'),
     init = require(__dirname + '/init.js'),
-    create = require(__dirname + '/create.js');
+    create = require(__dirname + '/create.js'),
+    common = require(__dirname + '/../../lib/lmd_common.js');
 
 function printHelp(cli, errorMessage) {
     var help = [
@@ -17,14 +19,11 @@ function printHelp(cli, errorMessage) {
 }
 
 function listOfFiles(cli, cwd) {
-    var lmdDir = cwd + '/.lmd';
+    var lmdDir = path.join(cwd, '.lmd');
 
     var files = fs.readdirSync(lmdDir)
         .filter(function (name) {
-            return fs.statSync(lmdDir + '/' + name).isFile() && /\.lmd\.json$/.test(name);
-        })
-        .map(function (name) {
-            return name.replace(/\.lmd\.json$/, '');
+            return fs.statSync(path.join(lmdDir, name)).isFile() && /\.lmd\.json$/.test(name);
         });
 
     if (!files.length) {
@@ -35,10 +34,19 @@ function listOfFiles(cli, cwd) {
     }
 
     cli.ok('');
-    cli.ok('Available builds:'.cyan.bold);
+    cli.ok('Available builds'.white.bold.underline);
     cli.ok('');
+
+    var longestName = files.reduce(function (max, current) {
+        return current.length > max ? current.length : max;
+    }, 0);
+
     files.forEach(function (name) {
-        cli.ok('  ' + name);
+        var extraSpaces = new Array(longestName - name.length + 3).join(' '),
+            buildName = common.readConfig(lmdDir, name).name || '';
+
+        name = name.replace(/\.lmd\.json$/, '');
+        cli.ok(name.cyan + extraSpaces + buildName);
     });
     cli.ok('');
 }

@@ -384,6 +384,18 @@ module.exports = function (cli, argv, cwd) {
         cli.ok('');
     }
 
+    if (config.name || config.description) {
+        config.name && cli.ok(config.name.toString().white.bold);
+        if (config.description) {
+            // Multiline description
+            var descriptionLines = config.description.toString().split('\n');
+            descriptionLines.forEach(function (line) {
+                cli.ok(line);
+            });
+        }
+        cli.ok('');
+    }
+
     var deepModulesInfo = common.collectModulesInfo(config);
     printModules(cli, config, deepModulesInfo, sortOrder);
     printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytics);

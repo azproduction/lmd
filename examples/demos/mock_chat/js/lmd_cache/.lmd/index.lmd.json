@@ -1,4 +1,6 @@
 {
+    "name": "Mock chat with LMD modules and cache: true",
+
     "path": "../modules/",
 
     "output": "../index.lmd.js",

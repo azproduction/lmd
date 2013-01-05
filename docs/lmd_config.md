@@ -6,6 +6,9 @@
 
 ```javascript
 {
+    "name": "Your build name",
+    "description": "This string can contain long description even with \nnew lines",
+
     "path": "../modules/", // if starts with "/" it is absolute path else path will be relative to the config file
     "root": "../modules/", // alias to path
 

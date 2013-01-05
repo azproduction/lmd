@@ -1,4 +1,6 @@
 {
+    "name": "Basic build with `en` locale by default",
+
     "root": "../",
     "output": "index.lmd.js",
     "modules": {

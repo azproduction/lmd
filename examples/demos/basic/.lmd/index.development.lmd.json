@@ -1,4 +1,6 @@
 {
+    "name": "Development build",
+
     "root": "../modules/",
     "extends": "./index.common.lmd.json",
     "output": "../out/index.development.lmd.js",

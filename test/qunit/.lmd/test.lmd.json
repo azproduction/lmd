@@ -1,4 +1,5 @@
 {
+    "name": "Main test - DOM environment",
     "root": "../modules/",
     "www_root": "../",
 

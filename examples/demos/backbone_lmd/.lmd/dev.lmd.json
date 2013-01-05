@@ -1,4 +1,6 @@
 {
+    "name": "Development build with cache",
+
     "root": "../js/",
     "output": "../compiled/dev.lmd.js",
 

@@ -47,6 +47,7 @@ function checkFile(cwd, name) {
 
 function template(buildName, parentConfig, options) {
     var json = {};
+    json.name = buildName + " build";
     json.root = "../";
     json.output = buildName + ".lmd.js";
     if (parentConfig) {
@@ -106,7 +107,7 @@ module.exports = function (cli, argv, cwd) {
     }
 
     cli.ok('');
-    cli.ok('Build `' + buildName +  '` (.lmd/' + buildName + '.lmd.json) created');
+    cli.ok('Build `' + buildName.green +  '` (' + ('.lmd/' + buildName + '.lmd.json').green + ') created');
     cli.ok('');
 
     var extraFlags = Object.keys(argv);
