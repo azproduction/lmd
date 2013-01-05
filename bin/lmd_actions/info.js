@@ -367,10 +367,11 @@ module.exports = function (cli, argv, cwd) {
         root = fs.realpathSync(cwd + '/.lmd/' + config.root),
         output = config.output ? path.join(root, config.output) : 'STDOUT'.yellow,
         sourcemap = config.sourcemap ? fs.realpathSync(root + '/' + config.sourcemap) : false,
-        www = config.www_root ? fs.realpathSync(cwd + '/.lmd/' + config.www_root + '/') : false;
+        www = config.www_root ? fs.realpathSync(cwd + '/.lmd/' + config.www_root + '/') : false,
+        versionString = config.version ? ' - version ' + config.version.toString().cyan : '';
 
     cli.ok('');
-    cli.ok('LMD Package `' + buildName.green + '` (' + ('.lmd/' + buildName + '.lmd.json').green + ')');
+    cli.ok('LMD Package `' + buildName.green + '` (' + ('.lmd/' + buildName + '.lmd.json').green + ')' + versionString);
     cli.ok('');
 
     if (rawConfig.extends) {
