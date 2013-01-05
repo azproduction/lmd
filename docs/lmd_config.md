@@ -16,7 +16,11 @@
     "extends": "./parent_index.lmd.js",           // Parent lmd config
     "mixins": ["./mix.lmd.js", "./debug.lmd.js"], // Mixins configs
 
-    "output": "../index.lmd.js",     // LMD will print build result there. Relative path to the root param
+    "version": "1.0.1-rc3",
+
+    "output": "../index.lmd-<%= version %>.js",     // LMD will print build result there. Relative path to the root param
+                                                    // This field uses string interpolation
+                                                    // "../index.lmd-1.0.1-rc3.js"
 
     "sourcemap": "../index.lmd.map", // Relative path to the source map result file
     "sourcemap_inline": true,        // Adds inline Source Map include statement
@@ -129,3 +133,4 @@
 
  - You can extend config file with another using `"extends": "path/to/file.lmd.json"` parameter
  - You can also specify module depends by adding `"depends"` options see Modules depends
+ - You can use string interpolation (templates in config string _.template style) like `../index.lmd-<%= version %>.js`. See [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)
