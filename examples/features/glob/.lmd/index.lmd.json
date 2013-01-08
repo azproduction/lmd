@@ -1,0 +1,15 @@
+{
+    "name": "Glob example, you can use glob name template to match all your files",
+    "description": "Pattern below interpolates for example collections/items.js to itemsCollection",
+
+    "root": "../js",
+    "output": "../index.lmd.js",
+    "www_root": "../",
+    "modules": {
+        "<%= file %><%= dir[0][0].toUpperCase() %><%= dir[0].slice(1, -1) %>": "{collections,helpers,models,routers,templates,views}/**/*.{js,html}",
+        "../${dir[2]}/${dir[1]}/${dir[0]}/${file}.${ext}": "test/**/*.js",
+        "*": "*.js"
+    },
+    "main": "main",
+    "ie": false
+}
