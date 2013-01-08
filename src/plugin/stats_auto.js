@@ -10,7 +10,7 @@
  */
 (function (sb) {
     var timeout,
-        host = sb.stats_host;
+        host = sb.options.stats_host;
 
     if (!host) return;
 
@@ -27,10 +27,19 @@
         }, 2000);
     }
 
-    var events = 'click0keyup0orientationchange0resize0scroll0focus'.split(0);
-    for (var i = 0, c = events.length; i < c; i++) {
-        sb.global.document.body.addEventListener(events[i], updateStats, false);
+    function registerCallbacks() {
+        var events = 'click0keyup0orientationchange0resize0scroll0focus'.split(0);
+        for (var i = 0, c = events.length; i < c; i++) {
+            sb.document.body.addEventListener(events[i], updateStats, false);
+        }
     }
 
-    sb.on('lmd-require:before-check', updateStats);
+    var interval = sb.global.setInterval(function () {
+        if (sb.document.body) {
+            sb.global.clearInterval(interval);
+            registerCallbacks();
+        }
+    }, 100);
+
+    sb.on('*:before-check', updateStats);
 }(sandbox));

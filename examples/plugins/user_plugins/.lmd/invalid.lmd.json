@@ -1,0 +1,8 @@
+{
+    "root": "../plugins/",
+    "plugins": {
+        "invalid": "invalid_user_plugin.js",
+        "not-found": "x/invalid_user_plugin.js",
+        "stats": "invalid_user_plugin.js"
+    }
+}

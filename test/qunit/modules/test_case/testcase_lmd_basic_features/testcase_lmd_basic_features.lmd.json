@@ -50,7 +50,9 @@
                 "Function": "Function",
                 "Date": "Date"
             }
-        }
+        },
+
+        "setTimeout": "@setTimeout"
     },
     "depends": true,
 

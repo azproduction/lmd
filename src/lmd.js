@@ -1,12 +1,10 @@
-(function /*if ($P.CACHE) {*/lmd/*}*/(global, main, modules, modules_options/*if ($P.CACHE || $P.STATS_AUTO) {*/, options/*}*/) {
+(function /*if ($P.CACHE) {*/lmd/*}*/(global, main, modules, modules_options, options) {
     var initialized_modules = {},
         global_eval = function (code) {
             return global.Function('return ' + code)();
         },
-        /*if ($P.CSS || $P.JS || $P.ASYNC) {*/global_noop = function () {},/*}*/
-        /*if ($P.CSS || $P.JS || $P.STATS_SENDTO) {*/global_document = global.document,/*}*/
-        /*if ($P.CACHE) {*/version = options.version,/*}*/
-        /*if ($P.STATS_AUTO) {*/stats_host = options.stats_host,/*}*/
+        /*if ($P.CSS || $P.JS || $P.ASYNC || $P.IMAGE) {*/global_noop = function () {},/*}*/
+        global_document = global.document,
         local_undefined,
         /**
          * @param {String} moduleName module name or path to file
@@ -90,7 +88,7 @@
         require = function (moduleName) {
             var module = modules[moduleName];
 
-            lmd_trigger('lmd-require:before-check', moduleName, module);
+            lmd_trigger('*:before-check', moduleName, module);
             // Already inited - return as is
             if (initialized_modules[moduleName] && module) {
                 return module;
@@ -121,18 +119,17 @@
             global: global,
             modules: modules,
             modules_options: modules_options,
+            options: options,
 
             eval: global_eval,
             register: register_module,
             require: require,
             initialized: initialized_modules,
 
-            /*if ($P.CSS || $P.JS || $P.ASYNC) {*/noop: global_noop,/*}*/
-            /*if ($P.CSS || $P.JS || $P.STATS_SENDTO) {*/document: global_document,/*}*/
+            /*if ($P.CSS || $P.JS || $P.ASYNC || $P.IMAGE) {*/noop: global_noop,/*}*/
+            document: global_document,
             /*if ($P.CACHE) {*/lmd: lmd,/*}*/
             /*if ($P.CACHE) {*/main: main,/*}*/
-            /*if ($P.CACHE) {*/version: version,/*}*/
-            /*if ($P.STATS_AUTO) {*/stats_host: stats_host,/*}*/
 
             on: lmd_on,
             trigger: lmd_trigger,

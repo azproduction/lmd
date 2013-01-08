@@ -1,0 +1,8 @@
+{
+    "name": "Mixin: `ru` locale",
+
+    "root": "../i18n/",
+    "modules": {
+        "i18n": "ru.json"
+    }
+}

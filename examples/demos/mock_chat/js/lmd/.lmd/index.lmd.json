@@ -1,0 +1,39 @@
+{
+    "name": "Mock chat with LMD modules",
+
+    "path": "../modules/",
+
+    "output": "../index.lmd.js",
+
+    "sourcemap": "../index.lmd.map",
+    "sourcemap_inline": true,
+    "sourcemap_www": "",
+
+    "www_root": "../../../",
+
+    "modules": {
+        "main": "index.js",
+        "b-roster": "b-roster.js",
+        "undefined": "utils.js",
+        "b-unused-module": "b-unused-module.js",
+        "b-dialog": "@js/lmd/modules/b-dialog.js",
+        "b-talk": "@js/lmd/modules/b-talk.js"
+    },
+    "main": "main",
+    "global": "this",
+    "ie": false,
+    "async": true,
+    "lazy": false,
+    "pack": false,
+    "parallel": true,
+    "shortcuts": true,
+
+    "stats": true,
+    "stats_coverage": true,
+    "stats_coverage_async": false,
+    "stats_sendto": true,
+    "stats_auto": true,
+
+    "warn": true,
+    "log": true
+}

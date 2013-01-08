@@ -33,7 +33,7 @@
         if (item) {
             try {
                 json = global.JSON.parse(item);
-                if (json && json.version === actualVersion) {
+                if (json && json.options.version === actualVersion) {
                     // exec cached app
                     // Note: do not pass version!
                     main = globalEval(json.main);
@@ -57,7 +57,7 @@
             } catch (e) {}
             if (lmd && main) {
                 // do not catch module's errors
-                lmd(global, main, json.modules, json.options, {stats_host: json.host});
+                lmd(global, main, json.modules, json.modules_options, json.options);
                 return;
             }
             // if error or version do not match - wipe cache

@@ -1,0 +1,19 @@
+{
+    "name": "Development build",
+
+    "root": "../modules/",
+    "extends": "./index.common.lmd.json",
+    "output": "../out/index.production.lmd.js",
+    "modules": {
+        "i18n": "i18n.ru.json",
+        "config": "cfgs/production.json",
+        "workerDepA": {
+            "path": "workerDepA.js",
+            "lazy": false
+        }
+    },
+    "lazy": true,
+    "pack": true,
+    "cache": true,
+    "version": "1.6.3-1"
+}

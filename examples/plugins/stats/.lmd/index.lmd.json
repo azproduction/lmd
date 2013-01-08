@@ -1,0 +1,22 @@
+{
+    "root": "../js",
+    "output": "../index.lmd.js",
+    "www_root": "../",
+    "modules": {
+        "main": "main.js",
+        "unused": "unused-module.js",
+        "sha512": "@js/sha512.js",
+        "md5": "@js/md5.js",
+        "statsLogger": "statsLogger.js"
+    },
+    "main": "main",
+    "ie": false,
+
+    "css": true,
+    "async": true,
+    "async_plain": true,
+
+    "promise": "$.Deferred",
+    "shortcuts": true,
+    "stats": true
+}

@@ -15,7 +15,8 @@ function parallel(method, items, callback) {
     var i = 0,
         j = 0,
         c = items.length,
-        results = [];
+        results = [],
+        ready;
 
     var readyFactory = function (index) {
         return function (data) {
@@ -29,7 +30,8 @@ function parallel(method, items, callback) {
     };
 
     for (; i < c; i++) {
-        method(items[i], readyFactory(i));
+        ready = readyFactory(i);
+        method(items[i], ready)/*if ($P.PROMISE) {*/.then(ready, ready)/*}*/;
     }
 }
 

@@ -1,0 +1,22 @@
+{
+    "name": "Promise test - DOM Environment",
+    "root": "../modules/",
+
+    "output": "../out/promise_test.lmd.js",
+
+    "modules": {
+        "main": "promise_main.js",
+
+        "testcase_lmd_promise": "test_case/testcase_lmd_promise/testcase_lmd_promise.js"
+
+    },
+
+    "version": "latest",
+    "main": "main",
+    "global": "this",
+
+    "warn": true,
+    "log": true,
+
+    "depends": "*.lmd.json"
+}

@@ -18,42 +18,22 @@
      * @param {Function}     [callback]   callback(result) undefined on error others on success
      */
     sb.require.async = function (moduleName, callback) {
-        callback = callback || sb.noop;
+        var replacement = sb.trigger('*:request-off-package', moduleName, callback, 'async'), // [[returnResult, moduleName, module, true], callback, type]
+            returnResult = replacement[0][0];
 
-        if (typeof moduleName !== "string") {
-            callback = sb.trigger('*:request-parallel', moduleName, callback, sb.require.async)[1];
-            if (!callback) {
-                return sb.require;
-            }
+        if (replacement[0][3]) { // isReturnASAP
+            return returnResult;
         }
 
-        var module = sb.modules[moduleName],
+        var module = replacement[0][2],
             XMLHttpRequestConstructor = sb.global.XMLHttpRequest || sb.global.ActiveXObject;
 
-        var replacement = sb.trigger('*:rewrite-shortcut', moduleName, module);
-        if (replacement) {
-            moduleName = replacement[0];
-            module = replacement[1];
-        }
-
-        sb.trigger('async:before-check', moduleName, module);
-        // If module exists or its a node.js env
-        if (module) {
-            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
-            return sb.require;
-        }
-
-        sb.trigger('*:before-init', moduleName, module);
-
-        callback = sb.trigger('*:request-race', moduleName, callback)[1];
-        // if already called
-        if (!callback) {
-            return sb.require;
-        }
+        callback = replacement[1];
+        moduleName = replacement[0][1];
 
         if (!XMLHttpRequestConstructor) {
             sb.trigger('async:require-environment-file', moduleName, module, callback);
-            return sb.require;
+            return returnResult;
         }
 /*if ($P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
         // Optimized tiny ajax get
@@ -87,7 +67,7 @@
         xhr.open('get', moduleName);
         xhr.send();
 
-        return sb.require;
+        return returnResult;
 /*if ($P.NODE) {*///#JSCOVERAGE_ENDIF/*}*/
     };
 

@@ -1,0 +1,7 @@
+{
+    "name": "MIXIN: test environment",
+    "root": "../cfgs",
+    "modules": {
+        "options": "test.json"
+    }
+}

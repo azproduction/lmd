@@ -3,9 +3,11 @@
 
     "modules": {
         "sk_css_css": "@/modules/shortcuts/css.css",
-        "sk_js_js": "@/modules/shortcuts/js.js"
+        "sk_js_js": "@/modules/shortcuts/js.js",
+        "sk_image_image": "@/modules/shortcuts/image.gif"
     },
 
     "js": true,
-    "css": true
+    "css": true,
+    "image": true
 }

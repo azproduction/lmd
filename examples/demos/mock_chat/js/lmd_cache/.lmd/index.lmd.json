@@ -1,0 +1,29 @@
+{
+    "name": "Mock chat with LMD modules and cache: true",
+
+    "path": "../modules/",
+
+    "output": "../index.lmd.js",
+
+    "modules": {
+        "main": "index.js",
+        "b-roster": "b-roster.js",
+        "undefined": "utils.js",
+        "b-dialog": "@js/lmd/modules/b-dialog.min.js",
+        "b-talk": "@js/lmd/modules/b-talk.min.js"
+    },
+    "main": "main",
+    "global": "this",
+    "ie": false,
+    "async": true,
+    "lazy": true,
+    "pack": true,
+    "cache": true,
+    "cache_async": true,
+    "version": "1.6.4-2",
+    "parallel": true,
+    "shortcuts": true,
+
+    "warn": true,
+    "log": true
+}

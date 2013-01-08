@@ -1,0 +1,13 @@
+{
+    "root": "../js",
+    "output": "../index.lmd.js",
+    "www_root": "../",
+    "modules": {
+        "*": "*.js",
+        "yandexMapsApi": "@//api-maps.yandex.ru/2.0-stable/?load=package.standard&lang=ru-RU"
+    },
+    "main": "main",
+    "ie": false,
+    "js": true,
+    "shortcuts": true
+}

@@ -1,0 +1,15 @@
+{
+    "name": "Basic build with `en` locale by default",
+
+    "root": "../",
+    "output": "index.lmd.js",
+    "modules": {
+        "main": "js/main.js",
+        "i18n": "i18n/en.json",
+        "name": "tpls/name.html"
+    },
+    "main": "main",
+    "ie": false,
+    "pack": true,
+    "lazy": false
+}

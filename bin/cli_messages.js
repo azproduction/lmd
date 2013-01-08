@@ -16,6 +16,10 @@ LogWriter.prototype.warn = function (message) {
     this.log('warn'.red + ':    ' + message);
 };
 
+LogWriter.prototype.error = function (message) {
+    this.log('ERRO'.red.inverse + ':    ' + message);
+};
+
 LogWriter.prototype.help = function (content, errorMessage) {
     var help = [
         '',

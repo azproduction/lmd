@@ -138,7 +138,8 @@ function printModules(cli, config, deepModulesInfo, sortColumnName) {
     moduleRows.unshift(headers);
 
     moduleRows.forEach(function (row, rowIndex) {
-        var rowString = '';
+        var rowString = '',
+            isError = false;
 
         row.forEach(function (item, index) {
             var length = item.length || 1,
@@ -154,14 +155,22 @@ function printModules(cli, config, deepModulesInfo, sortColumnName) {
                 item = item.cyan;
             }
 
-            if (index) {
+            // type=not-found
+            if (index === 2 && item === "not-exists") {
+                item = item.red;
+                isError = true;
+            } else if (index) {
                 item = printValue(item);
             }
 
             rowString += item + (maxColumnLength > length ? new Array(maxColumnLength - length).join(' ') : '  ');
         });
 
-        cli.ok(rowString);
+        if (isError) {
+            cli.error(rowString);
+        } else {
+            cli.ok(rowString);
+        }
     });
 
     cli.ok('');
@@ -193,7 +202,8 @@ function printFlags(cli, config, availableFlags) {
         cli.ok(
             flag.cyan +
             (longestName > flag.length ? new Array(longestName - flag.length).join(' ') : '  ') +
-            printValue(value)
+            printValue(value) +
+            (config.plugins_depends[flag] ? ' (depend of ' + config.plugins_depends[flag].join(', ').cyan + ')' : '')
         );
     });
 
@@ -217,7 +227,15 @@ function printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytic
     }, 0);
 
     modulesNames.forEach(function (name) {
-        cli.ok(name.cyan + new Array(longestName - name.length + 2).join(' ') + ' <- ' + modules[name].path.green);
+        var moduleInfo = name.cyan + new Array(longestName - name.length + 2).join(' ') + ' <- ';
+
+        if (modules[name].is_exists) {
+            moduleInfo += modules[name].path.green;
+            cli.ok(moduleInfo);
+        } else {
+            moduleInfo += modules[name].path.red + ' (not exists)';
+            cli.error(moduleInfo);
+        }
         if (!isDeepAnalytics) {
             return;
         }
@@ -243,6 +261,34 @@ function printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytic
         if (features.length) {
             cli.ok('  ' + 'Uses'.green + ': ' + features.join(', '));
             cli.ok('');
+        }
+    });
+
+    cli.ok('');
+}
+
+function printUserPlugins(cli, config) {
+    var plugins = config.plugins || {},
+        pluginsNames = Object.keys(plugins);
+
+    if (!pluginsNames.length) {
+        return;
+    }
+
+    cli.ok('User plugins'.white.bold.underline);
+    cli.ok('');
+
+    var longestName = pluginsNames.reduce(function (max, name) {
+        return max < name.length ? name.length : max;
+    }, 0);
+
+    pluginsNames.forEach(function (name) {
+        var message = name.cyan + new Array(longestName - name.length + 2).join(' ') + ' <- ';
+
+        if (plugins[name].isOk) {
+            cli.ok(message + plugins[name].path.green);
+        } else {
+            cli.warn(message + plugins[name].path.red);
         }
     });
 
@@ -316,15 +362,16 @@ module.exports = function (cli, argv, cwd) {
 
     var rawConfig = common.readConfig(lmdFile),
         flags = Object.keys(flagToOptionNameMap),
-        extraFlags = ["warn", "log", "pack", "lazy"],
+        extraFlags = common.SOURCE_TWEAK_FLAGS,
         config = assembleLmdConfig(lmdFile, flags, argv),
         root = fs.realpathSync(cwd + '/.lmd/' + config.root),
         output = config.output ? path.join(root, config.output) : 'STDOUT'.yellow,
         sourcemap = config.sourcemap ? fs.realpathSync(root + '/' + config.sourcemap) : false,
-        www = config.www_root ? fs.realpathSync(cwd + '/.lmd/' + config.www_root + '/') : false;
+        www = config.www_root ? fs.realpathSync(cwd + '/.lmd/' + config.www_root + '/') : false,
+        versionString = config.version ? ' - version ' + config.version.toString().cyan : '';
 
     cli.ok('');
-    cli.ok('LMD Package `' + buildName.green + '` (' + ('.lmd/' + buildName + '.lmd.json').green + ')');
+    cli.ok('LMD Package `' + buildName.green + '` (' + ('.lmd/' + buildName + '.lmd.json').green + ')' + versionString);
     cli.ok('');
 
     if (rawConfig.extends) {
@@ -337,9 +384,22 @@ module.exports = function (cli, argv, cwd) {
         cli.ok('');
     }
 
+    if (config.name || config.description) {
+        config.name && cli.ok(config.name.toString().white.bold);
+        if (config.description) {
+            // Multiline description
+            var descriptionLines = config.description.toString().split('\n');
+            descriptionLines.forEach(function (line) {
+                cli.ok(line);
+            });
+        }
+        cli.ok('');
+    }
+
     var deepModulesInfo = common.collectModulesInfo(config);
     printModules(cli, config, deepModulesInfo, sortOrder);
     printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytics);
+    printUserPlugins(cli, config);
     printFlags(cli, config, flags.concat(extraFlags));
 
     cli.ok('Paths'.white.bold.underline);
@@ -377,6 +437,10 @@ module.exports = function (cli, argv, cwd) {
             cli.warn(error);
         });
     }
+
+    common.collectFlagsNotifications(config).forEach(function (notification) {
+        cli.ok(notification);
+    });
 
     cli.ok('');
 };

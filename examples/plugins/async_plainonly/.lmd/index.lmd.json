@@ -1,0 +1,16 @@
+{
+    "root": "../js",
+    "output": "../index.lmd.js",
+    "www_root": "../",
+    "modules": {
+        "main": "main.js",
+        "md5": "@js/md5.js"
+    },
+    "main": "main",
+    "ie": false,
+
+    "async": true,
+    "async_plainonly": true,
+
+    "shortcuts": true
+}

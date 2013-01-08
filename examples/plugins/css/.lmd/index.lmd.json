@@ -1,0 +1,14 @@
+{
+    "name": "CSS example build",
+    "description": "This string can contain long description even with \nnew lines",
+
+    "root": "../js",
+    "output": "../index.lmd.js",
+    "www_root": "../",
+    "modules": {
+        "*": "*.js"
+    },
+    "main": "main",
+    "ie": false,
+    "css": true
+}

@@ -1,0 +1,35 @@
+{
+    "root": "../../",
+
+    "modules": {
+        "module_as_string": "module_as_string.html",
+        "module_function_fd2": "module_function_fd2.js",
+
+        "sk_async_html": "@/modules/shortcuts/async.html",
+        "sk_async_js": "@/modules/shortcuts/async.js",
+        "sk_async_json": "@/modules/shortcuts/async.json",
+
+        "sk_css_css": "@/modules/shortcuts/css.css",
+        "sk_js_js": "@/modules/shortcuts/js.js",
+        "sk_image_image": "@/modules/shortcuts/image.gif",
+
+        "Q": {
+            "path": "vendors/q.js",
+            "exports": "Q"
+        }
+    },
+
+    "js": true,
+    "css": true,
+    "image": true,
+
+    "async": true,
+    "async_plain": true,
+
+    "race": true,
+    "parallel": true,
+
+    "shortcuts": true,
+
+    "promise": "Q.defer"
+}

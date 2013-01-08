@@ -24,5 +24,7 @@ var worker_global_environment = {
     equal: this.equal,
     expect: this.expect,
     $: this.$,
-    raises: this.raises
+    raises: this.raises,
+
+    setTimeout: this.setTimeout
 };

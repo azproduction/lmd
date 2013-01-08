@@ -156,7 +156,7 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
         for (var moduleName in report.modules) {
             moduleReport = report.modules[moduleName];
             lmdModuleOptions = lmdConfig.modules[moduleName];
-            realModuleName = moduleReport.shortcuts && moduleReport.shortcuts.length ? moduleReport.shortcuts.join(', ') : moduleName;
+            realModuleName = moduleReport && moduleReport.shortcuts && moduleReport.shortcuts.length ? moduleReport.shortcuts.join(', ') : moduleName;
 
             // config exists and module is not a shortcut
             if (moduleReport && moduleName === moduleReport.name && moduleName !== "main") {
@@ -190,7 +190,7 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
                 if (moduleReport.moduleAccessTimes) {
                     for (var byModuleName in moduleReport.moduleAccessTimes) {
                         byModuleReport = report.modules[byModuleName];
-                        realByModuleName = byModuleReport.shortcuts && byModuleReport.shortcuts.length ? byModuleReport.shortcuts.join(', ') : byModuleName;
+                        realByModuleName = byModuleReport && byModuleReport.shortcuts && byModuleReport.shortcuts.length ? byModuleReport.shortcuts.join(', ') : byModuleName;
 
                         if (moduleReport.moduleAccessTimes[byModuleName].length > 1) {
                             suggestions.push(util.format(
@@ -202,7 +202,7 @@ exports.attachTo = function (app, logDir, wwwDir, lmdConfig, lmdModules) {
                 }
 
                 // #3 Suggest to create shortcuts instead of using urls
-                if (moduleReport.type === "off-package" && moduleReport.shortcuts && moduleReport.shortcuts.length === 0) {
+                if (moduleReport.type === "off-package" && moduleReport && moduleReport.shortcuts && moduleReport.shortcuts.length === 0) {
                     suggestions.push(util.format(
                         'You can give shortcut name to your off-package module "%s" like "some_name": "@%s"',
                         realModuleName, realModuleName

@@ -100,8 +100,16 @@ module.exports = function (cli, argv, cwd) {
     var buildResult = new lmdPackage(lmdFile, argv),
         buildConfig = buildResult.buildConfig;
 
+    // fatal error
+    if (buildResult.readable === false && buildConfig.log && buildConfig.output) {
+        console.log(buildResult.readable, buildConfig.log, buildConfig.output);
+        buildResult.log.pipe(cli.stream);
+        return;
+    }
+
     if (buildConfig.log && buildConfig.output) {
-        cli.ok('Building `' + buildName +  '` (.lmd/' + buildName + '.lmd.json)');
+        var versionString = buildConfig.version ? ' - version ' + buildConfig.version.toString().cyan : '';
+        cli.ok('Building `' + buildName.green +  '` (' + ('.lmd/' + buildName + '.lmd.json').green + ')' + versionString);
         if (mixinBuilds.length) {
             cli.ok('Extra mixins ' + mixinBuilds);
         }

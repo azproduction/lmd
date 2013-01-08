@@ -1,0 +1,23 @@
+{
+    "name": "Abstract build",
+
+    "root": "../modules/",
+    "modules": {
+        "main": "main.js",
+        "depA": "depA.js",
+        "template": "templates/template.html",
+        "depB": {
+            "path": "depB.js",
+            "sandbox": true
+        },
+        "workerDepA": "workerDepA.js"
+    },
+    "main": "main",
+    "global": "this",
+    "async": true,
+    "js": true,
+    "css": true,
+    "lazy": false,
+    "pack": false,
+    "ie": true
+}

@@ -1,0 +1,18 @@
+{
+    "root": "../",
+    "output": "index.lmd.js",
+    "modules": {
+        "main": "js/main.js"
+    },
+    "main": "main",
+    "plugins": {
+        "user_plugin": "plugins/user_plugin.js",
+        "user_plugin_with_options": {
+            "path": "plugins/user_plugin_with_options.js",
+            "options": {
+                "pewpew": "ololo"
+            }
+        }
+    },
+    "ie": false
+}

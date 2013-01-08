@@ -1,0 +1,7 @@
+/**
+ * LMD glob example
+ */
+
+$(function () {
+
+});
