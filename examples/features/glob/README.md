@@ -1,6 +1,6 @@
 This example covers
 
-  * glob - file matching base on glob
+  * glob - file matching based on glob
 
 See https://github.com/isaacs/node-glob and https://github.com/isaacs/minimatch fo glob patters.
 

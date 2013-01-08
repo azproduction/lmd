@@ -398,10 +398,10 @@ $(function () {
 
     $button.click(function () {
         // using shortcuts
-        // md5 -> /js/md5.js
+        // md5 -> js/md5.js
         require.async("md5", calculateMd5);
     });
 });
 }),{
-"md5": "@/js/md5.js"
+"md5": "@js/md5.js"
 },{},{})

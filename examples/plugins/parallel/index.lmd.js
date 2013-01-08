@@ -526,6 +526,6 @@ $(function () {
 });
 
 }),{
-"sha512": "@/js/sha512.js",
-"md5": "@/js/md5.js"
+"sha512": "@js/sha512.js",
+"md5": "@js/md5.js"
 },{},{})

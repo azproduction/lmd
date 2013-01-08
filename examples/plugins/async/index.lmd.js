@@ -352,10 +352,10 @@ $(function () {
 
     $button.click(function () {
         // using shortcuts
-        // sha512 -> /js/sha512.js
+        // sha512 -> js/sha512.js
         require.async("sha512", calculateSha512);
     });
 });
 }),{
-"sha512": "@/js/sha512.js"
+"sha512": "@js/sha512.js"
 },{},{})

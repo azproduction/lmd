@@ -996,7 +996,7 @@ sb.on('*:create-promise', function () {
     main(lmd_trigger('lmd-register:decorate-require', "main", require)[1], output.exports, output);
 })/*DO NOT ADD ; !*/(this,(function (require, exports, module) { /* wrapped by builder */
 /**
- * LMD require.async()+"promise" example
+ * LMD require.stats() example
  */
 
 function loadMd5() {
@@ -1010,7 +1010,7 @@ function loadSha512() {
 }
 
 function decorateInputs() {
-    return require.css('/css/b-input.css');
+    return require.css('css/b-input.css');
 }
 
 $(function () {
@@ -1048,8 +1048,8 @@ $(function () {
 });
 
 }),
-"sha512": "@/js/sha512.js",
-"md5": "@/js/md5.js",
+"sha512": "@js/sha512.js",
+"md5": "@js/md5.js",
 "statsLogger": (function (require, exports, module) { /* wrapped by builder */
 var $log = $('.b-log');
 

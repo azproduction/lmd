@@ -5,8 +5,8 @@
     "modules": {
         "main": "main.js",
         "unused": "unused-module.js",
-        "sha512": "@/js/sha512.js",
-        "md5": "@/js/md5.js",
+        "sha512": "@js/sha512.js",
+        "md5": "@js/md5.js",
         "statsLogger": "statsLogger.js"
     },
     "main": "main",

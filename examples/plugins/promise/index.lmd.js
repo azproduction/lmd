@@ -602,7 +602,7 @@ function loadSha512() {
 }
 
 function decorateInputs() {
-    return require.css('/css/b-input.css');
+    return require.css('css/b-input.css');
 }
 
 $(function () {
@@ -631,6 +631,6 @@ $(function () {
 });
 
 }),{
-"sha512": "@/js/sha512.js",
-"md5": "@/js/md5.js"
+"sha512": "@js/sha512.js",
+"md5": "@js/md5.js"
 },{},{"promise":"$.Deferred"})

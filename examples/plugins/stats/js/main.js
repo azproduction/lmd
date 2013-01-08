@@ -13,7 +13,7 @@ function loadSha512() {
 }
 
 function decorateInputs() {
-    return require.css('/css/b-input.css');
+    return require.css('css/b-input.css');
 }
 
 $(function () {

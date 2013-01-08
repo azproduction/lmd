@@ -195,8 +195,8 @@ $(function () {
 ;
 
 }),
-"appTemplate": "<!--\nThis is empty file just to demonstrate glob matching\nsee .lmd/index.lmd.json\n-->\n\n",
-"itemTemplate": "<!--\nThis is empty file just to demonstrate glob matching\nsee .lmd/index.lmd.json\n-->\n\n",
+"appTemplate": "<!--\nhis is empty file just to demonstrate glob matching\nsee .lmd/index.lmd.json\n-->\n\n",
+"itemTemplate": "<!--\nhis is empty file just to demonstrate glob matching\nsee .lmd/index.lmd.json\n-->\n\n",
 "itemsTemplate": "<!--\nThis is empty file just to demonstrate glob matching\nsee .lmd/index.lmd.json\n-->\n\n",
 "userTemplate": "<!--\nThis is empty file just to demonstrate glob matching\nsee .lmd/index.lmd.json\n-->\n\n",
 "usersTemplate": "<!--\nThis is empty file just to demonstrate glob matching\nsee .lmd/index.lmd.json\n-->\n\n",

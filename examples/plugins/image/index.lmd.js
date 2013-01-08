@@ -268,7 +268,7 @@ $(function () {
     var $button = $('.b-button');
 
     $button.click(function () {
-        require.image("/images/html5.png", function (img) {
+        require.image("images/html5.png", function (img) {
             !img && console.log('Fail to load');
             drawImageOnCanvas(img);
         });
