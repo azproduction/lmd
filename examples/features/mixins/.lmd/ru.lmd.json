@@ -1,0 +1,7 @@
+{
+    "name": "MIXIN: ru locale",
+    "root": "../locales",
+    "modules": {
+        "locale": "ru.json"
+    }
+}

@@ -1,0 +1,19 @@
+{
+    "name": "Mixin example. Default lang=${default.language} environment=${default.environment}",
+
+    "default": {
+        "language": "en",
+        "environment": "dev"
+    },
+
+    "root": "../",
+    "output": "../index.lmd.js",
+    "www_root": "../",
+    "modules": {
+        "main": "js/main.js",
+        "locale": "locales/${default.language}.json",
+        "options": "cfgs/${default.environment}.json"
+    },
+    "main": "main",
+    "ie": false
+}

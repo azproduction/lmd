@@ -1,0 +1,7 @@
+{
+    "name": "MIXIN: production environment",
+    "root": "../cfgs",
+    "modules": {
+        "options": "prod.json"
+    }
+}

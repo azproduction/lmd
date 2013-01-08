@@ -88,9 +88,9 @@ require.stats.sendTo('http://localhost:8081'); // you may specify report_name to
 
 Stats server provides simple coverage and usage reports
 
-![](http://github.com/azproduction/lmd/raw/master/images/coverage_package.png)
+![](https://raw.github.com/azproduction/lmd/master/images/coverage_package.png)
 
-![](http://github.com/azproduction/lmd/raw/master/images/coverage_module.png)
+![](https://raw.github.com/azproduction/lmd/master/images/coverage_module.png)
 
 *Prepare config*
 
@@ -104,7 +104,7 @@ First you have to add this parameters to tour module config
 
 `lmd server your_config`
 
-see [CLI lmd server](https://github.com/azproduction/lmd/blob/master/docs/cli.md#lmd-server) for more information
+see [CLI lmd server](https://github.com/azproduction/lmd/blob/master/docs/building/cli.md#lmd-server) for more information
 
-see [examples/mock_chat](/azproduction/lmd/tree/master/examples/mock_chat) for real example
+see [examples/mock_chat](/azproduction/lmd/tree/master/examples/demos/mock_chat) for real example
 
