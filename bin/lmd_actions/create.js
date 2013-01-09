@@ -3,6 +3,7 @@ require('colors');
 var fs = require('fs'),
     path = require('path'),
     optimist = require('optimist'),
+    info = require(__dirname + '/info.js'),
     init = require(__dirname + '/init.js'),
     common = require(__dirname + '/../../lib/lmd_common.js');
 
@@ -134,3 +135,17 @@ module.exports = function (cli, argv, cwd) {
 };
 
 module.exports.checkFile = checkFile;
+
+module.exports.completion = function (cli, argv, cwd, completionOptions) {
+    // module name completion
+    if (completionOptions.index === 1) {
+        return;
+    }
+
+    // <flags> & <options>
+    if (completionOptions.index > 1) {
+        var flagsOptions = info.getCompletionOptions({});
+
+        return cli.log(flagsOptions.join('\n'));
+    }
+};

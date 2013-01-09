@@ -4,6 +4,7 @@ var fs = require('fs'),
     path = require('path'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
+    info = require(__dirname + '/info.js'),
     common = require(__dirname + '/../../lib/lmd_common.js');
 
 var optimist = require('optimist');
@@ -94,5 +95,21 @@ module.exports = function (cli, argv, cwd) {
         updateBuild(cwd, buildName, argv);
     } else {
         printHelp(cli);
+    }
+};
+
+module.exports.completion = function (cli, argv, cwd, completionOptions) {
+    // module name completion
+    if (completionOptions.index === 1) {
+        var builds = info.getBuilds(cwd);
+
+        return cli.log(builds.join('\n'));
+    }
+
+    // <flags> & <options>
+    if (completionOptions.index > 1) {
+        var flagsOptions = info.getCompletionOptions({});
+
+        return cli.log(flagsOptions.join('\n'));
     }
 };

@@ -191,6 +191,15 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
   * interpolation - you can use templates in your config string values to make your life easier. See [demo](http://azproduction.ru/lmd/examples/features/interpolation/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)
   * mixins - you can mix your build configs (eg `lmd build index+ru+dev`) to create your special builds. See [demo](http://azproduction.ru/lmd/examples/features/mixins/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/mixins/)
 
+## Bash/zsh completion
+
+Installation `lmd completion >> ~/.bashrc` (or `~/.zshrc`). Do not forget to restart shell.
+
+**Other ways**
+
+  * You can add `. <(lmd completion)` to your rc file
+  * Or, maybe: `lmd completion > /usr/local/etc/bash_completion.d/lmd`
+
 ## Running tests
 
 `phantomjs` is required to run test via `npm test` see [test](/azproduction/lmd/tree/master/test) for details
