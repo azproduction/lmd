@@ -5,6 +5,7 @@ var fs = require('fs'),
     cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
+    info = require(__dirname + '/info.js'),
     common = require(__dirname + '/../../lib/lmd_common.js'),
     lmdPackage = require(__dirname + '/../lmd_builder.js');
 
@@ -99,4 +100,20 @@ module.exports = function (cli, argv, cwd) {
         watchResult.log.pipe(cli.stream);
     }
 
+};
+
+module.exports.completion = function (cli, argv, cwd, completionOptions) {
+    // module name completion
+    if (completionOptions.index === 1) {
+        var builds = info.getBuilds(cwd);
+
+        return cli.log(builds.join('\n'));
+    }
+
+    // <flags> & <options>
+    if (completionOptions.index > 1) {
+        var flagsOptions = info.getCompletionOptions({});
+
+        return cli.log(flagsOptions.join('\n'));
+    }
 };

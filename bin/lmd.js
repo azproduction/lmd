@@ -7,48 +7,16 @@
 
 // Supress path.existsSync is now called `fs.existsSync`.
 require('path').existsSync = require('fs').existsSync;
+require('path').exists = require('fs').exists;
 
 var fs = require('fs'),
-    cli = require(__dirname + '/cli_messages.js');
+    cli = require(__dirname + '/cli_messages.js'),
+    actions = require(__dirname + '/lmd_actions.js');
 
 require('colors');
 
-var allowedActions = {
-    init: 'Initializes LMD for project',
-    create: 'To create new LMD config',
-    update: 'Updates existed LMD config',
-    list: 'To see LMD packages list',
-    build: 'To build LMD package',
-    watch: 'To start/stop LMD package watcher',
-    server: 'To start/stop LMD stats server',
-    info: 'To see LMD extended package/build info'
-};
-
-var actionsAliases = {
-    'init': 'init',
-
-    'create': 'create',
-    'new': 'create',
-
-    'update': 'update',
-    'up': 'update',
-
-    'list': 'list',
-    'ls': 'list',
-
-    'build': 'build',
-    'make': 'build',
-
-    'watch': 'watch',
-
-    'server': 'server',
-    'serv': 'server',
-    'stats': 'server',
-
-    'info': 'info',
-    'dry': 'info',
-    'dry-run': 'info'
-};
+var allowedActions = actions.actions;
+var actionsAliases = actions.aliases;
 
 function printHelp(cli, errorMessage) {
     var help = [

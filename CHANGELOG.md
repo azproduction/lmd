@@ -114,4 +114,4 @@
   - lmd-build(1) and lmd-info(1) are prints version parameter if defined
   - [Plugin demos](https://github.com/azproduction/lmd/tree/master/examples/plugins/)
   - Bugfixes #83 #81 #79 #78 #66
-
+  - bash zsh autocomplete
