@@ -132,4 +132,5 @@ $ lmd info index+ru --output=index-ru.lmd.js
 # 13. You can run watch with mixins too
 ```
 
-Browse examples/getting_started for that project.
+Browse demo [getting_started](https://github.com/azproduction/lmd/tree/master/examples/demos/getting_started) for that project.
+See also [Bash/zsh completion](https://github.com/azproduction/lmd#bashzsh-completion).
