@@ -1,0 +1,9 @@
+{
+    "name": "production build",
+    "root": "../js",
+    "output": "../index.js",
+    "modules": {
+        "main": "main.js"
+    },
+    "main": "main"
+}

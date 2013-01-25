@@ -1,0 +1,17 @@
+{
+    "name": "Depends example",
+    "description": "`depends` field is mask for module depends. \nWith 'depends': '*.lmd.json' depends config for `main.js` will be `main.lmd.json`",
+
+    "root": "../js",
+    "output": "../index.js",
+    "modules": {
+        "main": "main.js",
+        "module_with_own_depends": {
+            "path": "module_with_own_depends.js",
+            "depends": "module_with_own_depends.json"
+        }
+    },
+    "main": "main",
+
+    "depends": "*.lmd.json"
+}

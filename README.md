@@ -189,7 +189,13 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
 
   * glob - you can specify glob pattern (eg `"${name}": "js/*.js"`) to match multiply files. See [demo](http://azproduction.ru/lmd/examples/features/glob/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/glob/)
   * interpolation - you can use templates in your config string values to make your life easier. See [demo](http://azproduction.ru/lmd/examples/features/interpolation/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)
+  * sandbox - some of your modules can be in the "sandbox". They cant require, but can provide some resources. See [demo](http://azproduction.ru/lmd/examples/features/sandbox/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/sandbox/)
+
+## Config extras
+
   * mixins - you can mix your build configs (eg `lmd build index+ru+dev`) to create your special builds. See [demo](http://azproduction.ru/lmd/examples/features/mixins/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/mixins/)
+  * depends - your modules can have own depends. You can notify LMD by adding global "depends" paramenter or specify "depends" for each module. See [demo](http://azproduction.ru/lmd/examples/features/depends/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/depends/)
+  * extends - your configs can inherit other configs (eg development extends production). See [demo](http://azproduction.ru/lmd/examples/features/extends/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/extends/)
 
 ## Bash/zsh completion
 
