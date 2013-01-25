@@ -12,7 +12,7 @@
      * @retuns no
      */
     sb.on('async:require-environment-file', function (moduleName, module, callback) {
-        sb.global.require('fs').readFile(moduleName, 'utf8', function (err, module) {
+        require('fs').readFile(moduleName, 'utf8', function (err, module) {
             if (err) {
                 sb.trigger('*:request-error', moduleName);
                 callback();

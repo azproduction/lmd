@@ -163,7 +163,7 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
 ### Environment optimization
 
   * `worker` - set true if LMD package will run as worker
-  * `node` - set true if LMD package will run as Node.js script
+  * `node` - set true if LMD package will run as Node.js script. See [demo](http://azproduction.ru/lmd/examples/plugins/node/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/node/)
   * `ie` - **enabled by default** set false if script will run only in modern browsers
   * `opera_mobile` - set true if LMD package will run in Opera Mobile
 

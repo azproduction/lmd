@@ -15,7 +15,7 @@
         try {
             // call importScripts or require
             // any of them can throw error if file not found or transmission error
-            module = sb.register(moduleName, (sb.global.importScripts || sb.global.require)(moduleName) || {});
+            module = sb.modules[moduleName] = (sb.global.importScripts || require)(moduleName) || {};
             return [moduleName, module];
         } catch (e) {
             // error -> default behaviour

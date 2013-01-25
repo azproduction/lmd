@@ -1,6 +1,7 @@
 .DS_Store
 .idea/
-node_modules/
+/node_modules/
+examples/demos/*/node_modules/
 test/coverage/*
 test/qunit/out/*.js
 test/qunit/out/*.map

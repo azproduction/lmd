@@ -1,9 +1,9 @@
-(function /*if ($P.CACHE) {*/lmd/*}*/(global, main, modules, modules_options, options) {
+(function (global, main, modules, modules_options, options) {
     var initialized_modules = {},
         global_eval = function (code) {
             return global.Function('return ' + code)();
         },
-        /*if ($P.CSS || $P.JS || $P.ASYNC || $P.IMAGE) {*/global_noop = function () {},/*}*/
+        
         global_document = global.document,
         local_undefined,
         /**
@@ -126,10 +126,10 @@
             require: lmd_require,
             initialized: initialized_modules,
 
-            /*if ($P.CSS || $P.JS || $P.ASYNC || $P.IMAGE) {*/noop: global_noop,/*}*/
+            
             document: global_document,
-            /*if ($P.CACHE) {*/lmd: lmd,/*}*/
-            /*if ($P.CACHE) {*/main: main,/*}*/
+            
+            
 
             on: lmd_on,
             trigger: lmd_trigger,
@@ -141,7 +141,84 @@
         initialized_modules[moduleName] = 0;
     }
 
-/*{{LMD_PLUGINS_LOCATION}}*/
+/**
+ * @name sandbox
+ */
+(function (sb) {
+    /**
+     * @event js:request-environment-module js.js plugin requests for enviroment-based module init
+     *        (importScripts or node require)
+     *
+     * @param {String}   moduleName
+     * @param {String}   module
+     *
+     * @retuns yes
+     */
+    sb.on('js:request-environment-module', function (moduleName, module) {
+        try {
+            // call importScripts or require
+            // any of them can throw error if file not found or transmission error
+            module = sb.modules[moduleName] = (sb.global.importScripts || require)(moduleName) || {};
+            return [moduleName, module];
+        } catch (e) {
+            // error -> default behaviour
+            sb.trigger('*:request-error', moduleName, module);
+            return [moduleName, module];
+        }
+    });
+}(sandbox));
+
+/**
+ * @name sandbox
+ */
+(function (sb) {
+    /**
+     * @event async:require-environment-file requests file register using some environment functions non XHR
+     *
+     * @param {String}   moduleName
+     * @param {String}   module
+     * @param {Function} callback   this callback will be called when module inited
+     *
+     * @retuns no
+     */
+    sb.on('async:require-environment-file', function (moduleName, module, callback) {
+        require('fs').readFile(moduleName, 'utf8', function (err, module) {
+            if (err) {
+                sb.trigger('*:request-error', moduleName);
+                callback();
+                return;
+            }
+            // check file extension - not content-type
+            if ((/js$|json$/).test(moduleName)) {
+                module = sb.trigger('*:wrap-module', moduleName, module, moduleName)[1];
+                if (!(/json$/).test(moduleName)) {
+                    module = sb.trigger('*:coverage-apply', moduleName, module)[1];
+                }
+                module = sb.eval(module);
+            }
+            // 4. Then callback it
+            callback(sb.register(moduleName, module));
+        });
+    });
+}(sandbox));
+
+
 
     main(lmd_trigger('lmd-register:decorate-require', "main", lmd_require)[1], output.exports, output);
-})/*DO NOT ADD ; !*/
+})/*DO NOT ADD ; !*/(this,(function (require, exports, module) { /* wrapped by builder */
+/**
+ * LMD "node" plugin example
+ */
+
+// this require is lmd_require->node_require proxy in node environment
+var md5 = require('md5');
+
+if (typeof md5 === "undefined") {
+    console.log('[OK] This is DOM environment!', 'No md5 module in this build.');
+} else {
+    console.log('[OK] This is Node environment!', md5('42'));
+}
+
+}),{
+
+},{},{})
