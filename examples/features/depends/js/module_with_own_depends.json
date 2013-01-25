@@ -1,0 +1,6 @@
+{
+    "root": "../json",
+    "modules": {
+        "data": "data.json"
+    }
+}
