@@ -13,10 +13,12 @@ body, html, .b-layout__table, .b-layout__cell {
     text-shadow: 0 1px 3px rgba(0,0,0,.4), 0 0 30px rgba(0,0,0,.075);
 }
 
-.b-layout__header {
+.b-layout__logo {
     color: #111;
     font-size: 6em;
     font-weight: bold;
+
+    height: 35%;
 }
 
 .b-layout__group {
