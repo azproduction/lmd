@@ -13,18 +13,20 @@ body, html, .b-layout__table, .b-layout__cell {
     text-shadow: 0 1px 3px rgba(0,0,0,.4), 0 0 30px rgba(0,0,0,.075);
 }
 
-.b-layout__header {
+.b-layout__logo {
     color: #111;
     font-size: 6em;
     font-weight: bold;
+
+    height: 35%;
 }
 
 .b-layout__group {
-    width: 50%;
-    margin-left: 25%;
+    width: 60%;
+    margin-left: 20%;
 }
 
-.b-layout__disclaimer {
+.b-layout__description {
     color: #333;
     font-size: 2em;
 }
@@ -36,8 +38,11 @@ body, html, .b-layout__table, .b-layout__cell {
     color: #FFFFFF;
     font-size: 24px;
     font-weight: 200;
+
     padding: 14px 24px;
     margin: 5px;
+
+    display: inline-block;
 }
 
 .b-layout__button_type_basic {
@@ -54,7 +59,7 @@ body, html, .b-layout__table, .b-layout__cell {
 }
 
 .b-layout__buttons {
-    padding: 50px 0;
+    padding: 20px 0;
 }
 
 .b-layout__extra {

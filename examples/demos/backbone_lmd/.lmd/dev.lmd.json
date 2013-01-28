@@ -1,5 +1,7 @@
 {
-    "name": "Development build with cache",
+    "name": "Development build",
+
+    "description": "This example uses file glob and string interpolation.\nSee:\n  - examples/features/interpolation\n  - examples/features/glob",
 
     "root": "../js/",
     "output": "../compiled/dev.lmd.js",
@@ -16,7 +18,7 @@
             "exports": "jQuery"
         },
 
-        "Backbone": {
+        "backbone": {
             "path": "lib/backbone/backbone.js",
             "require": {
                 "underscore": "_",
@@ -24,19 +26,12 @@
             },
             "exports": "Backbone"
         },
-        "Store": "lib/backbone/localstorage.js",
+        "store": "lib/backbone/localstorage.js",
 
         "main": "main.js",
-        "Common": "common.js",
+        "common": "common.js",
 
-        "Workspace": "routers/router.js",
-        "Todo": "models/todo.js",
-        "Todos": "collections/todos.js",
-        "TodoView": "views/todos.js",
-        "AppView": "views/app.js",
-
-        "statsTemplate": "templates/stats.html",
-        "todosTemplate": "templates/todos.html"
+        "<%= file %><%= dir[0][0].toUpperCase() %><%= dir[0].slice(1, -1) %>": "{collections,models,routers,templates,views}/**/*.{js,html}"
     },
     "main": "main",
 

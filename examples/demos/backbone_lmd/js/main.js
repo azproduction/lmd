@@ -1,12 +1,12 @@
 var $ = require('$'),
-    AppView = require('AppView'),
-    Workspace = require('Workspace'),
-    Backbone = require('Backbone');
+    AppView = require('appView'),
+    Workspace = require('workspaceRouter'),
+    backbone = require('backbone');
 
 $(function () {
-    // Initialize routing and start Backbone.history()
+    // Initialize routing and start backbone.history()
     new Workspace();
-    Backbone.history.start();
+    backbone.history.start();
 
     // Initialize the application view
     new AppView();

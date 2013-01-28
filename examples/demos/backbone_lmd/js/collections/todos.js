@@ -1,9 +1,9 @@
 var _ = require('_'),
-    Backbone = require('Backbone'),
-    Store = require('Store'),
-    Todo = require('Todo');
+    backbone = require('backbone'),
+    Store = require('store'),
+    Todo = require('todoModel');
 
-var TodosCollection = Backbone.Collection.extend({
+var TodosCollection = backbone.Collection.extend({
     // Reference to this collection's model.
     model: Todo,
 

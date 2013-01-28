@@ -25,7 +25,7 @@
                 module = lmd_trigger('js:request-environment-module', moduleName, module)[1] || global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, require)[1];
+                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, lmd_require)[1];
 
                 // Make sure that sandboxed modules cant require
                 if (modules_options[moduleName] &&
@@ -85,7 +85,7 @@
          *
          * @returns {*}
          */
-        require = function (moduleName) {
+        lmd_require = function (moduleName) {
             var module = modules[moduleName];
 
             lmd_trigger('*:before-check', moduleName, module);
@@ -123,7 +123,7 @@
 
             eval: global_eval,
             register: register_module,
-            require: require,
+            require: lmd_require,
             initialized: initialized_modules,
 
             /*if ($P.CSS || $P.JS || $P.ASYNC || $P.IMAGE) {*/noop: global_noop,/*}*/
@@ -143,5 +143,5 @@
 
 /*{{LMD_PLUGINS_LOCATION}}*/
 
-    main(lmd_trigger('lmd-register:decorate-require', "main", require)[1], output.exports, output);
+    main(lmd_trigger('lmd-register:decorate-require', "main", lmd_require)[1], output.exports, output);
 })/*DO NOT ADD ; !*/
