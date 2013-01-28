@@ -1,0 +1,18 @@
+{
+    "name": "sandbox - module isolation example",
+    "description": "evil_module is sandboxed - it can't require at all",
+
+    "root": "../js",
+    "output": "../index.js",
+
+    "modules": {
+        "main": "main.js",
+
+        "evil_module": {
+            "path": "evil_module.js",
+            "sandbox": true
+        }
+    },
+
+    "main": "main"
+}

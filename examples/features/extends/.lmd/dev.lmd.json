@@ -1,0 +1,10 @@
+{
+    "name": "dev build",
+    "root": "../js",
+    "output": "../index-dev.js",
+    "extends": "./prod.lmd.json",
+    "modules": {
+        "main": "main-dev.js",
+        "debug": "debug.js"
+    }
+}

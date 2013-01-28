@@ -56,3 +56,5 @@ var node_global_environment = {
 
     setTimeout: this.setTimeout
 };
+
+var require = node_global_environment.require;

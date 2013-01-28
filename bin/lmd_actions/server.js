@@ -5,26 +5,34 @@ var fs = require('fs'),
     cli = require(__dirname + '/../cli_messages.js'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
+    info = require(__dirname + '/info.js'),
     common = require(__dirname + '/../../lib/lmd_common.js'),
     LmdStatsServer = require(__dirname + '/../../stats_server/index.js'),
     assembleLmdConfig = common.assembleLmdConfig,
     flagToOptionNameMap = common.LMD_PLUGINS;
 
-var optimist = require('optimist')
-    .alias('address', 'a')
-    .default('address', '0.0.0.0')
-    .describe('address', 'Client stats server address. Log receiver')
+var options = {
+    'address': {
+        'describe': 'Client stats server address. Log receiver',
+        'alias': 'a',
+        'default': '0.0.0.0'
+    },
+    'port': {
+        'describe': 'Client stats server port',
+        'alias': 'p',
+        'default': '8081'
+    },
+    'admin-address': {
+        'describe': 'Admin interface server address. Default same as `address`',
+        'alias': 'aa'
+    },
+    'admin-port': {
+        'describe': 'Admin interface server port. Default same as `port`',
+        'alias': 'ap'
+    }
+};
 
-    .alias('port', 'p')
-    .default('port', '8081')
-    .describe('port', 'Client stats server port')
-
-    .alias('admin-address', 'aa')
-    .describe('admin-address', 'Admin interface server address. Default same as `port`')
-
-    .alias('admin-port', 'ap')
-    .describe('admin-port', 'Admin interface server port. Default same as `address`')
-    ;
+var optimist = require('optimist');
 
 function printHelp(cli, errorMessage) {
     var help = [
@@ -65,6 +73,9 @@ function ensureDirExists(path) {
 }
 
 module.exports = function (cli, argv, cwd) {
+    for (var optionName in options) {
+        optimist.options(optionName, options[optionName]);
+    }
     argv = optimist.parse(argv);
 
     var status,
@@ -128,4 +139,20 @@ module.exports = function (cli, argv, cwd) {
         www: wwwDir
     });
 
+};
+
+module.exports.completion = function (cli, argv, cwd, completionOptions) {
+    // module name completion
+    if (completionOptions.index === 1) {
+        var builds = info.getBuilds(cwd);
+
+        return cli.log(builds.join('\n'));
+    }
+
+    // <flags> & <options>
+    if (completionOptions.index > 1) {
+        var flagsOptions = info.getCompletionOptions(options);
+
+        return cli.log(flagsOptions.join('\n'));
+    }
 };

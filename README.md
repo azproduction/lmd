@@ -74,22 +74,20 @@ LMD is inspired by AMD and provides similar module interface
 6. Build system compresses JavaScript files using UglifyJs
 7. LMD module can define object via `return` or `module.exports` or `exports` as CommonJS Module
 8. Module can be wrapped automatically in builder so you can write your modules as node.js modules
-([Asynchronous module require](https://github.com/azproduction/lmd/blob/master/docs/plugins/plugins_usage.md#asynchronous-module-require))
 9. Starting from version 1.5.2 LMD can require off-package modules `"async": true`
-(see [Asynchronous module require](https://github.com/azproduction/lmd/blob/master/docs/plugins/plugins_usage.md#asynchronous-module-require))
+(see [Asynchronous module require](https://github.com/azproduction/lmd/wiki/Off-package-modules))
 10. From version 1.6.0 LMD can cache all in-package modules in localStorage `"cache": true`
-(see [Local Storage cache](https://github.com/azproduction/lmd/blob/master/docs/plugins/plugins_usage.md#local-storage-cache))
+(see [Local Storage cache](https://github.com/azproduction/lmd/wiki/LocalStorage-cache))
 11. From version 1.6.2 LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
 12. LMD package is possible to run as Web Worker or execute as Node.js script
-(see [Web Worker and Node.js](https://github.com/azproduction/lmd/blob/master/docs/plugins/plugins_usage.md#web-worker-and-nodejs))
+(see [Web Worker and Node.js](https://github.com/azproduction/lmd/wiki/Workers-and-Node))
 13. LMD works in all modern browsers and in older IE
-(see [Browsers support](https://github.com/azproduction/lmd/blob/master/docs/plugins/plugins_usage.md#browsers-support))
 14. LMD can convert non-LMD modules to LMD to use jquery or any other as in-package LMD module
-(see [LMD module form third-party modules](https://github.com/azproduction/lmd/blob/master/docs/modules/modules_options.md#lmd-module-form-third-party-modules))
-15. LMD can protect your code from 3-party modules (see [Modules sandbox](https://github.com/azproduction/lmd/blob/master/docs/modules_options.md#modules-sandbox))
-16. Code Coverage? - Easy! (see [Code coverage](https://github.com/azproduction/lmd/blob/master/docs/plugins/code_coverage_and_stats.md))
+(see [LMD module form third-party modules](https://github.com/azproduction/lmd/wiki/Adopting-modules))
+15. LMD can protect your code from 3-party modules (see [Modules sandbox](https://github.com/azproduction/lmd/wiki/Module-sandbox))
+16. Code Coverage? - Easy! (see [Code coverage](https://github.com/azproduction/lmd/wiki/Analytics-and-Code-coverage))
 17. Ready for production - `lmd.js` is 100% covered by unit tests see [test/README.md](/azproduction/lmd/tree/master/test) for details
-18. SourceMap for all LMD modules (see [Source map](https://github.com/azproduction/lmd/blob/master/docs/source_map.md))
+18. SourceMap for all LMD modules (see [Source map](https://github.com/azproduction/lmd/wiki/SourceMap))
 19. Reach CLI interface
 
 ## Installing
@@ -98,9 +96,8 @@ LMD is inspired by AMD and provides similar module interface
 
 ## Getting started with LMD
 
-See [Getting Started](https://github.com/azproduction/lmd/blob/master/docs/getting_started.md) and
-[Project structure](https://github.com/azproduction/lmd/blob/master/docs/project_structure.md)
-and [Docs](https://github.com/azproduction/lmd/tree/master/docs)
+See [Getting Started](https://github.com/azproduction/lmd/wiki/Getting-started)
+and [Wiki](https://github.com/azproduction/lmd/wiki/)
 
 ## LMD Config file
 
@@ -116,22 +113,22 @@ and [Docs](https://github.com/azproduction/lmd/tree/master/docs)
 }
 ```
 
-See [LMD Config](https://github.com/azproduction/lmd/blob/master/docs/lmd_config.md) for more information
+See [LMD Config](https://github.com/azproduction/lmd/wiki/LMD-config) for more information
 
 **Note**
 
  - You can extend config file with another using `"extends": "path/to/file.lmd.json"` parameter
- - You can also specify module depends by adding `"depends"` options see [Modules depends](https://github.com/azproduction/lmd/blob/master/docs/modules/modules_options.md#modules-depends)
+ - You can also specify module depends by adding `"depends"` options see [Modules dependencies](https://github.com/azproduction/lmd/wiki/Module-dependencies)
 
 ## Build LMD package from Console
 
 `lmd build your_buiild_name`
 
-See [LMD CLI](https://github.com/azproduction/lmd/blob/master/docs/building/cli.md)
+See [LMD CLI](https://github.com/azproduction/lmd/wiki/CLI)
 
 ## Grunt integration and task
 
-Install this grunt plugin next to your project's [grunt.js gruntfile](https://github.com/gruntjs/grunt/blob/master/docs/getting_started.md) with: `npm install grunt-lmd`
+Install this grunt plugin next to your project's [grunt.js gruntfile](https://github.com/gruntjs/grunt/wiki/Getting-started) with: `npm install grunt-lmd`
 
 Then add this line to your project's `grunt.js` gruntfile:
 
@@ -163,7 +160,7 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
 ### Environment optimization
 
   * `worker` - set true if LMD package will run as worker
-  * `node` - set true if LMD package will run as Node.js script
+  * `node` - set true if LMD package will run as Node.js script. See [demo](http://azproduction.ru/lmd/examples/plugins/node/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/node/)
   * `ie` - **enabled by default** set false if script will run only in modern browsers
   * `opera_mobile` - set true if LMD package will run in Opera Mobile
 
@@ -189,7 +186,22 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
 
   * glob - you can specify glob pattern (eg `"${name}": "js/*.js"`) to match multiply files. See [demo](http://azproduction.ru/lmd/examples/features/glob/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/glob/)
   * interpolation - you can use templates in your config string values to make your life easier. See [demo](http://azproduction.ru/lmd/examples/features/interpolation/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)
+  * sandbox - some of your modules can be in the "sandbox". They cant require, but can provide some resources. See [demo](http://azproduction.ru/lmd/examples/features/sandbox/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/sandbox/)
+
+## Config extras
+
   * mixins - you can mix your build configs (eg `lmd build index+ru+dev`) to create your special builds. See [demo](http://azproduction.ru/lmd/examples/features/mixins/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/mixins/)
+  * depends - your modules can have own depends. You can notify LMD by adding global "depends" paramenter or specify "depends" for each module. See [demo](http://azproduction.ru/lmd/examples/features/depends/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/depends/)
+  * extends - your configs can inherit other configs (eg development extends production). See [demo](http://azproduction.ru/lmd/examples/features/extends/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/extends/)
+
+## Bash/zsh completion
+
+Installation `lmd completion >> ~/.bashrc` (or `~/.zshrc`). Do not forget to restart shell.
+
+**Other ways**
+
+  * You can add `. <(lmd completion)` to your rc file
+  * Or, maybe: `lmd completion > /usr/local/etc/bash_completion.d/lmd`
 
 ## Running tests
 

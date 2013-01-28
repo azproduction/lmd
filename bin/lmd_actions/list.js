@@ -6,6 +6,8 @@ var fs = require('fs'),
     create = require(__dirname + '/create.js'),
     common = require(__dirname + '/../../lib/lmd_common.js');
 
+var reLmdFile = common.RE_LMD_FILE;
+
 function printHelp(cli, errorMessage) {
     var help = [
         'Usage:'.bold.white.underline,
@@ -18,13 +20,19 @@ function printHelp(cli, errorMessage) {
     cli.help(help, errorMessage);
 }
 
+function builds(cwd) {
+    var lmdDir = path.join(cwd, '.lmd');
+
+    return fs.readdirSync(lmdDir)
+        .filter(function (name) {
+            return fs.statSync(path.join(lmdDir, name)).isFile() && reLmdFile.test(name);
+        });
+}
+
 function listOfFiles(cli, cwd) {
     var lmdDir = path.join(cwd, '.lmd');
 
-    var files = fs.readdirSync(lmdDir)
-        .filter(function (name) {
-            return fs.statSync(path.join(lmdDir, name)).isFile() && /\.lmd\.json$/.test(name);
-        });
+    var files = builds(cwd);
 
     if (!files.length) {
         cli.ok('');
@@ -45,7 +53,7 @@ function listOfFiles(cli, cwd) {
         var extraSpaces = new Array(longestName - name.length + 3).join(' '),
             buildName = common.readConfig(lmdDir, name).name || '';
 
-        name = name.replace(/\.lmd\.json$/, '');
+        name = name.replace(reLmdFile, '');
         cli.ok(name.cyan + extraSpaces + buildName);
     });
     cli.ok('');
@@ -58,3 +66,5 @@ module.exports = function (cli, argv, cwd) {
 
     listOfFiles(cli, cwd);
 };
+
+module.exports.builds = builds;

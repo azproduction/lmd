@@ -255,7 +255,7 @@ function stats_shortcut(moduleName, shortcut) {
  * @param {String} [moduleName]
  * @return {Object}
  */
-require.stats = function (moduleName) {
+sb.require.stats = function (moduleName) {
     var replacement = sb.trigger('stats:before-return-stats', moduleName, stats_results);
 
     if (replacement && replacement[1]) {

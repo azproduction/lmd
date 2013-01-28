@@ -1,0 +1,1 @@
+The docs have moved! Please view them on the [LMD wiki](https://github.com/azproduction/lmd/wiki).

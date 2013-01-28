@@ -4,19 +4,25 @@ var fs = require('fs'),
     path = require('path'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
+    list = require(__dirname + '/list.js'),
     common = require(__dirname + '/../../lib/lmd_common.js'),
     assembleLmdConfig = common.assembleLmdConfig,
     flagToOptionNameMap = common.LMD_PLUGINS;
 
-var optimist = require('optimist')
-    .alias('sort', 'order-by')
-    .describe('sort', 'Sorts modules by that row')
-    .default('sort', 'undefined')
+var options = {
+    'sort': {
+        'describe': 'Sorts modules by that row',
+        'alias': 'order-by',
+        'default': 'undefined'
+    },
+    'deep': {
+        'describe': 'Prints deep module analytics',
+        'boolean': true,
+        'default': true
+    }
+};
 
-    .describe('deep', 'Prints deep module analytics')
-    .boolean('deep')
-    .default('deep', true)
-    ;
+var optimist = require('optimist');
 
 var YES = '✔'.green,
     NO = '✘'.red,
@@ -295,7 +301,51 @@ function printUserPlugins(cli, config) {
     cli.ok('');
 }
 
+function getCompletionOptions(actionOptions) {
+    var plugins = Object.keys(common.LMD_PLUGINS),
+        flags = common.SOURCE_TWEAK_FLAGS,
+        fields = common.MASTER_FIELDS;
+
+    return  Object.keys(actionOptions)
+        // add options or flags
+        .reduce(function (all, current) {
+            all.push(current);
+
+            if (all.alias) {
+                all.push(all.alias);
+            }
+
+            return all;
+        }, [])
+        // +plugins
+        .concat(plugins)
+        // +no-plugins
+        .concat(plugins.map(function (name) {
+            return 'no-' + name;
+        }))
+        // +fields
+        .concat(fields)
+        // +no-flags (+flags are in master fields)
+        .concat(flags.map(function (flag) {
+            return 'no-' + flag;
+        }))
+        // add prefixes
+        .map(function (name) {
+            return '--' + name;
+        });
+}
+
+function getBuilds(cwd) {
+    return list.builds(cwd).map(function (file) {
+        return file.replace(common.RE_LMD_FILE, '');
+    });
+}
+
 module.exports = function (cli, argv, cwd) {
+    for (var optionName in options) {
+        optimist.options(optionName, options[optionName]);
+    }
+
     argv = optimist.parse(argv);
 
     var buildName,
@@ -443,4 +493,23 @@ module.exports = function (cli, argv, cwd) {
     });
 
     cli.ok('');
+};
+
+module.exports.getCompletionOptions = getCompletionOptions;
+module.exports.getBuilds = getBuilds;
+
+module.exports.completion = function (cli, argv, cwd, completionOptions) {
+    // module name completion
+    if (completionOptions.index === 1) {
+        var builds = getBuilds(cwd);
+
+        return cli.log(builds.join('\n'));
+    }
+
+    // <flags> & <options>
+    if (completionOptions.index > 1) {
+        var flagsOptions = getCompletionOptions(options);
+
+        return cli.log(flagsOptions.join('\n'));
+    }
 };
