@@ -115,3 +115,5 @@
   - [Plugin demos](https://github.com/azproduction/lmd/tree/master/examples/plugins/)
   - Bugfixes #83 #81 #79 #78 #66
   - bash zsh autocomplete
+  - Examples for "depends", "extends", "sandbox"
+  - Docs are located on GH Wiki
