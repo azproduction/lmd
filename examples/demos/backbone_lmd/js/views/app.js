@@ -1,19 +1,19 @@
 var $ = require('$'),
     _ = require('_'),
-    Backbone = require('Backbone'),
-    Todos = require('Todos'),
-    TodoView = require('TodoView'),
+    backbone = require('backbone'),
+    todos = require('todosCollection'),
+    TodoView = require('todosView'),
     statsTemplate = require('statsTemplate'),
-    Common = require('Common');
+    common = require('common');
 
-var AppView = Backbone.View.extend({
+var AppView = backbone.View.extend({
 
     // Instead of generating a new element, bind to the existing skeleton of
     // the App already present in the HTML.
     el: '#todoapp',
 
     // Compile our stats template
-    template: _.template( statsTemplate ),
+    template: _.template(statsTemplate),
 
     // Delegated events for creating new items, and clearing completed ones.
     events: {
@@ -31,22 +31,22 @@ var AppView = Backbone.View.extend({
         this.$footer = this.$('#footer');
         this.$main = this.$('#main');
 
-        Todos.on( 'add', this.addOne, this );
-        Todos.on( 'reset', this.addAll, this );
-        Todos.on( 'change:completed', this.filterOne, this );
-        Todos.on( "filter", this.filterAll, this);
-        Todos.on( 'all', this.render, this );
+        todos.on( 'add', this.addOne, this );
+        todos.on( 'reset', this.addAll, this );
+        todos.on( 'change:completed', this.filterOne, this );
+        todos.on( "filter", this.filterAll, this);
+        todos.on( 'all', this.render, this );
 
-        Todos.fetch();
+        todos.fetch();
     },
 
     // Re-rendering the App just means refreshing the statistics -- the rest
     // of the app doesn't change.
     render: function() {
-        var completed = Todos.completed().length;
-        var remaining = Todos.remaining().length;
+        var completed = todos.completed().length;
+        var remaining = todos.remaining().length;
 
-        if ( Todos.length ) {
+        if (todos.length) {
             this.$main.show();
             this.$footer.show();
 
@@ -57,7 +57,7 @@ var AppView = Backbone.View.extend({
 
             this.$('#filters li a')
                 .removeClass('selected')
-                .filter( '[href="#/' + ( Common.TodoFilter || '' ) + '"]' )
+                .filter( '[href="#/' + ( common.TodoFilter || '' ) + '"]' )
                 .addClass('selected');
         } else {
             this.$main.hide();
@@ -77,7 +77,7 @@ var AppView = Backbone.View.extend({
     // Add all items in the **Todos** collection at once.
     addAll: function() {
         this.$('#todo-list').html('');
-        Todos.each(this.addOne, this);
+        todos.each(this.addOne, this);
     },
 
     filterOne : function (todo) {
@@ -85,14 +85,14 @@ var AppView = Backbone.View.extend({
     },
 
     filterAll : function () {
-        Todos.each(this.filterOne, this);
+        todos.each(this.filterOne, this);
     },
 
     // Generate the attributes for a new Todo item.
     newAttributes: function() {
         return {
             title: this.input.val().trim(),
-            order: Todos.nextOrder(),
+            order: todos.nextOrder(),
             completed: false
         };
     },
@@ -100,17 +100,17 @@ var AppView = Backbone.View.extend({
     // If you hit return in the main input field, create new **Todo** model,
     // persisting it to *localStorage*.
     createOnEnter: function( e ) {
-        if ( e.which !== Common.ENTER_KEY || !this.input.val().trim() ) {
+        if ( e.which !== common.ENTER_KEY || !this.input.val().trim() ) {
             return;
         }
 
-        Todos.create( this.newAttributes() );
+        todos.create( this.newAttributes() );
         this.input.val('');
     },
 
     // Clear all completed todo items, destroying their models.
     clearCompleted: function() {
-        _.each( Todos.completed(), function( todo ) {
+        _.each( todos.completed(), function( todo ) {
             todo.destroy();
         });
 
@@ -120,7 +120,7 @@ var AppView = Backbone.View.extend({
     toggleAllComplete: function() {
         var completed = this.allCheckbox.checked;
 
-        Todos.each(function( todo ) {
+        todos.each(function( todo ) {
             todo.save({
                 'completed': completed
             });

@@ -1,20 +1,20 @@
 var $ = require('$'),
-    Backbone = require('Backbone'),
-    Todos = require('Todos'),
-    Common = require('Common');
+    backbone = require('backbone'),
+    todos = require('todosCollection'),
+    common = require('common');
 
-var Workspace = Backbone.Router.extend({
+var Workspace = backbone.Router.extend({
     routes:{
         '*filter': 'setFilter'
     },
 
     setFilter: function( param ) {
         // Set the current filter to be used
-        Common.TodoFilter = param.trim() || '';
+        common.TodoFilter = param.trim() || '';
 
         // Trigger a collection filter event, causing hiding/unhiding
         // of the Todo view items
-        Todos.trigger('filter');
+        todos.trigger('filter');
     }
 });
 

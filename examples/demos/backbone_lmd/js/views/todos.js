@@ -1,10 +1,10 @@
 var $ = require('$'),
     _ = require('_'),
-    Backbone = require('Backbone'),
+    backbone = require('backbone'),
     todosTemplate = require('todosTemplate'),
-    Common = require('Common');
+    common = require('common');
 
-var TodoView = Backbone.View.extend({
+var TodoView = backbone.View.extend({
 
     tagName:  'li',
 
@@ -45,8 +45,8 @@ var TodoView = Backbone.View.extend({
     isHidden : function () {
         var isCompleted = this.model.get('completed');
         return ( // hidden cases only
-            (!isCompleted && Common.TodoFilter === 'completed')
-            || (isCompleted && Common.TodoFilter === 'active')
+            (!isCompleted && common.TodoFilter === 'completed')
+            || (isCompleted && common.TodoFilter === 'active')
         );
     },
 
@@ -76,7 +76,7 @@ var TodoView = Backbone.View.extend({
 
     // If you hit `enter`, we're through editing the item.
     updateOnEnter: function( e ) {
-        if ( e.keyCode === Common.ENTER_KEY ) {
+        if ( e.keyCode === common.ENTER_KEY ) {
             this.close();
         }
     },
