@@ -16,7 +16,7 @@
 
 **v1.4.x**
 
-  - Config extends (now config can extend common config file) see [examples/basic/cfgs](/azproduction/lmd/tree/master/examples/basic/cfgs)
+  - Config extends (now config can extend common config file)
   - Headless module without function wrapper like Node.js module
   - Possible to specify LMD.js version for build - `lmd_min` (old one) or `lmd_tiny`
   - Per module lazy flag `"Module": {"path": "Module.js", "lazy": false}`
@@ -26,14 +26,14 @@
 
 **v1.5.x**
 
-  - Watch mode see "[Watch mode](#watch-mode)" in this README
-  - New version of argv params see "[LMD CLI](#lmd-cli)" in this README
+  - Watch mode
+  - New version of argv params
   - String module
   - LMD async - loader of off-package modules see "Asynchronous module require" in this README
 
 **v1.6.x**
 
-  - Local Storage cache - config flag `cache: true` see "[Local Storage cache](#local-storage-cache)" in this README
+  - Local Storage cache - config flag `cache: true`
   - argv flag `-v`/`-version` is deprecated - use config flag `async: true` for `lmd_async.js` or false for `lmd_tiny.js` (default)
   - Created development version of example app without cache and production with cache=on
   - LMD can include off-package css `css: true` and js-files `js: true`(for jsonp, cross-origin JS or non LMD modules)
@@ -59,7 +59,7 @@
   - `require.stats()` shows modules usage and code coverage. Flags `stats`, `stats_coverage`, `stats_sendto`
   - in-package Code coverage. Flag `stats_coverage`
   - Stats server
-  - LMD module from non-lmd module (see [LMD module form third-party modules](#lmd-module-form-third-party-modules))
+  - LMD module from non-lmd module
   - `config.lazy=false` by default now
   - Local Storage cache in Opera Mobile is disabled (OM cant Function#toString...)
   - `root` alias to `path`
@@ -72,7 +72,7 @@
 **v1.8.x**
 
   - Plugins interface are totally rewritten
-  - Test runner via `npm test` or `make test` [Running tests](#running-tests)
+  - Test runner via `npm test` or `make test`
   - Tail semicolons cleanup
   - Lmd is Readable Stream
   - Lmd Watch upstart rebuild, watch for lmd.json
