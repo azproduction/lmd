@@ -3,7 +3,7 @@
         global_eval = function (code) {
             return global.Function('return ' + code)();
         },
-        /*if ($P.CSS || $P.JS || $P.ASYNC || $P.IMAGE) {*/global_noop = function () {},/*}*/
+        /*if ($P.OFF_PACKAGE) {*/global_noop = function () {},/*}*/
         global_document = global.document,
         local_undefined,
         /**
@@ -126,7 +126,7 @@
             require: lmd_require,
             initialized: initialized_modules,
 
-            /*if ($P.CSS || $P.JS || $P.ASYNC || $P.IMAGE) {*/noop: global_noop,/*}*/
+            /*if ($P.OFF_PACKAGE) {*/noop: global_noop,/*}*/
             document: global_document,
             /*if ($P.CACHE) {*/lmd: lmd,/*}*/
             /*if ($P.CACHE) {*/main: main,/*}*/

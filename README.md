@@ -145,6 +145,9 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
   * `async` - Provides `require.async()` function. if modules uses off-package module set this to true. See [demo](http://azproduction.ru/lmd/examples/plugins/async/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/async/)
   * `async_plain` - enables async require of both plain and function-modules
   * `async_plainonly` - if you are using only plain modules enable that flag instead of `async_plain`. See [demo](http://azproduction.ru/lmd/examples/plugins/async_plainonly/), [code](https://github.com/azproduction/lmd/tree/master/async_plainonly/)
+  * `preload` - this plugins is simmilar to `async`, it only caches modules without executing them. See [demo](http://azproduction.ru/lmd/examples/plugins/preload/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/preload/)
+  * `preload_plain` - same as `async_plain`
+  * `async_plainonly` - same as `async_plainonly`
 
 ### Cache
 
