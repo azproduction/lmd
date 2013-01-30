@@ -117,3 +117,4 @@
   - bash zsh autocomplete
   - Examples for "depends", "extends", "sandbox"
   - Docs are located on GH Wiki
+  - `preload` - this plugins is simmilar to `async`, it only caches modules without executing them. See [demo](http://azproduction.ru/lmd/examples/plugins/preload/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/preload/)

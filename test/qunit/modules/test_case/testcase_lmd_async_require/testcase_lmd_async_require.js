@@ -179,4 +179,38 @@
             start();
         });
     });
+
+    asyncTest("require.preload() parallel loading several resources", function () {
+        expect(7);
+
+        var requiredModules = [
+            './modules/preload/bad.js' + rnd,
+            './modules/preload/good.js' + rnd,
+            './modules/preload/string.html' + rnd,
+            './modules/preload/json.json' + rnd
+        ];
+
+        require.preload(requiredModules, function (bad, good, string, json) {
+            ok(bad === requiredModules[0] &&
+               good === requiredModules[1] &&
+               string === requiredModules[2] &&
+               json === requiredModules[3], 'Should return module names');
+
+            var goodModule = require(good);
+            ok(goodModule.ok === true, "Can declare module");
+            ok(goodModule === require(good), "Should not init twice");
+
+            ok(require(string) === "<div></div>", "Can declare module as string");
+            ok(require(json).ok === true, "Can declare module as json");
+
+            require.preload(requiredModules, function (bad, good, string, json) {
+                ok(bad === requiredModules[0] &&
+                   good === requiredModules[1] &&
+                   string === requiredModules[2] &&
+                   json === requiredModules[3], 'Should return module names if taking from cache');
+
+                start();
+            });
+        });
+    });
 });

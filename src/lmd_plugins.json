@@ -1,6 +1,10 @@
 {
+    "preload": {
+        "preprocess": ["$P.OFF_PACKAGE"],
+        "require": ["off_package.js", "preload.js"]
+    },
     "async": {
-        "preprocess": ["$P.ASYNC", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE"],
+        "preprocess": ["$P.ASYNC", "$P.OFF_PACKAGE"],
         "require": ["off_package.js", "async.js"]
     },
     "cache": {
@@ -8,11 +12,11 @@
         "require": "cache.js"
     },
     "js": {
-        "preprocess": ["$P.JS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
+        "preprocess": ["$P.JS", "$P.CSS || $P.JS", "$P.OFF_PACKAGE", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
         "require": ["off_package.js", "js.js"]
     },
     "css": {
-        "preprocess": ["$P.CSS", "$P.CSS || $P.JS", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
+        "preprocess": ["$P.CSS", "$P.CSS || $P.JS", "$P.OFF_PACKAGE", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
         "require": ["off_package.js", "css.js"]
     },
     "node": {
@@ -72,14 +76,22 @@
         "depends": ["stats", "stats_sendto"]
     },
     "async_plain": {
-        "preprocess": ["$P.ASYNC_PLAIN", "$P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY"],
-        "require": "async_plain.js",
+        "preprocess": ["$P.WRAP_MODULE"],
+        "require": "wrap_module.js",
         "depends": ["async"]
     },
     "async_plainonly": {
-        "preprocess": ["$P.ASYNC_PLAINONLY", "$P.ASYNC_PLAIN || $P.ASYNC_PLAINONLY"],
-        "require": "async_plain.js",
+        "require": "wrap_module.js",
         "depends": ["async"]
+    },
+    "preload_plain": {
+        "preprocess": ["$P.WRAP_MODULE"],
+        "require": "wrap_module.js",
+        "depends": ["preload"]
+    },
+    "preload_plainonly": {
+        "require": "wrap_module.js",
+        "depends": ["preload"]
     },
     "amd": {
         "require": "amd.js"
@@ -89,7 +101,7 @@
         "require": "promise.js"
     },
     "image": {
-        "preprocess": ["$P.IMAGE", "$P.CSS || $P.JS || $P.ASYNC || $P.IMAGE"],
+        "preprocess": ["$P.IMAGE", "$P.OFF_PACKAGE"],
         "require": ["off_package.js", "image.js"]
     }
 }
