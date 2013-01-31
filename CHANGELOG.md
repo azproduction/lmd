@@ -104,13 +104,13 @@
 
 **v1.10.x**
 
-  - `image` - image loader plugin. See [demo](http://azproduction.ru/lmd/examples/plugins/image/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/image/)
-  - `promise` - promise interface plugin. See [demo](http://azproduction.ru/lmd/examples/plugins/promise/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/promise/)
+  - `image` - image loader plugin. See [demo](http://lmdjs.org/examples/plugins/image/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/image/)
+  - `promise` - promise interface plugin. See [demo](http://lmdjs.org/examples/plugins/promise/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/promise/)
   - `optimize` - a tweak flag enables special LMD optimisations without minification
   - Now you can use `name` and `description` fields
-  - User custom plugins. See [demo](http://azproduction.ru/lmd/examples/plugins/user_plugins/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/user_plugins/)
-  - Config string interpolation/templates. See [demo](http://azproduction.ru/lmd/examples/features/interpolation/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)
-  - Glob - you can specify glob pattern (eg `"${name}": "js/**/*.js"`) to match multiply files. See [demo](http://azproduction.ru/lmd/examples/features/glob/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/glob/)
+  - User custom plugins. See [demo](http://lmdjs.org/examples/plugins/user_plugins/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/user_plugins/)
+  - Config string interpolation/templates. See [demo](http://lmdjs.org/examples/features/interpolation/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)
+  - Glob - you can specify glob pattern (eg `"${name}": "js/**/*.js"`) to match multiply files. See [demo](http://lmdjs.org/examples/features/glob/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/glob/)
   - lmd-build(1) and lmd-info(1) are prints version parameter if defined
   - [Plugin demos](https://github.com/azproduction/lmd/tree/master/examples/plugins/)
   - Bugfixes #83 #81 #79 #78 #66
