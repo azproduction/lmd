@@ -1,0 +1,14 @@
+{
+    "name": "optimize example",
+
+    "root": "../js",
+    "output": "../index.js",
+
+    "modules": {
+        "main": "main.js"
+    },
+    "main": "main",
+    "ie": false,
+
+    "optimize": true
+}

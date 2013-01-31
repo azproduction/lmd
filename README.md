@@ -190,6 +190,7 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
   * glob - you can specify glob pattern (eg `"${name}": "js/*.js"`) to match multiply files. See [demo](http://azproduction.ru/lmd/examples/features/glob/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/glob/)
   * interpolation - you can use templates in your config string values to make your life easier. See [demo](http://azproduction.ru/lmd/examples/features/interpolation/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)
   * sandbox - some of your modules can be in the "sandbox". They cant require, but can provide some resources. See [demo](http://azproduction.ru/lmd/examples/features/sandbox/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/sandbox/)
+  * optimize - optimisations of LMD source(not your project files) without minification/packing. See Optimisations section of [LMD Plugins overview](https://github.com/azproduction/lmd/wiki/LMD-Plugins-overview) wiki page. See [demo](http://azproduction.ru/lmd/examples/features/optimize/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/optimize/)
 
 ## Config extras
 

@@ -251,13 +251,13 @@ LmdBuilder.prototype.closeStreams = function () {
  * @param {Object} data
  */
 LmdBuilder.prototype.template = function (data) {
-    return data.lmd_js + '(' +
+    return data.lmd_js + '\n(' +
         data.global + ',' +
         data.lmd_main + ',' +
         data.lmd_modules + ',' +
         data.modules_options + ',' +
         data.options +
-    ')';
+    ');';
 };
 
 
@@ -630,7 +630,7 @@ LmdBuilder.prototype.optimizeLmdSource = function (lmd_js_code) {
     ast = brakeSandboxes(ast);
     ast = reduceAndShortenLmdEvents(ast);
 
-    var code =  uglify.gen_code(ast, {beautify: true});
+    var code =  uglify.gen_code(ast);
 
     // wipe tail ;
     code = this.removeTailSemicolons(code);
