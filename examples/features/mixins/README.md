@@ -26,4 +26,4 @@ $ lmd build index+test+ru --output=index-test.ru.js
 
   * interpolation
 
-See [demo](http://azproduction.ru/lmd/examples/features/interpolation/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)
+See [demo](http://lmdjs.org/examples/features/interpolation/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)

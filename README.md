@@ -142,57 +142,57 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
 
 ### Off-package LMD module loader
 
-  * `async` - Provides `require.async()` function. if modules uses off-package module set this to true. See [demo](http://azproduction.ru/lmd/examples/plugins/async/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/async/)
+  * `async` - Provides `require.async()` function. if modules uses off-package module set this to true. See [demo](http://lmdjs.org/examples/plugins/async/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/async/)
   * `async_plain` - enables async require of both plain and function-modules
-  * `async_plainonly` - if you are using only plain modules enable that flag instead of `async_plain`. See [demo](http://azproduction.ru/lmd/examples/plugins/async_plainonly/), [code](https://github.com/azproduction/lmd/tree/master/async_plainonly/)
+  * `async_plainonly` - if you are using only plain modules enable that flag instead of `async_plain`. See [demo](http://lmdjs.org/examples/plugins/async_plainonly/), [code](https://github.com/azproduction/lmd/tree/master/async_plainonly/)
 
 ### Cache
 
-  * `cache` - stores all application lmd itself + all modules in localStorage this flag will force all modules to be lazy. See [demo](http://azproduction.ru/lmd/examples/plugins/cache/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/cache/)
-  * `cache_async` - enables localStorage cache for `require.async()`. See [demo](http://azproduction.ru/lmd/examples/plugins/cache_async/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/cache_async/)
+  * `cache` - stores all application lmd itself + all modules in localStorage this flag will force all modules to be lazy. See [demo](http://lmdjs.org/examples/plugins/cache/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/cache/)
+  * `cache_async` - enables localStorage cache for `require.async()`. See [demo](http://lmdjs.org/examples/plugins/cache_async/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/cache_async/)
 
 ### Non-LMD modules loader
 
-  * `js` - if you are going to load non LMD javascript modules `require.js()` set this flag to true. See [demo](http://azproduction.ru/lmd/examples/plugins/js/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/js/)
-  * `css` - enables css-loader feature `require.css()`. See [demo](http://azproduction.ru/lmd/examples/plugins/css/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/css/)
-  * `image` - enables image-loader feature `require.image()`. See [demo](http://azproduction.ru/lmd/examples/plugins/image/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/image/)
+  * `js` - if you are going to load non LMD javascript modules `require.js()` set this flag to true. See [demo](http://lmdjs.org/examples/plugins/js/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/js/)
+  * `css` - enables css-loader feature `require.css()`. See [demo](http://lmdjs.org/examples/plugins/css/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/css/)
+  * `image` - enables image-loader feature `require.image()`. See [demo](http://lmdjs.org/examples/plugins/image/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/image/)
 
 ### Environment optimization
 
   * `worker` - set true if LMD package will run as worker
-  * `node` - set true if LMD package will run as Node.js script. See [demo](http://azproduction.ru/lmd/examples/plugins/node/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/node/)
+  * `node` - set true if LMD package will run as Node.js script. See [demo](http://lmdjs.org/examples/plugins/node/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/node/)
   * `ie` - **enabled by default** set false if script will run only in modern browsers
   * `opera_mobile` - set true if LMD package will run in Opera Mobile
 
 ### Loaders (async, js, css, image) features and optimizations
 
   * `race` - set true if you are performing simultaneous loading of the same resources
-  * `parallel` - enables simultaneous loading `require.js([a, b, c], ..)` resources will be executed in load order! And passed to callback in list order. See [demo](http://azproduction.ru/lmd/examples/plugins/parallel/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/parallel/)
-  * `promise` - enables promise interface for all loaders `require.js('a.js').then()`. See [demo](http://azproduction.ru/lmd/examples/plugins/promise/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/promise/)
+  * `parallel` - enables simultaneous loading `require.js([a, b, c], ..)` resources will be executed in load order! And passed to callback in list order. See [demo](http://lmdjs.org/examples/plugins/parallel/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/parallel/)
+  * `promise` - enables promise interface for all loaders `require.js('a.js').then()`. See [demo](http://lmdjs.org/examples/plugins/promise/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/promise/)
 
 ### Extra module types
 
-  * `shortcuts` - enables shortcuts in LMD package. See [demo](http://azproduction.ru/lmd/examples/plugins/promise/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/promise/) (promise example uses shortcuts)
-  * `amd` - enables AMD RequreJS modules in LMD package. See [demo](http://azproduction.ru/lmd/examples/plugins/amd/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/amd/)
+  * `shortcuts` - enables shortcuts in LMD package. See [demo](http://lmdjs.org/examples/plugins/promise/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/promise/) (promise example uses shortcuts)
+  * `amd` - enables AMD RequreJS modules in LMD package. See [demo](http://lmdjs.org/examples/plugins/amd/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/amd/)
 
 ### Stats and Code coverage
 
-  * `stats` - enables `require.stats()` function - every module require, load, eval, call statistics. See [demo](http://azproduction.ru/lmd/examples/plugins/stats/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/stats/)
-  * `stats_coverage` - enables code coverage for all in-package modules, you can use list of module names to cover only modules in that list. See [demo](http://azproduction.ru/lmd/examples/plugins/stats_coverage/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/stats_coverage/)
+  * `stats` - enables `require.stats()` function - every module require, load, eval, call statistics. See [demo](http://lmdjs.org/examples/plugins/stats/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/stats/)
+  * `stats_coverage` - enables code coverage for all in-package modules, you can use list of module names to cover only modules in that list. See [demo](http://lmdjs.org/examples/plugins/stats_coverage/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/stats_coverage/)
   * `stats_coverage_async` - enables code coverage for all off-package function-modules for that option you can NOT use list of off-package module names. This options is VERY HEAVY +50Kb sources. Each async LMD module will be parsed and patched on the client - it may take A LOT of time
   * `stats_sendto` - enables `require.stats.sendTo(host[, reportName])` function. It POSTs stats&coverage report to specified stats server
 
 ## Special features
 
-  * glob - you can specify glob pattern (eg `"${name}": "js/*.js"`) to match multiply files. See [demo](http://azproduction.ru/lmd/examples/features/glob/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/glob/)
-  * interpolation - you can use templates in your config string values to make your life easier. See [demo](http://azproduction.ru/lmd/examples/features/interpolation/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)
-  * sandbox - some of your modules can be in the "sandbox". They cant require, but can provide some resources. See [demo](http://azproduction.ru/lmd/examples/features/sandbox/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/sandbox/)
+  * glob - you can specify glob pattern (eg `"${name}": "js/*.js"`) to match multiply files. See [demo](http://lmdjs.org/examples/features/glob/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/glob/)
+  * interpolation - you can use templates in your config string values to make your life easier. See [demo](http://lmdjs.org/examples/features/interpolation/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)
+  * sandbox - some of your modules can be in the "sandbox". They cant require, but can provide some resources. See [demo](http://lmdjs.org/examples/features/sandbox/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/sandbox/)
 
 ## Config extras
 
-  * mixins - you can mix your build configs (eg `lmd build index+ru+dev`) to create your special builds. See [demo](http://azproduction.ru/lmd/examples/features/mixins/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/mixins/)
-  * depends - your modules can have own depends. You can notify LMD by adding global "depends" paramenter or specify "depends" for each module. See [demo](http://azproduction.ru/lmd/examples/features/depends/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/depends/)
-  * extends - your configs can inherit other configs (eg development extends production). See [demo](http://azproduction.ru/lmd/examples/features/extends/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/extends/)
+  * mixins - you can mix your build configs (eg `lmd build index+ru+dev`) to create your special builds. See [demo](http://lmdjs.org/examples/features/mixins/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/mixins/)
+  * depends - your modules can have own depends. You can notify LMD by adding global "depends" paramenter or specify "depends" for each module. See [demo](http://lmdjs.org/examples/features/depends/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/depends/)
+  * extends - your configs can inherit other configs (eg development extends production). See [demo](http://lmdjs.org/examples/features/extends/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/extends/)
 
 ## Bash/zsh completion
 
