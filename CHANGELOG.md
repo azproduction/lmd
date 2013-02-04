@@ -118,3 +118,8 @@
   - Examples for "depends", "extends", "sandbox"
   - Docs are located on GH Wiki
   - `preload` - this plugins is simmilar to `async`, it only caches modules without executing them. See [demo](http://lmdjs.org/examples/plugins/preload/), [code](examples/plugins/preload/)
+  - http://lmdjs.org/
+  - adaptation example. See [demo](http://lmdjs.org/examples/features/adaptation/), [code](examples/features/adaptation/)
+  - require.preload plugin. See [demo](http://lmdjs.org/examples/plugins/preload/), [code](examples/plugins/preload/)
+  - optimize flag. See [demo](http://lmdjs.org/examples/features/optimize/), [code](examples/features/optimize/)
+  - build info in the build.js file
