@@ -88,15 +88,16 @@
         lmd_require = function (moduleName) {
             var module = modules[moduleName];
 
-            lmd_trigger('*:before-check', moduleName, module);
-            // Already inited - return as is
-            if (initialized_modules[moduleName] && module) {
-                return module;
-            }
             var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
             if (replacement) {
                 moduleName = replacement[0];
                 module = replacement[1];
+            }
+
+            lmd_trigger('*:before-check', moduleName, module);
+            // Already inited - return as is
+            if (initialized_modules[moduleName] && module) {
+                return module;
             }
 
             lmd_trigger('*:before-init', moduleName, module);
