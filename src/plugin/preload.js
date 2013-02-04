@@ -5,7 +5,7 @@
  *
  * Flag "async"
  *
- * This plugin provides require.async() function
+ * This plugin provides require.preload() function
  */
 /**
  * @name sandbox
@@ -17,8 +17,8 @@
      * @param {String|Array} moduleName same origin path to LMD module
      * @param {Function}     [callback]   callback(result) undefined on error others on success
      */
-    sb.require.async = function (moduleName, callback) {
-        return sb.trigger('*:preload', moduleName, callback, 'async')[0];
+    sb.require.preload = function (moduleName, callback) {
+        return sb.trigger('*:preload', moduleName, callback, 'preload')[0];
     };
 
 }(sandbox));

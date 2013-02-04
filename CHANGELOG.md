@@ -104,16 +104,22 @@
 
 **v1.10.x**
 
-  - `image` - image loader plugin. See [demo](http://lmdjs.org/examples/plugins/image/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/image/)
-  - `promise` - promise interface plugin. See [demo](http://lmdjs.org/examples/plugins/promise/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/promise/)
+  - `image` - image loader plugin. See [demo](http://lmdjs.org/examples/plugins/image/), [code](examples/plugins/image/)
+  - `promise` - promise interface plugin. See [demo](http://lmdjs.org/examples/plugins/promise/), [code](examples/plugins/promise/)
   - `optimize` - a tweak flag enables special LMD optimisations without minification
   - Now you can use `name` and `description` fields
-  - User custom plugins. See [demo](http://lmdjs.org/examples/plugins/user_plugins/), [code](https://github.com/azproduction/lmd/tree/master/examples/plugins/user_plugins/)
-  - Config string interpolation/templates. See [demo](http://lmdjs.org/examples/features/interpolation/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/interpolation/)
-  - Glob - you can specify glob pattern (eg `"${name}": "js/**/*.js"`) to match multiply files. See [demo](http://lmdjs.org/examples/features/glob/), [code](https://github.com/azproduction/lmd/tree/master/examples/features/glob/)
+  - User custom plugins. See [demo](http://lmdjs.org/examples/plugins/user_plugins/), [code](examples/plugins/user_plugins/)
+  - Config string interpolation/templates. See [demo](http://lmdjs.org/examples/features/interpolation/), [code](examples/features/interpolation/)
+  - Glob - you can specify glob pattern (eg `"${name}": "js/**/*.js"`) to match multiply files. See [demo](http://lmdjs.org/examples/features/glob/), [code](examples/features/glob/)
   - lmd-build(1) and lmd-info(1) are prints version parameter if defined
-  - [Plugin demos](https://github.com/azproduction/lmd/tree/master/examples/plugins/)
+  - [Plugin demos](examples/plugins/)
   - Bugfixes #83 #81 #79 #78 #66
   - bash zsh autocomplete
   - Examples for "depends", "extends", "sandbox"
   - Docs are located on GH Wiki
+  - `preload` - this plugins is simmilar to `async`, it only caches modules without executing them. See [demo](http://lmdjs.org/examples/plugins/preload/), [code](examples/plugins/preload/)
+  - http://lmdjs.org/
+  - adaptation example. See [demo](http://lmdjs.org/examples/features/adaptation/), [code](examples/features/adaptation/)
+  - require.preload plugin. See [demo](http://lmdjs.org/examples/plugins/preload/), [code](examples/plugins/preload/)
+  - optimize flag. See [demo](http://lmdjs.org/examples/features/optimize/), [code](examples/features/optimize/)
+  - build info in the build.js file

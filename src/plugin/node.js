@@ -11,7 +11,7 @@
      *
      * @retuns no
      */
-    sb.on('async:require-environment-file', function (moduleName, module, callback) {
+    sb.on('preload:require-environment-file', function (moduleName, module, callback) {
         require('fs').readFile(moduleName, 'utf8', function (err, module) {
             if (err) {
                 sb.trigger('*:request-error', moduleName);

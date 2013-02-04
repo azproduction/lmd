@@ -3,7 +3,7 @@
  */
 (function (sb) {
 
-if ($P.ASYNC_PLAIN) {
+if ($P.WRAP_MODULE) {
 
     /**
      * @param code
