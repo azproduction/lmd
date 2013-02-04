@@ -251,13 +251,15 @@ LmdBuilder.prototype.closeStreams = function () {
  * @param {Object} data
  */
 LmdBuilder.prototype.template = function (data) {
-    return data.lmd_js + '(' +
+    return (data.build_info ? data.build_info + '\n' : '') +
+    data.lmd_js +
+    '\n(' +
         data.global + ',' +
         data.lmd_main + ',' +
         data.lmd_modules + ',' +
         data.modules_options + ',' +
         data.options +
-    ')';
+    ');\n';
 };
 
 
@@ -630,7 +632,7 @@ LmdBuilder.prototype.optimizeLmdSource = function (lmd_js_code) {
     ast = brakeSandboxes(ast);
     ast = reduceAndShortenLmdEvents(ast);
 
-    var code =  uglify.gen_code(ast, {beautify: true});
+    var code =  uglify.gen_code(ast);
 
     // wipe tail ;
     code = this.removeTailSemicolons(code);
@@ -707,7 +709,15 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, is_optimi
 
     options = JSON.stringify(options);
 
+    var configFile = path.basename(this.configFile),
+        mixinFiles = (config.mixins || []).map(function (mixin) {
+            return path.basename(mixin);
+        }),
+        buildInfo = '// This file was automatically generated from "' + configFile + '"' +
+            (mixinFiles.length ? ' using mixins "' + mixinFiles.join('", "') + '"' : '');
+
     result = this.template({
+        build_info: buildInfo,
         lmd_js: lmd_js,
         global: config.global || 'this',
         lmd_main: lmd_main,

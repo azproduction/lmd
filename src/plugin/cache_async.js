@@ -25,7 +25,7 @@ function cache_async(moduleName, module) {
      *
      * @retuns no
      */
-sb.on('async:before-callback', function (moduleName, module) {
+sb.on('preload:before-callback', function (moduleName, module) {
     cache_async(moduleName, module);
 });
 
