@@ -7,6 +7,9 @@
         image: true
     };
 
+    var reEvalable = /(java|ecma)script|json/,
+        reJson = /json/;
+
     /**
       * Load off-package LMD module
       *
@@ -41,9 +44,9 @@
                 if (xhr.status < 201) {
                     var contentType = xhr.getResponseHeader('content-type');
                     module = xhr.responseText;
-                    if ((/script$|json$/).test(contentType)) {
+                    if (reEvalable.test(contentType)) {
                         module = sb.trigger('*:wrap-module', moduleName, module, contentType)[1];
-                        if (!(/json$/).test(contentType)) {
+                        if (!reJson.test(contentType)) {
                             module = sb.trigger('*:coverage-apply', moduleName, module)[1];
                         }
 
