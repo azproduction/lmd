@@ -214,4 +214,6 @@ Installation `lmd completion >> ~/.bashrc` (or `~/.zshrc`). Do not forget to res
 
 --
 
+LMD is developing with help of [these people](AUTHORS)
+
 If you like LMD - ★ it via `npm star lmd`
