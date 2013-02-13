@@ -52,6 +52,22 @@
             }
         },
 
+        "third_party_module_with_custom_this": {
+            "path": "vendors/module_requires_custom_this.js",
+
+            "exports": {
+                "someFunction": "someFunction"
+            },
+
+            "require": {
+                "MyFunction": "Function"
+            },
+
+            "bind": {
+                "MyDate": "Date"
+            }
+        },
+
         "setTimeout": "@setTimeout"
     },
     "depends": true,
