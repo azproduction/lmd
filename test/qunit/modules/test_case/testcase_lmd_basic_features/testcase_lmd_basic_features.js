@@ -113,6 +113,14 @@
            module.someVariable === "string", "require() can load plain 3-party non-lmd modules, N exports");
     });
 
+    test("require() third party module with custom context (this)", function () {
+        expect(1);
+
+        var module = require('third_party_module_with_custom_this');
+        ok(typeof module.someFunction === "function" &&
+            module.someFunction() === "ok", '3-party modules can use custom context (this)');
+    });
+
     if (ENV_NAME === "Node") {
         test("require() node.js npm, node, local modules", function () {
             expect(3);

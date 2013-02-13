@@ -123,3 +123,4 @@
   - require.preload plugin. See [demo](http://lmdjs.org/examples/plugins/preload/), [code](examples/plugins/preload/)
   - optimize flag. See [demo](http://lmdjs.org/examples/features/optimize/), [code](examples/features/optimize/)
   - build info in the build.js file
+  - ThisBinding of 3-party module "bind" or "this" property
