@@ -1003,14 +1003,14 @@ LmdBuilder.prototype.fsWatch = function (config) {
             }
 
             var buildResult = self.build(buildConfig),
-                lmdFile = path.join(self.configDir, config.root, config.output),
+                lmdOutputFile = path.join(self.configDir, config.root, config.output),
                 lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
 
-            log('info'.green + ':    Writing LMD Package to ' + config.output.green + '\n');
-            fs.writeFileSync(lmdFile, buildResult.source, 'utf8');
+            log('info'.green + ':    Writing LMD Package to ' + lmdOutputFile.green + '\n');
+            fs.writeFileSync(lmdOutputFile, buildResult.source, 'utf8');
 
             if (config.sourcemap) {
-                log('info'.green + ':    Writing Source Map to ' + config.sourcemap.green + '\n');
+                log('info'.green + ':    Writing Source Map to ' + lmdSourceMapFile.green + '\n');
                 fs.writeFileSync(lmdSourceMapFile, buildResult.sourceMap.toString(), 'utf8');
             }
 
