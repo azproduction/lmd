@@ -19,6 +19,7 @@ var fs = require('fs'),
 
 var LMD_JS_SRC_PATH = common.LMD_JS_SRC_PATH;
 var LMD_PLUGINS = common.LMD_PLUGINS;
+var SUB_BUNDLE_SEPARATOR = common.SUB_BUNDLE_SEPARATOR;
 
 /**
  * LmdBuilder LMD Package Builder
@@ -48,12 +49,18 @@ var LmdBuilder = function (configFile, options) {
 
     this.init();
 
+    // Bundles streams
+    this.bundles = {};
+
     // Let return instance before build
     this.buildConfig = self.compileConfig(configFile, self.options);
 
     var isFatalErrors = !this.isAllModulesExists(this.buildConfig);
     if (isFatalErrors) {
         this.readable = false;
+        this.sourceMap.readable = false;
+    } else {
+        this._initBundlesStreams(this.buildConfig.bundles);
     }
     process.nextTick(function () {
         if (!isFatalErrors) {
@@ -62,6 +69,7 @@ var LmdBuilder = function (configFile, options) {
 
                 self.emit('data', buildResult.source);
                 self.sourceMap.emit('data', buildResult.sourceMap.toString());
+                self._streamBundles(buildResult.bundles);
             } else {
                 self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.json'.green + ' [output.lmd.js]\n');
             }
@@ -281,6 +289,8 @@ LmdBuilder.prototype.closeStreams = function () {
         this.sourceMap.emit('end');
         this.sourceMap.readable = false;
     }
+
+    this._closeBundleStreams();
 };
 
 /**
@@ -1553,43 +1563,177 @@ LmdBuilder.prototype._build = function (config, isBundle) {
     }
 
     if (config.bundles) {
-        var bundles = this.flattenBundles(config).map(function (bundleConfig) {
-            self._build(bundleConfig, true);
-        });
-
-        if (bundles.length) {
-            result = result || {};
-            result.bundles = bundles;
+        var bundles = config.bundles;
+        for (var bundleName in bundles) {
+            bundles[bundleName] = this._build(bundles[bundleName], true);
         }
+
+        result = result || {};
+        result.bundles = bundles;
     }
 
     return result;
 };
 
-/**
- * Makes from {"name": {"bundles: [{"name2": {2}}] }} ->
- *            [{"bundles:"{"name2": {2}}}, {2}]
- *
- * @param config
- * @return {Array}
- */
-LmdBuilder.prototype.flattenBundles = function (config) {
-    var self = this,
-        bundles = [];
+LmdBuilder.prototype._initBundlesStreams = function (bundles) {
+    var self = this;
 
-    if (!config.bundles) {
-        return bundles;
-    }
-    Object.keys(config.bundles).forEach(function (bundleName) {
-        var bundle = config.bundles[bundleName];
-        bundles.push(bundle);
-        // Flatten sub-bundles
-        if (bundle.bundles) {
-            bundles = bundles.concat(self.flattenBundles(bundle));
+    Object.keys(bundles).forEach(function (bundleName) {
+        var stream = new Stream();
+        stream.readable = true;
+
+        self.bundles[bundleName] = stream;
+
+        stream.sourceMap = new Stream();
+        stream.sourceMap.readable = true;
+    });
+};
+
+/**
+ *
+ * @param bundles
+ * @return {*}
+ * @private
+ */
+LmdBuilder.prototype._streamBundles = function (bundles) {
+    var self = this;
+
+    Object.keys(bundles).forEach(function (bundleName) {
+        var bundle = bundles[bundleName],
+            stream = self.bundles[bundleName];
+
+        stream.emit('data', bundle.source);
+        stream.sourceMap.emit('data', bundle.sourceMap.toString());
+    });
+};
+
+/**
+ * @private
+ */
+LmdBuilder.prototype._closeBundleStreams = function () {
+    var self = this;
+
+    Object.keys(self.bundles).forEach(function (bundleName) {
+        var stream = self.bundles[bundleName];
+
+        if (stream.readable) {
+            stream.emit('end');
+            stream.readable = false;
+        }
+
+        if (stream.sourceMap.readable) {
+            stream.sourceMap.emit('end');
+            stream.sourceMap.readable = false;
         }
     });
+};
 
-    return bundles;
+/**
+ *
+ * @param cwd
+ * @param [config]
+ * @private
+ */
+LmdBuilder.prototype._resolvePaths = function (cwd, config) {
+    var buildConfig = config || this.buildConfig,
+        configs = path.join(cwd, '.lmd'),
+        root = path.join(configs, buildConfig.root || ""),
+        sourceMap = buildConfig.sourcemap ? path.join(root, buildConfig.sourcemap) : null,
+        source = buildConfig.output ? path.join(root, buildConfig.output) : null;
+
+    return {
+        configs: configs,
+        root: root,
+        sourceMap: sourceMap,
+        source: source
+    };
+};
+
+LmdBuilder.prototype._isCanWriteStream = function (stream, fileName) {
+    return fileName && stream && stream.readable;
+};
+
+LmdBuilder.prototype._pipeStreamToFile = function (stream, fileName) {
+    if (this._isCanWriteStream(stream, fileName)) {
+        stream.pipe(fs.createWriteStream(fileName, {
+            flags: "w",
+            encoding: "utf8",
+            mode: 0666
+        }));
+    }
+};
+
+LmdBuilder.prototype._logResult = function (stream, fileName, resourceName, cli) {
+    if (this._isCanWriteStream(stream, fileName)) {
+        stream.on('end', function () {
+            cli.ok('Writing ' + resourceName + ' to ' + fileName.green);
+        });
+    }
+};
+
+LmdBuilder.prototype._writeStreamsTo = function (stream, paths, resourceName, cli) {
+    this._logResult(stream, paths.source, 'LMD ' + resourceName, cli);
+    this._pipeStreamToFile(stream, paths.source);
+
+    this._logResult(stream.sourceMap, paths.sourceMap, 'Source Map of ' + resourceName, cli);
+    this._pipeStreamToFile(stream.sourceMap, paths.sourceMap);
+};
+
+/**
+ *
+ * @param {String} cwd relative path
+ * @param {Object} cli console interface
+ */
+LmdBuilder.prototype.writeAll = function (cwd, cli) {
+    var self = this,
+        stream = this,
+
+        buildConfig = this.buildConfig,
+        configFile = this.configFile,
+        buildName = path.basename(configFile).split('.lmd')[0],
+
+        paths = this._resolvePaths(cwd, buildConfig),
+
+        isPrintToStdout = paths.source === null,
+        isCanLog = buildConfig.log && !isPrintToStdout;
+
+    // fatal error
+    if (this.readable === false && isCanLog) {
+        this.log.pipe(cli.stream);
+        return;
+    }
+
+    if (isPrintToStdout) {
+        stream.pipe(cli.stream);
+        return;
+    }
+
+    if (isCanLog) {
+        var versionString = buildConfig.version ? ' - version ' + buildConfig.version.toString().cyan : '';
+        cli.ok('Building `' + buildName.green +  '` (' + ('.lmd/' + buildName + '.lmd.json').green + ')' + versionString);
+        if (buildConfig.mixins && buildConfig.mixins.length) {
+            cli.ok('Extra mixins ' + buildConfig.mixins.map(function (mixinName) {
+                return mixinName.green
+            }).join(', '));
+        }
+    }
+
+    // Print package
+    this._writeStreamsTo(stream, paths, 'Package', cli);
+
+    // Print bundles
+    var bundles = buildConfig.bundles;
+    Object.keys(bundles).forEach(function (bundleName) {
+        var stream = self.bundles[bundleName],
+            paths = self._resolvePaths(cwd, bundles[bundleName]);
+
+        self._writeStreamsTo(stream, paths, 'Bundle ' + bundleName.green, cli);
+    });
+
+    // Print warnings log
+    if (isCanLog) {
+        this.log.pipe(cli.stream);
+    }
 };
 
 /**

@@ -1,0 +1,27 @@
+{
+    "name": "bundles - separate parts of project",
+    "description": "you can split your project into bundles",
+
+    "root": "../js",
+    "output": "../index.js",
+
+    "modules": {
+        "main": "main.js",
+        "template": "template.html"
+    },
+
+    "bundles": {
+        "options": {
+            "modules": {
+                "main": "options/main.js",
+                "optionsTemplate": "options/template.html",
+                "optionsI18n": "options/i18n.json"
+            }
+        },
+        "textarea": "textarea-bundle.lmd.json"
+    },
+
+    "main": "main",
+    "optimize": true,
+    "ie": false
+}
