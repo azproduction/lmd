@@ -19,7 +19,6 @@ var fs = require('fs'),
 
 var LMD_JS_SRC_PATH = common.LMD_JS_SRC_PATH;
 var LMD_PLUGINS = common.LMD_PLUGINS;
-var SUB_BUNDLE_SEPARATOR = common.SUB_BUNDLE_SEPARATOR;
 
 /**
  * LmdBuilder LMD Package Builder
@@ -1626,114 +1625,6 @@ LmdBuilder.prototype._closeBundleStreams = function () {
             stream.sourceMap.readable = false;
         }
     });
-};
-
-/**
- *
- * @param cwd
- * @param [config]
- * @private
- */
-LmdBuilder.prototype._resolvePaths = function (cwd, config) {
-    var buildConfig = config || this.buildConfig,
-        configs = path.join(cwd, '.lmd'),
-        root = path.join(configs, buildConfig.root || ""),
-        sourceMap = buildConfig.sourcemap ? path.join(root, buildConfig.sourcemap) : null,
-        source = buildConfig.output ? path.join(root, buildConfig.output) : null;
-
-    return {
-        configs: configs,
-        root: root,
-        sourceMap: sourceMap,
-        source: source
-    };
-};
-
-LmdBuilder.prototype._isCanWriteStream = function (stream, fileName) {
-    return fileName && stream && stream.readable;
-};
-
-LmdBuilder.prototype._pipeStreamToFile = function (stream, fileName) {
-    if (this._isCanWriteStream(stream, fileName)) {
-        stream.pipe(fs.createWriteStream(fileName, {
-            flags: "w",
-            encoding: "utf8",
-            mode: 0666
-        }));
-    }
-};
-
-LmdBuilder.prototype._logResult = function (stream, fileName, resourceName, cli) {
-    if (this._isCanWriteStream(stream, fileName)) {
-        stream.on('end', function () {
-            cli.ok('Writing ' + resourceName + ' to ' + fileName.green);
-        });
-    }
-};
-
-LmdBuilder.prototype._writeStreamsTo = function (stream, paths, resourceName, cli) {
-    this._logResult(stream, paths.source, 'LMD ' + resourceName, cli);
-    this._pipeStreamToFile(stream, paths.source);
-
-    this._logResult(stream.sourceMap, paths.sourceMap, 'Source Map of ' + resourceName, cli);
-    this._pipeStreamToFile(stream.sourceMap, paths.sourceMap);
-};
-
-/**
- *
- * @param {String} cwd relative path
- * @param {Object} cli console interface
- */
-LmdBuilder.prototype.writeAll = function (cwd, cli) {
-    var self = this,
-        stream = this,
-
-        buildConfig = this.buildConfig,
-        configFile = this.configFile,
-        buildName = path.basename(configFile).split('.lmd')[0],
-
-        paths = this._resolvePaths(cwd, buildConfig),
-
-        isPrintToStdout = paths.source === null,
-        isCanLog = buildConfig.log && !isPrintToStdout;
-
-    // fatal error
-    if (this.readable === false && isCanLog) {
-        this.log.pipe(cli.stream);
-        return;
-    }
-
-    if (isPrintToStdout) {
-        stream.pipe(cli.stream);
-        return;
-    }
-
-    if (isCanLog) {
-        var versionString = buildConfig.version ? ' - version ' + buildConfig.version.toString().cyan : '';
-        cli.ok('Building `' + buildName.green +  '` (' + ('.lmd/' + buildName + '.lmd.json').green + ')' + versionString);
-        if (buildConfig.mixins && buildConfig.mixins.length) {
-            cli.ok('Extra mixins ' + buildConfig.mixins.map(function (mixinName) {
-                return mixinName.green
-            }).join(', '));
-        }
-    }
-
-    // Print package
-    this._writeStreamsTo(stream, paths, 'Package', cli);
-
-    // Print bundles
-    var bundles = buildConfig.bundles;
-    Object.keys(bundles).forEach(function (bundleName) {
-        var stream = self.bundles[bundleName],
-            paths = self._resolvePaths(cwd, bundles[bundleName]);
-
-        self._writeStreamsTo(stream, paths, 'Bundle ' + bundleName.green, cli);
-    });
-
-    // Print warnings log
-    if (isCanLog) {
-        this.log.pipe(cli.stream);
-    }
 };
 
 /**

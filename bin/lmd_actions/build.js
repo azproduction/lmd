@@ -6,7 +6,8 @@ var fs = require('fs'),
     init = require(__dirname + '/init.js'),
     info = require(__dirname + '/info.js'),
     create = require(__dirname + '/create.js'),
-    lmdPackage = require(__dirname + '/../lmd_builder.js');
+    lmdPackage = require(__dirname + '/../lmd_builder.js'),
+    LmdWriter = require(__dirname + '/../../lib/lmd_writer.js');
 
 function printHelp(cli, errorMessage) {
     var help = [
@@ -96,9 +97,13 @@ module.exports = function (cli, argv, cwd) {
         argv.mixins = mixinBuilds;
     }
 
-    var lmdFile = path.join(cwd, '.lmd', buildName + '.lmd.json');
+    var lmdFile = path.join(cwd, '.lmd', buildName + '.lmd.json'),
+        buildResult = new lmdPackage(lmdFile, argv);
 
-    new lmdPackage(lmdFile, argv).writeAll(cwd, cli);
+    new LmdWriter(buildResult)
+        .relativeTo(cwd)
+        .logTo(cli)
+        .writeAll();
 };
 
 module.exports.completion = function (cli, argv, cwd, completionOptions) {
