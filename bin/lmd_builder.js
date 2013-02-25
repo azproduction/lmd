@@ -753,7 +753,8 @@ LmdBuilder.prototype.renderLmdPackage = function (config, modulesBundle, isOptim
     var options = {},
         version = config.cache ? config.version : false,
         stats_host = config.stats_auto || false,
-        promise = config.promise || false;
+        promise = config.promise || false,
+        bundle = config.bundles_callback || false;
 
     // if version passed -> module will be cached
     if (version) {
@@ -766,6 +767,10 @@ LmdBuilder.prototype.renderLmdPackage = function (config, modulesBundle, isOptim
 
     if (promise) {
         options.promise = promise;
+    }
+
+    if (bundle) {
+        options.bundle = bundle;
     }
 
     var userPlugin;

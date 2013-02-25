@@ -1,11 +1,11 @@
 {
     "preload": {
         "preprocess": ["$P.OFF_PACKAGE"],
-        "require": ["off_package.js", "preload.js"]
+        "require": ["common/off_package.js", "preload.js"]
     },
     "async": {
         "preprocess": ["$P.ASYNC", "$P.OFF_PACKAGE"],
-        "require": ["off_package.js", "async.js"]
+        "require": ["common/off_package.js", "async.js"]
     },
     "cache": {
         "preprocess": ["$P.CACHE", "$P.CACHE || $P.STATS_AUTO"],
@@ -13,19 +13,19 @@
     },
     "js": {
         "preprocess": ["$P.JS", "$P.CSS || $P.JS", "$P.OFF_PACKAGE", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
-        "require": ["off_package.js", "js.js"]
+        "require": ["common/script_loader.js", "common/off_package.js", "js.js"]
     },
     "css": {
         "preprocess": ["$P.CSS", "$P.CSS || $P.JS", "$P.OFF_PACKAGE", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
-        "require": ["off_package.js", "css.js"]
+        "require": ["common/off_package.js", "css.js"]
     },
     "node": {
         "preprocess": ["$P.WORKER || $P.NODE", "$P.NODE"],
-        "require": ["worker_or_node.js", "node.js"]
+        "require": ["common/worker_or_node.js", "node.js"]
     },
     "worker": {
         "preprocess": ["$P.WORKER || $P.NODE"],
-        "require": "worker_or_node.js"
+        "require": "common/worker_or_node.js"
     },
     "ie": {
         "preprocess": ["$P.IE"],
@@ -77,20 +77,20 @@
     },
     "async_plain": {
         "preprocess": ["$P.WRAP_MODULE"],
-        "require": "wrap_module.js",
+        "require": "common/wrap_module.js",
         "depends": ["async"]
     },
     "async_plainonly": {
-        "require": "wrap_module.js",
+        "require": "common/wrap_module.js",
         "depends": ["async"]
     },
     "preload_plain": {
         "preprocess": ["$P.WRAP_MODULE"],
-        "require": "wrap_module.js",
+        "require": "common/wrap_module.js",
         "depends": ["preload"]
     },
     "preload_plainonly": {
-        "require": "wrap_module.js",
+        "require": "common/wrap_module.js",
         "depends": ["preload"]
     },
     "amd": {
@@ -102,6 +102,9 @@
     },
     "image": {
         "preprocess": ["$P.IMAGE", "$P.OFF_PACKAGE"],
-        "require": ["off_package.js", "image.js"]
+        "require": ["common/off_package.js", "image.js"]
+    },
+    "bundle": {
+        "require": ["common/script_loader.js", "common/off_package.js", "bundle.js"]
     }
 }
