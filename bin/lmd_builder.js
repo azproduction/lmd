@@ -15,6 +15,8 @@ var fs = require('fs'),
     uglify = uglifyCompress.uglify,
     lmdCoverage = require(__dirname + '/../lib/coverage_apply.js'),
     common = require(__dirname + '/../lib/lmd_common.js'),
+    Writer = require(__dirname + '/../lib/lmd_writer.js'),
+    Cli = require(__dirname + '/cli_messages.js'),
     assembleLmdConfig = common.assembleLmdConfig;
 
 var LMD_JS_SRC_PATH = common.LMD_JS_SRC_PATH;
@@ -1662,3 +1664,5 @@ LmdBuilder.prototype.build = function (config) {
 };
 
 module.exports = LmdBuilder;
+module.exports.Writer = Writer;
+module.exports.Cli = Cli;
