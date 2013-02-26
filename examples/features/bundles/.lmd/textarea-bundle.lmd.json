@@ -1,0 +1,10 @@
+{
+    "root": "../js",
+    "modules": {
+        "main": "textarea/main.js",
+        "textareaTemplate": "textarea/template.html",
+        "textareaView": "textarea/view.js",
+        "textareaI18n": "textarea/i18n.json"
+    },
+    "main": "main"
+}

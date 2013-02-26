@@ -25,9 +25,7 @@
         }
 
         var module = replacement[0][2],
-            readyState = 'readyState',
-            isNotLoaded = 1,
-            head;
+            readyState = 'readyState';
 
         callback = replacement[1];
         moduleName = replacement[0][1];
@@ -40,27 +38,7 @@
         }
 
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
-        var script = sb.document.createElement("script");
-        sb.global.setTimeout(script.onreadystatechange = script.onload = function (e) {
-            e = e || sb.global.event;
-            if (isNotLoaded &&
-                (!e ||
-                !script[readyState] ||
-                script[readyState] == "loaded" ||
-                script[readyState] == "complete")) {
-
-                isNotLoaded = 0;
-                // register or cleanup
-                if (!e) {
-                    sb.trigger('*:request-error', moduleName, module);
-                }
-                callback(e ? sb.register(moduleName, script) : head.removeChild(script) && sb.undefined); // e === undefined if error
-            }
-        }, 3000, 0);
-
-        script.src = moduleName;
-        head = sb.document.getElementsByTagName("head")[0];
-        head.insertBefore(script, head.firstChild);
+        sb.trigger('*:load-script', moduleName, callback);
 
         return returnResult;
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_ENDIF/*}*/

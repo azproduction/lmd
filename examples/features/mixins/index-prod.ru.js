@@ -1,3 +1,4 @@
+// This file was automatically generated from "index.lmd.json" using mixins "prod.lmd.json", "ru.lmd.json"
 (function (global, main, modules, modules_options, options) {
     var initialized_modules = {},
         global_eval = function (code) {
@@ -25,7 +26,7 @@
                 module = lmd_trigger('js:request-environment-module', moduleName, module)[1] || global[moduleName];
             } else if (typeof module === "function") {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, require)[1];
+                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, lmd_require)[1];
 
                 // Make sure that sandboxed modules cant require
                 if (modules_options[moduleName] &&
@@ -85,18 +86,19 @@
          *
          * @returns {*}
          */
-        require = function (moduleName) {
+        lmd_require = function (moduleName) {
             var module = modules[moduleName];
+
+            var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
+            if (replacement) {
+                moduleName = replacement[0];
+                module = replacement[1];
+            }
 
             lmd_trigger('*:before-check', moduleName, module);
             // Already inited - return as is
             if (initialized_modules[moduleName] && module) {
                 return module;
-            }
-            var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
-            if (replacement) {
-                moduleName = replacement[0];
-                module = replacement[1];
             }
 
             lmd_trigger('*:before-init', moduleName, module);
@@ -123,7 +125,7 @@
 
             eval: global_eval,
             register: register_module,
-            require: require,
+            require: lmd_require,
             initialized: initialized_modules,
 
             
@@ -143,8 +145,9 @@
 
 
 
-    main(lmd_trigger('lmd-register:decorate-require', "main", require)[1], output.exports, output);
-})/*DO NOT ADD ; !*/(this,(function (require, exports, module) { /* wrapped by builder */
+    main(lmd_trigger('lmd-register:decorate-require', "main", lmd_require)[1], output.exports, output);
+})/*DO NOT ADD ; !*/
+(this,(function (require, exports, module) { /* wrapped by builder */
 /**
  * LMD glob example
  */
@@ -159,4 +162,4 @@ $(function () {
 "options": {
     "host": "http://prod.host/"
 }
-},{},{})
+},{},{});
