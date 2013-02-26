@@ -7,7 +7,7 @@ var fs = require('fs'),
     info = require(__dirname + '/info.js'),
     create = require(__dirname + '/create.js'),
     lmdPackage = require(__dirname + '/../lmd_builder.js'),
-    LmdWriter = require(__dirname + '/../../lib/lmd_writer.js');
+    LmdWriter = lmdPackage.Writer;
 
 function printHelp(cli, errorMessage) {
     var help = [
@@ -103,7 +103,13 @@ module.exports = function (cli, argv, cwd) {
     new LmdWriter(buildResult)
         .relativeTo(cwd)
         .logTo(cli)
-        .writeAll();
+        .writeAll(function (err) {
+            if (err) {
+                cli.error('Build failed');
+            } else {
+                cli.ok('Build complete'.green);
+            }
+        });
 };
 
 module.exports.completion = function (cli, argv, cwd, completionOptions) {
