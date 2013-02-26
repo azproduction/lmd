@@ -6,7 +6,8 @@ var fs = require('fs'),
     init = require(__dirname + '/init.js'),
     info = require(__dirname + '/info.js'),
     create = require(__dirname + '/create.js'),
-    lmdPackage = require(__dirname + '/../lmd_builder.js');
+    lmdPackage = require(__dirname + '/../lmd_builder.js'),
+    LmdWriter = require(__dirname + '/../../lib/lmd_writer.js');
 
 function printHelp(cli, errorMessage) {
     var help = [
@@ -96,52 +97,13 @@ module.exports = function (cli, argv, cwd) {
         argv.mixins = mixinBuilds;
     }
 
-    var lmdFile =  path.join(cwd, '.lmd', buildName + '.lmd.json');
+    var lmdFile = path.join(cwd, '.lmd', buildName + '.lmd.json'),
+        buildResult = new lmdPackage(lmdFile, argv);
 
-    var buildResult = new lmdPackage(lmdFile, argv),
-        buildConfig = buildResult.buildConfig;
-
-    // fatal error
-    if (buildResult.readable === false && buildConfig.log && buildConfig.output) {
-        console.log(buildResult.readable, buildConfig.log, buildConfig.output);
-        buildResult.log.pipe(cli.stream);
-        return;
-    }
-
-    if (buildConfig.log && buildConfig.output) {
-        var versionString = buildConfig.version ? ' - version ' + buildConfig.version.toString().cyan : '';
-        cli.ok('Building `' + buildName.green +  '` (' + ('.lmd/' + buildName + '.lmd.json').green + ')' + versionString);
-        if (mixinBuilds.length) {
-            cli.ok('Extra mixins ' + mixinBuilds);
-        }
-    }
-
-    var configDir = path.join(path.dirname(fs.realpathSync(lmdFile)), buildConfig.root || "");
-
-    if (buildConfig.sourcemap) {
-        var lmdSourceMapFile = path.join(configDir, buildConfig.sourcemap);
-        buildResult.sourceMap.pipe(createWritableFile(lmdSourceMapFile));
-
-        if (buildConfig.log && buildConfig.output) {
-            buildResult.sourceMap.on('end', function () {
-                cli.ok('Writing Source Map to ' + lmdSourceMapFile.green);
-            });
-        }
-    }
-
-    if (buildConfig.output && buildConfig.output) {
-        var lmdOutputFile = path.join(configDir, buildConfig.output);
-        buildResult.pipe(createWritableFile(lmdOutputFile));
-        if (buildConfig.log) {
-            buildResult.log.pipe(cli.stream);
-            buildResult.on('end', function () {
-                cli.ok('Writing LMD Package to ' + lmdOutputFile.green);
-            });
-        }
-    } else {
-        buildResult.pipe(cli.stream);
-    }
-
+    new LmdWriter(buildResult)
+        .relativeTo(cwd)
+        .logTo(cli)
+        .writeAll();
 };
 
 module.exports.completion = function (cli, argv, cwd, completionOptions) {
