@@ -5,17 +5,23 @@
     "root": "../js",
     "output": "../index.js",
 
+    "build_id-disclaimer": "build_id is user defined variable",
+    "build_id": "<%= Math.random().toString(16) %>",
+
     "modules": {
         "main": "main.js",
-        "template": "template.html"
+        "template": "template.html",
+
+        "bundle-button": "@index-bundle-button.js?<%= build_id %>",
+        "bundle-textarea": "@index-bundle-textarea.js?<%= build_id %>"
     },
 
     "bundles": {
-        "options": {
+        "button": {
             "modules": {
-                "main": "options/main.js",
-                "optionsTemplate": "options/template.html",
-                "optionsI18n": "options/i18n.json"
+                "main": "button/main.js",
+                "buttonTemplate": "button/template.html",
+                "buttonView": "button/view.js"
             }
         },
         "textarea": "textarea-bundle.lmd.json"
@@ -23,5 +29,8 @@
 
     "main": "main",
     "optimize": true,
+    "shortcuts": true,
+    "promise": "$.Deferred",
+
     "ie": false
 }

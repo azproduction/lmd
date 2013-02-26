@@ -1,1 +1,1 @@
-console.log('textarea');
+console.log('[OK] bundle textarea loaded!');

@@ -105,6 +105,7 @@
         "require": ["common/off_package.js", "image.js"]
     },
     "bundle": {
+        "preprocess": ["$P.JS", "$P.CSS || $P.JS", "$P.OFF_PACKAGE", "$P.CSS || $P.JS || $P.STATS_SENDTO"],
         "require": ["common/script_loader.js", "common/off_package.js", "bundle.js"]
     }
 }

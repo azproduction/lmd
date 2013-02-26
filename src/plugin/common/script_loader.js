@@ -29,7 +29,7 @@
                 isNotLoaded = 0;
                 // register or cleanup
                 if (!e) {
-                    sb.trigger('*:request-error', moduleName, module);
+                    sb.trigger('*:request-error', moduleName);
                 }
                 callback(e ? sb.register(moduleName, script) : head.removeChild(script) && sb.undefined); // e === undefined if error
             }
