@@ -63,8 +63,7 @@
             pendingBundlesLength--;
             // cleanup if no pending bundles
             if (!pendingBundlesLength) {
-                delete sb.global[callbackName];
-/*if ($P.IE) {*/sb.global[callbackName] = null;/*}*/
+                sb.global[callbackName] = sb.undefined;
             }
             callback(scriptTag);
         }, 10);
