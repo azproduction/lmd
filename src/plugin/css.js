@@ -64,11 +64,14 @@
 
         (function poll() {
             if (isNotLoaded) {
+                var sheets = sb.document.styleSheets,
+                    j = 0,
+                    k = sheets.length;
+
                 try {
-                    var sheets = sb.document.styleSheets;
-                    for (var j = 0, k = sheets.length; j < k; j++) {
-                        if((sheets[j].ownerNode/*if ($P.IE) {*/ || sheets[j].owningElement/*}*/).id == id &&
-                           (sheets[j].cssRules/*if ($P.IE) {*/ || sheets[j].rules/*}*/).length) {
+                    for (; j < k; j++) {
+                        if((sheets[j].ownerNode || sheets[j].owningElement).id == id &&
+                            (sheets[j].cssRules || sheets[j].rules).length) {
 //#JSCOVERAGE_IF 0
                             return onload(1);
 //#JSCOVERAGE_ENDIF
@@ -77,6 +80,7 @@
                     // if we get here, its not in document.styleSheets (we never saw the ID)
                     throw 1;
                 } catch(e) {
+                    /*if ($P.FILE_PROTOCOL) {*/if (e != 1 && (e.code === 15 || sheets[j].cssRules === null)) {return onload(1);}/*}*/
                     // Keep polling
                     sb.global.setTimeout(poll, 90);
                 }

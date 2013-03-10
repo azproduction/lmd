@@ -10,5 +10,6 @@
     },
     "main": "main",
     "ie": false,
-    "css": true
+    "css": true,
+    "file_protocol": true
 }
