@@ -166,6 +166,7 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
   * `node` - set true if LMD package will run as Node.js script. See [demo](http://lmdjs.org/examples/plugins/node/), [code](examples/plugins/node/)
   * `ie` - **enabled by default** set false if script will run only in modern browsers
   * `opera_mobile` - set true if LMD package will run in Opera Mobile
+  * `file_protocol` - set to true if LMD package itself or it parts will be loaded using `file://` protocol
 
 ### Loaders (async, js, css, image) features and optimizations
 

@@ -125,3 +125,5 @@
   - build info in the build.js file
   - ThisBinding of 3-party module "bind" or "this" property
   - `bundles` - basic part
+  - `file_protocol` - tweaks for `file://`
+
