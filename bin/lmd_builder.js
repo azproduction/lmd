@@ -1202,6 +1202,20 @@ LmdBuilder.prototype.formatLog = function (text) {
 };
 
 /**
+ * text\ntext + info: -> info:    text
+ *                    -> info:    text
+ *
+ * @param {String} padding
+ * @param {String} text
+ * @return {String}
+ */
+LmdBuilder.prototype.addPaddingToText = function (padding, text) {
+    return text.split('\n').map(function (line) {
+        return padding + ':    ' + line;
+    }).join('\n') + '\n';
+};
+
+/**
  * Formats and prints an error
  *
  * @param {String} text simple markdown syntax
@@ -1211,7 +1225,7 @@ LmdBuilder.prototype.formatLog = function (text) {
  */
 LmdBuilder.prototype.error = function (text) {
     text = this.formatLog(text);
-    this.log.emit('data', 'ERRO'.red.inverse + ':    ' + text + '\n');
+    this.log.emit('data', this.addPaddingToText('ERRO'.red.inverse, text));
 };
 
 /**
@@ -1225,7 +1239,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text, isWarn) {
     if (isWarn) {
         text = this.formatLog(text);
-        this.log.emit('data', 'warn'.red + ':    ' + text + '\n');
+        this.log.emit('data', this.addPaddingToText('warn'.red, text));
     }
 };
 
@@ -1239,7 +1253,7 @@ LmdBuilder.prototype.warn = function (text, isWarn) {
  */
 LmdBuilder.prototype.info = function (text) {
     text = this.formatLog(text);
-    this.log.emit('data', 'warn'.green + ':    ' + text + '\n');
+    this.log.emit('data', this.addPaddingToText('info'.green, text));
 };
 
 /**
@@ -1462,6 +1476,7 @@ LmdBuilder.prototype.formatModule = function (module, moduleInfo, modulesBundle,
  * @returns {Object} {main: 'string', modules: ['"name": moduleContent'], options: {"name": {}}}
  */
 LmdBuilder.prototype.formatModules = function (modules, modulesInfo, config, isPack) {
+    var self = this;
     var modulesBundle = {
         main: '',
         modules: [],
