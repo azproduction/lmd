@@ -1,7 +1,7 @@
 {
     "name": "Adaptation example",
 
-    "description": "LMD can adopt non CommonJS/Modules like `data/musketeers.js` using `exports` and `require` module parameters",
+    "description": "LMD can adopt non CommonJS/Modules like `data/musketeers.js` using `exports`, `require`, `bind` module parameters",
 
     "root": "../js",
     "output": "../index.js",
@@ -17,7 +17,20 @@
             "exports": "musketeers"
         },
 
-        "<%= file %><%= dir[0][0].toUpperCase() %><%= dir[0].slice(1, -1) %>": "{collections,models,views}/**/*.js"
+        "<%= file %><%= dir[0][0].toUpperCase() %><%= dir[0].slice(1, -1) %>": "{collections,models,views}/**/*.js",
+
+        "fakeJquery": {
+            "path": "vendors/fake_jquery.js",
+            "exports": "jQuery"
+        },
+
+        "customThisConsumer": {
+            "path": "vendors/custom_this_consumer.js",
+            "bind": {
+                "jQuery": "fakeJquery"
+            },
+            "exports": "this.Stuff"
+        }
     },
     "main": "main",
     "ie": false,
