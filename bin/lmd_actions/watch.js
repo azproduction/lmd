@@ -7,6 +7,7 @@ var fs = require('fs'),
     create = require(__dirname + '/create.js'),
     info = require(__dirname + '/info.js'),
     common = require(__dirname + '/../../lib/lmd_common.js'),
+    resolveName = common.getModuleFileByShortName,
     lmdPackage = require(__dirname + '/../lmd_builder.js');
 
 var optimist = require('optimist');
@@ -39,7 +40,8 @@ module.exports = function (cli, argv, cwd) {
 
     var status,
         buildName,
-        mixinBuilds = argv._[1];
+        mixinBuilds = argv._[1],
+        lmdDir = path.join(cwd, '.lmd');
 
     if (mixinBuilds) {
         mixinBuilds = mixinBuilds.split('+');
@@ -83,15 +85,15 @@ module.exports = function (cli, argv, cwd) {
         }
     }
 
-    mixinBuilds = mixinBuilds.map(function (build) {
-        return './' + build + '.lmd.json';
+    mixinBuilds = mixinBuilds.map(function (mixinName) {
+        return resolveName(lmdDir, mixinName);
     });
 
     if (mixinBuilds.length) {
         argv.mixins = mixinBuilds;
     }
 
-    var lmdFile =  path.join(cwd, '.lmd', buildName + '.lmd.json');
+    var lmdFile = path.join(lmdDir, resolveName(lmdDir, buildName));
 
     var watchResult = new lmdPackage.watch(lmdFile, argv),
         watchConfig = watchResult.watchConfig;

@@ -72,7 +72,7 @@ var LmdBuilder = function (configFile, options) {
                 self.sourceMap.emit('data', buildResult.sourceMap.toString());
                 self._streamBundles(buildResult.bundles);
             } else {
-                self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.json'.green + ' [output.lmd.js]\n');
+                self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.js(on)'.green + ' [output.lmd.js]\n');
             }
         } else {
             self.printFatalErrors(self.buildConfig);
@@ -124,7 +124,7 @@ LmdBuilder.watch = function (configFile, options) {
                 }
             }
 
-            self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.json'.green + ' ' + 'output.lmd.js'.green + '\n');
+            self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.js(on)'.green + ' ' + 'output.lmd.js'.green + '\n');
         } else {
             self.printFatalErrors(self.watchConfig);
         }
@@ -1043,7 +1043,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
  */
 LmdBuilder.prototype.configure = function () {
     if (!this.configFile) {
-        this.log.emit('data', 'lmd usage:\n\t    lmd config.lmd.json [output.lmd.js]\n');
+        this.log.emit('data', 'lmd usage:\n\t    lmd config.lmd.js(on) [output.lmd.js]\n');
         return false;
     }
     return true;

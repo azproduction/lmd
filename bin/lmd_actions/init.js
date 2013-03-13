@@ -1,4 +1,5 @@
-var fs = require('fs');
+var fs = require('fs'),
+    path = require('path');
 
 function checkLmdDir(cwd) {
     var lmdDir = cwd + '/.lmd';
@@ -13,7 +14,7 @@ function checkLmdDir(cwd) {
 }
 
 function createLmdStructure(cwd) {
-    var lmdDir = cwd + '/.lmd';
+    var lmdDir = path.join(cwd, '.lmd');
     fs.mkdirSync(lmdDir);
 }
 

@@ -126,4 +126,5 @@
   - ThisBinding of 3-party module "bind" or "this" property
   - `bundles` - basic part
   - `file_protocol` - tweaks for `file://`
+  - `lmdjs_configs` - you can write config files in JavaScript. See [demo](http://lmdjs.org/examples/features/lmdjs_configs/), [code](examples/features/lmdjs_configs/)
 
