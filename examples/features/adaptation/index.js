@@ -1,10 +1,10 @@
 // This file was automatically generated from "index.lmd.json"
 (function(global,main,modules,modules_options,options){var initialized_modules={},global_eval=function(code){return global.Function("return "+code)()},global_document=global.document,local_undefined,register_module=function(moduleName,module){var output={exports:{}};initialized_modules[moduleName]=1;modules[moduleName]=output.exports;if(!module){module=module||global[moduleName]}else if(typeof module==="function"){var module_require=lmd_require;if(modules_options[moduleName]&&modules_options[moduleName].sandbox&&typeof module_require==="function"){module_require=local_undefined}module=module(module_require,output.exports,output)||output.exports}module=module;return modules[moduleName]=module},lmd_events={},lmd_trigger=function(event,data,data2,data3){var list=lmd_events[event],result;if(list){for(var i=0,c=list.length;i<c;i++){result=list[i](data,data2,data3)||result;if(result){data=result[0]||data;data2=result[1]||data2;data3=result[2]||data3}}}return result||[data,data2,data3]},lmd_on=function(event,callback){if(!lmd_events[event]){lmd_events[event]=[]}lmd_events[event].push(callback)},lmd_require=function(moduleName){var module=modules[moduleName];var replacement=lmd_trigger(4,moduleName,module);if(replacement){moduleName=replacement[0];module=replacement[1]}if(initialized_modules[moduleName]&&module){return module}if(typeof module==="string"&&module.indexOf("(function(")===0){module=global_eval(module)}return register_module(moduleName,module)},output={exports:{}};for(var moduleName in modules){initialized_modules[moduleName]=0}(function(){function is_shortcut(moduleName,moduleContent){return!initialized_modules[moduleName]&&typeof moduleContent==="string"&&moduleContent.charAt(0)=="@"}function rewrite_shortcut(moduleName,module){if(is_shortcut(moduleName,module)){moduleName=module.replace("@","");var newModule=modules[moduleName];module=newModule===module?local_undefined:newModule}return[moduleName,module]}lmd_on(4,rewrite_shortcut);})();main(lmd_require,output.exports,output)})
 (this,(function (require, exports, module) { /* wrapped by builder */
-var $ = require('$'), // from window
+var $ = require('$'), // == window.$
     Backbone = require('backbone'),
     _ = require('underscore'),
-    musketeers = require('musketeers'),
+    musketeers = require('musketeers'), // file is adopted js/data/musketeers.js
 
     ListCollection = require('listCollection'),
     ListItemView = require('listItemView'),
@@ -2787,6 +2787,9 @@ module.exports = Backbone.Model.extend({
 }),
 "listItemView": (function (require, exports, module) { /* wrapped by builder */
 var Backbone = require('backbone'),
+    customThisConsumer = require('customThisConsumer'),
+    fakeJquery = require('fakeJquery'),
+
     _ = require('_');
 
 module.exports = Backbone.View.extend({
@@ -2799,10 +2802,36 @@ module.exports = Backbone.View.extend({
     },
 
     render: function () {
-        this.$el.html(this.template(this.model.attributes));
+        this.$el.html(fakeJquery.fn.pewpew() + ' - ' + this.template(this.model.attributes));
         return this;
     }
 });
 
+}),
+"fakeJquery": (function (require) { /* wrapped by builder */
+var jQuery = {
+    fn: {}
+};
+
+
+/* added by builder */
+return jQuery;
+}),
+"customThisConsumer": (function (require) { /* wrapped by builder */
+
+return function(){
+
+(this.jQuery || this.Zepto).fn.pewpew = function () {
+    return "ok";
+};
+
+this.Stuff = function () {};
+
+
+/* added by builder */
+return this.Stuff;
+}.call({
+    "jQuery": require("fakeJquery")
+});
 })
 },{},{});
