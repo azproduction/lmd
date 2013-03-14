@@ -5,7 +5,8 @@ var fs = require('fs'),
     optimist = require('optimist'),
     info = require(__dirname + '/info.js'),
     init = require(__dirname + '/init.js'),
-    common = require(__dirname + '/../../lib/lmd_common.js');
+    common = require(__dirname + '/../../lib/lmd_common.js'),
+    resolveName = common.getModuleFileByShortName;
 
 function printHelp(cli, errorMessage) {
     var help = [
@@ -33,7 +34,14 @@ function checkFile(cwd, name) {
     if (isGoodFileName) {
         return 'bad build name `' + name + '`';
     }
-    var lmdConfig = path.join(cwd, '.lmd', name + '.lmd.json');
+    //var lmdConfig = path.join(cwd, '.lmd', name + '.lmd.json');
+    var lmdDir = path.join(cwd, '.lmd'),
+        lmdFile = resolveName(lmdDir, name);
+
+    if (!lmdFile) {
+        return false;
+    }
+    var lmdConfig = path.join(lmdDir, lmdFile);
     if (fs.existsSync(lmdConfig)) {
         if (fs.statSync(lmdConfig).isFile()) {
             // already exists
@@ -66,8 +74,11 @@ function template(buildName, parentConfig, options) {
 }
 
 function createBuild(cwd, buildName, parentBuild, options) {
-    var lmdConfig = path.join(cwd, '.lmd', buildName + '.lmd.json'),
-        parentConfig = parentBuild ? parentBuild + '.lmd.json' : null;
+    var lmdDir = path.join(cwd, '.lmd'),
+        lmdFile = buildName + '.lmd.json',
+        lmdConfig = path.join(lmdDir, lmdFile),
+
+        parentConfig = parentBuild ? resolveName(lmdDir, parentBuild) : null;
 
     fs.writeFileSync(lmdConfig, template(buildName, parentConfig, options), 'utf8');
 }

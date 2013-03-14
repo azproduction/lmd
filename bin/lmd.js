@@ -4,10 +4,11 @@
  * @author  Mikhail Davydov
  * @licence MIT
  */
+var path = require('path');
 
 // Supress path.existsSync is now called `fs.existsSync`.
-require('path').existsSync = require('fs').existsSync;
-require('path').exists = require('fs').exists;
+path.existsSync = require('fs').existsSync;
+path.exists = require('fs').exists;
 
 var fs = require('fs'),
     cli = require(__dirname + '/cli_messages.js'),
@@ -62,6 +63,6 @@ function init(stdout, argv, cwd) {
 exports.init = init;
 
 // if !main
-if (!module.parent || (module.parent && module.parent.filename.match(/\/lmd\/bin\/lmd$/))) {
+if (!module.parent || (module.parent && module.parent.filename.match(/\/lmd\/bin\/lmd$|\\lmd\\bin\\lmd$/))) {
     init(process.stdout, process.argv, process.cwd());
 }

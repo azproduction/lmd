@@ -123,3 +123,8 @@
   - require.preload plugin. See [demo](http://lmdjs.org/examples/plugins/preload/), [code](examples/plugins/preload/)
   - optimize flag. See [demo](http://lmdjs.org/examples/features/optimize/), [code](examples/features/optimize/)
   - build info in the build.js file
+  - ThisBinding of 3-party module "bind" or "this" property
+  - `bundles` - basic part
+  - `file_protocol` - tweaks for `file://`
+  - `lmdjs_configs` - you can write config files in JavaScript. See [demo](http://lmdjs.org/examples/features/lmdjs_configs/), [code](examples/features/lmdjs_configs/)
+

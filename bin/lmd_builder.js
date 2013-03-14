@@ -15,6 +15,8 @@ var fs = require('fs'),
     uglify = uglifyCompress.uglify,
     lmdCoverage = require(__dirname + '/../lib/coverage_apply.js'),
     common = require(__dirname + '/../lib/lmd_common.js'),
+    Writer = require(__dirname + '/../lib/lmd_writer.js'),
+    Cli = require(__dirname + '/cli_messages.js'),
     assembleLmdConfig = common.assembleLmdConfig;
 
 var LMD_JS_SRC_PATH = common.LMD_JS_SRC_PATH;
@@ -48,12 +50,18 @@ var LmdBuilder = function (configFile, options) {
 
     this.init();
 
+    // Bundles streams
+    this.bundles = {};
+
     // Let return instance before build
     this.buildConfig = self.compileConfig(configFile, self.options);
 
     var isFatalErrors = !this.isAllModulesExists(this.buildConfig);
     if (isFatalErrors) {
         this.readable = false;
+        this.sourceMap.readable = false;
+    } else {
+        this._initBundlesStreams(this.buildConfig.bundles);
     }
     process.nextTick(function () {
         if (!isFatalErrors) {
@@ -62,8 +70,9 @@ var LmdBuilder = function (configFile, options) {
 
                 self.emit('data', buildResult.source);
                 self.sourceMap.emit('data', buildResult.sourceMap.toString());
+                self._streamBundles(buildResult.bundles);
             } else {
-                self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.json'.green + ' [output.lmd.js]\n');
+                self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.js(on)'.green + ' [output.lmd.js]\n');
             }
         } else {
             self.printFatalErrors(self.buildConfig);
@@ -115,7 +124,7 @@ LmdBuilder.watch = function (configFile, options) {
                 }
             }
 
-            self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.json'.green + ' ' + 'output.lmd.js'.green + '\n');
+            self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.js(on)'.green + ' ' + 'output.lmd.js'.green + '\n');
         } else {
             self.printFatalErrors(self.watchConfig);
         }
@@ -195,10 +204,29 @@ LmdBuilder.prototype.compileConfig = function (configFile, options) {
  * @return {Boolean}
  */
 LmdBuilder.prototype.isAllModulesExists = function (buildConfig) {
-    var modules = buildConfig.modules || {};
+    var self = this;
+    var modules = buildConfig.modules || {},
+        bundles = buildConfig.bundles || {},
+        bundle;
 
     for (var moduleName in modules) {
         if (!modules[moduleName].is_exists) {
+            return false;
+        }
+    }
+
+    // Check bundles and sub-bundles
+    for (var bundleName in bundles) {
+        bundle = bundles[bundleName];
+        if (bundle instanceof Error) {
+            return false;
+        }
+
+        var isModulesExists = Object.keys(bundles).every(function (bundleName) {
+            return self.isAllModulesExists(bundles[bundleName]);
+        });
+
+        if (!isModulesExists) {
             return false;
         }
     }
@@ -212,15 +240,34 @@ LmdBuilder.prototype.isAllModulesExists = function (buildConfig) {
  */
 LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
     var modules = buildConfig.modules || {},
+        bundles = buildConfig.bundles || {},
+        bundle,
         projectRoot = buildConfig.path || buildConfig.root,
         errorMessage;
 
     for (var moduleName in modules) {
         if (!modules[moduleName].is_exists) {
-            errorMessage = 'Module "' + moduleName.cyan + '": "' + modules[moduleName].originalPath.red + '" (' + modules[moduleName].path.red + ') is not exists. ' +
+            errorMessage = 'Module "' + moduleName.cyan + '": "' +
+                modules[moduleName].originalPath.red + '" (' +
+                modules[moduleName].path.red + ') is not exists. ' +
                 'Project root: "' + projectRoot.green + '". ';
 
             this.error(errorMessage);
+        }
+    }
+
+    // Check bundles and sub-bundles
+    for (var bundleName in bundles) {
+        bundle = bundles[bundleName];
+        if (bundle instanceof Error) {
+            errorMessage = 'Bundle "' + bundleName.cyan + '": (' +
+                bundle.message.red + ') is not exists. ' +
+                'Project root: "' + projectRoot.green + '". ';
+
+            this.error(errorMessage);
+        } else {
+            // check modules of bundle
+            this.printFatalErrors(bundle);
         }
     }
 };
@@ -243,6 +290,8 @@ LmdBuilder.prototype.closeStreams = function () {
         this.sourceMap.emit('end');
         this.sourceMap.readable = false;
     }
+
+    this._closeBundleStreams();
 };
 
 /**
@@ -250,7 +299,7 @@ LmdBuilder.prototype.closeStreams = function () {
  * 
  * @param {Object} data
  */
-LmdBuilder.prototype.template = function (data) {
+LmdBuilder.prototype.templatePackage = function (data) {
     return (data.build_info ? data.build_info + '\n' : '') +
     data.lmd_js +
     '\n(' +
@@ -262,6 +311,24 @@ LmdBuilder.prototype.template = function (data) {
     ');\n';
 };
 
+/**
+ * LMD template
+ *
+ * @param {Object} data
+ * @param {Object} data.bundles_callback
+ * @param {Object} data.build_info
+ * @param {Object} data.lmd_main
+ * @param {Object} data.lmd_modules
+ * @param {Object} data.modules_options
+ */
+LmdBuilder.prototype.templateBundle = function (data) {
+    return (data.build_info ? data.build_info + '\n' : '') +
+    data.bundles_callback + '(' +
+        (data.lmd_main ? data.lmd_main + ',' : '') +
+        data.lmd_modules + ',' +
+        data.modules_options +
+    ');\n';
+};
 
 /**
  * Compress code using UglifyJS
@@ -662,20 +729,25 @@ LmdBuilder.prototype.escape = function (file) {
 /**
  * Module code renderer
  * 
- * @param {Array}   lmd_modules
- * @param {String}  lmd_main
- * @param {Boolean} is_optimize_lmd
- * @param {Object}  modules_options
+ * @param {Array}   config
+ * @param {Object}  modulesBundle
+ * @param {String}  modulesBundle.main
+ * @param {Array}   modulesBundle.modules
+ * @param {Object}  modulesBundle.options
+ * @param {Boolean} isOptimizeLmd
  *
  * @returns {String}
  */
-LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, is_optimize_lmd, modules_options) {
+LmdBuilder.prototype.renderLmdPackage = function (config, modulesBundle, isOptimizeLmd) {
     var lmd_js = fs.readFileSync(path.join(LMD_JS_SRC_PATH, 'lmd.js'), 'utf8'),
+        lmd_main = modulesBundle.main,
+        lmd_modules = modulesBundle.modules,
+        modules_options = modulesBundle.options,
         result;
 
     // Apply patch if LMD package in cache Mode
     lmd_js = this.patchLmdSource(lmd_js, config);
-    if (is_optimize_lmd) {
+    if (isOptimizeLmd) {
         lmd_js = this.optimizeLmdSource(lmd_js);
     }
     lmd_modules = '{\n' + lmd_modules.join(',\n') + '\n}';
@@ -683,7 +755,8 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, is_optimi
     var options = {},
         version = config.cache ? config.version : false,
         stats_host = config.stats_auto || false,
-        promise = config.promise || false;
+        promise = config.promise || false,
+        bundle = config.bundles_callback || false;
 
     // if version passed -> module will be cached
     if (version) {
@@ -698,6 +771,10 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, is_optimi
         options.promise = promise;
     }
 
+    if (bundle) {
+        options.bundle = bundle;
+    }
+
     var userPlugin;
 
     for (var userPluginName in config.plugins) {
@@ -709,24 +786,48 @@ LmdBuilder.prototype.render = function (config, lmd_modules, lmd_main, is_optimi
 
     options = JSON.stringify(options);
 
-    var configFile = path.basename(this.configFile),
-        mixinFiles = (config.mixins || []).map(function (mixin) {
-            return path.basename(mixin);
-        }),
-        buildInfo = '// This file was automatically generated from "' + configFile + '"' +
-            (mixinFiles.length ? ' using mixins "' + mixinFiles.join('", "') + '"' : '');
-
-    result = this.template({
-        build_info: buildInfo,
+    result = this.templatePackage({
+        build_info: this._buildInfo(config),
         lmd_js: lmd_js,
         global: config.global || 'this',
-        lmd_main: lmd_main,
+        lmd_main: lmd_main || 'function(){}',
         lmd_modules: lmd_modules,
         modules_options: JSON.stringify(modules_options),
         options: options
     });
 
     return result;
+};
+
+/**
+ * Module code renderer
+ *
+ * @param {Array}   config
+ * @param {Object}  modulesBundle
+ * @param {String}  modulesBundle.main
+ * @param {Array}   modulesBundle.modules
+ * @param {Object}  modulesBundle.options
+ *
+ * @returns {String}
+ */
+LmdBuilder.prototype.renderLmdBundle = function (config, modulesBundle) {
+    return this.templateBundle({
+        lmd_main: modulesBundle.main,
+        bundles_callback: config.bundles_callback,
+        build_info: this._buildInfo(config),
+        lmd_modules: '{\n' + modulesBundle.modules.join(',\n') + '\n}',
+        modules_options: JSON.stringify(modulesBundle.options)
+    });
+};
+
+LmdBuilder.prototype._buildInfo = function (config) {
+    var configFile = path.basename(this.configFile),
+        mixinFiles = (config.mixins || []).map(function (mixin) {
+            return path.basename(mixin);
+        });
+
+    return '// This file was automatically generated from "' + configFile + '"' +
+            (mixinFiles.length ? ' using mixins "' + mixinFiles.join('", "') + '"' : '');
 };
 
 /**
@@ -942,7 +1043,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
  */
 LmdBuilder.prototype.configure = function () {
     if (!this.configFile) {
-        this.log.emit('data', 'lmd usage:\n\t    lmd config.lmd.json [output.lmd.js]\n');
+        this.log.emit('data', 'lmd usage:\n\t    lmd config.lmd.js(on) [output.lmd.js]\n');
         return false;
     }
     return true;
@@ -971,16 +1072,13 @@ LmdBuilder.prototype.getSandboxedModules = function (modulesStruct, config) {
  * Watch the module files, rebuilding when a change is detected
  */
 LmdBuilder.prototype.fsWatch = function (config) {
-    var self = this,
-        watchedModulesCount = 0;
+    var self = this;
 
     for (var i = 0, c = config.errors.length; i < c; i++) {
         this.warn(config.errors[i], config.warn);
     }
 
-    var module,
-        modules,
-        log = function (test) {
+    var log = function (test) {
             self.log.emit('data', test);
         },
         rebuild = function (stat, filename) {
@@ -1003,14 +1101,14 @@ LmdBuilder.prototype.fsWatch = function (config) {
             }
 
             var buildResult = self.build(buildConfig),
-                lmdFile = path.join(self.configDir, config.root, config.output),
+                lmdOutputFile = path.join(self.configDir, config.root, config.output),
                 lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
 
-            log('info'.green + ':    Writing LMD Package to ' + config.output.green + '\n');
-            fs.writeFileSync(lmdFile, buildResult.source, 'utf8');
+            log('info'.green + ':    Writing LMD Package to ' + lmdOutputFile.green + '\n');
+            fs.writeFileSync(lmdOutputFile, buildResult.source, 'utf8');
 
             if (config.sourcemap) {
-                log('info'.green + ':    Writing Source Map to ' + config.sourcemap.green + '\n');
+                log('info'.green + ':    Writing Source Map to ' + lmdSourceMapFile.green + '\n');
                 fs.writeFileSync(lmdSourceMapFile, buildResult.sourceMap.toString(), 'utf8');
             }
 
@@ -1038,19 +1136,52 @@ LmdBuilder.prototype.fsWatch = function (config) {
             } catch (e) {
                 fs.watch(modulePath, watch);
             }
-            watchedModulesCount++;
+        },
+        collectModuleNames = function (config) {
+            var names = [],
+                module,
+                bundle,
+                modules = config.modules,
+                bundles = config.bundles;
+
+            // Collect modules
+            for (var moduleName in modules) {
+                module = modules[moduleName];
+
+                // Skip shortcuts
+                if (module.path.charAt(0) === '@') continue;
+                names.push(module.path);
+            }
+
+            // Collect modules from bundles
+            for (var bundleName in bundles) {
+                bundle = bundles[bundleName];
+
+                if (!(bundle instanceof Error)) {
+                    collectModuleNames(bundle).forEach(function (moduleName) {
+                        // uniq only
+                        if (names.indexOf(moduleName) === -1) {
+                            names.push(moduleName);
+                        }
+                    });
+                }
+            }
+
+            return names;
         };
 
-    if (config.modules) {
-        modules = config.modules;
-        for (var index in modules) {
-            module = modules[index];
-            if (module.path.charAt(0) === '@') continue;
-            addWatcherFor(module.path);
-        }
+    var modules = collectModuleNames(config),
+        watchedModulesCount = modules.length;
+
+    // is there any modules?
+    if (watchedModulesCount) {
+        // add all modules
+        modules.forEach(function (modulePath) {
+            addWatcherFor(modulePath);
+        });
+
         // add lmd.json too
         addWatcherFor(this.configFile);
-
         log('info'.green + ':    Now watching ' + watchedModulesCount.toString().green + ' module files. Ctrl+C to stop\n');
 
         // Rebuild at startup
@@ -1071,6 +1202,20 @@ LmdBuilder.prototype.formatLog = function (text) {
 };
 
 /**
+ * text\ntext + info: -> info:    text
+ *                    -> info:    text
+ *
+ * @param {String} padding
+ * @param {String} text
+ * @return {String}
+ */
+LmdBuilder.prototype.addPaddingToText = function (padding, text) {
+    return text.split('\n').map(function (line) {
+        return padding + ':    ' + line;
+    }).join('\n') + '\n';
+};
+
+/**
  * Formats and prints an error
  *
  * @param {String} text simple markdown syntax
@@ -1080,7 +1225,7 @@ LmdBuilder.prototype.formatLog = function (text) {
  */
 LmdBuilder.prototype.error = function (text) {
     text = this.formatLog(text);
-    this.log.emit('data', 'ERRO'.red.inverse + ':    ' + text + '\n');
+    this.log.emit('data', this.addPaddingToText('ERRO'.red.inverse, text));
 };
 
 /**
@@ -1094,7 +1239,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text, isWarn) {
     if (isWarn) {
         text = this.formatLog(text);
-        this.log.emit('data', 'warn'.red + ':    ' + text + '\n');
+        this.log.emit('data', this.addPaddingToText('warn'.red, text));
     }
 };
 
@@ -1108,7 +1253,7 @@ LmdBuilder.prototype.warn = function (text, isWarn) {
  */
 LmdBuilder.prototype.info = function (text) {
     text = this.formatLog(text);
-    this.log.emit('data', 'warn'.green + ':    ' + text + '\n');
+    this.log.emit('data', this.addPaddingToText('info'.green, text));
 };
 
 /**
@@ -1265,31 +1410,255 @@ LmdBuilder.prototype.isModuleCanBeUnderSourceMap = function (moduleDescriptor) {
            !moduleDescriptor.is_lazy;
 };
 
+LmdBuilder.prototype.applySourceMap = function (module, moduleInfo) {
+    if (this.isModuleCanBeUnderSourceMap(module)) {
+        var originalCodeWithToken = this.createToken(module.path) + moduleInfo.originalCode;
+        // reapply wrapper
+        moduleInfo.code = common.wrapModule(originalCodeWithToken, module, moduleInfo.type);
+        module.lines = this.calculateModuleLines(moduleInfo.code);
+    }
+};
+
+/**
+ * Format one module
+ *
+ * @param moduleInfo
+ *
+ * @return {*}
+ */
+LmdBuilder.prototype.formatModule = function (module, moduleInfo, modulesBundle, config, isPack) {
+    var mainModuleName = config.main;
+
+    switch (moduleInfo.type) {
+        case "amd":
+        case "fd":
+        case "fe":
+        case "plain":
+        case "3-party":
+            // #26 Code coverage
+            if (module.is_coverage) {
+                var skipLines = ({
+                    fd: 1,
+                    fe: 1,
+                    plain: 0,
+                    amd: -1
+                })[moduleInfo.type];
+
+                var coverageResult = lmdCoverage.interpret(module.name, module.path, moduleInfo.code, skipLines);
+                modulesBundle.options[module.name] = coverageResult.options;
+                modulesBundle.options[module.name].coverage = 1;
+                moduleInfo.code = coverageResult.code;
+            }
+
+            if (module.is_lazy || isPack) {
+                moduleInfo.code = this.compress(moduleInfo.code, config.pack_options);
+            }
+
+            if (module.name !== mainModuleName && module.is_lazy) {
+                moduleInfo.code = moduleInfo.code.replace(/^function[^\(]*/, 'function');
+                if (moduleInfo.code.indexOf('(function(') !== 0) {
+                    moduleInfo.code = '(' + moduleInfo.code + ')';
+                }
+                moduleInfo.code = this.escape(moduleInfo.code);
+            }
+            break;
+        case "string":
+            moduleInfo.code = this.escape(moduleInfo.code);
+            break;
+    }
+};
+
+/**
+ * Format Modules
+ *
+ * @param config
+ *
+ * @returns {Object} {main: 'string', modules: ['"name": moduleContent'], options: {"name": {}}}
+ */
+LmdBuilder.prototype.formatModules = function (modules, modulesInfo, config, isPack) {
+    var self = this;
+    var modulesBundle = {
+        main: '',
+        modules: [],
+        options: {}
+    };
+
+    if (!config.modules) {
+        return modulesBundle;
+    }
+
+    var mainModuleName = config.main;
+
+    // build modules string
+    for (var index in modules) {
+        var module = modules[index],
+            moduleInfo = modulesInfo[index];
+
+        // pipe warnings to errors
+        moduleInfo.warns.forEach(function (warning) {
+            self.warn(warning, config.warn);
+        });
+
+        if (moduleInfo.type === "shortcut") {
+            if (module.name === mainModuleName) {
+                this.warn('Main module can not be a shortcut. Your app will throw an error.', config.warn);
+            } else {
+                modulesBundle.modules.push(this.escape(module.name) + ': ' + this.escape(module.path));
+            }
+            continue;
+        }
+
+        if (config.sourcemap) {
+            this.applySourceMap(module, moduleInfo);
+        }
+        this.formatModule(module, moduleInfo, modulesBundle, config, isPack);
+
+        if (module.name === mainModuleName) {
+            modulesBundle.main = moduleInfo.code;
+        } else {
+            modulesBundle.modules.push(this.escape(module.name) + ': ' + moduleInfo.code);
+        }
+    }
+
+    var sandboxedModules = this.getSandboxedModules(modules, config);
+    for (var moduleName in sandboxedModules) {
+        if (!modulesBundle.options[moduleName]) {
+            modulesBundle.options[moduleName] = {};
+        }
+        modulesBundle.options[moduleName].sandbox = 1;
+    }
+
+    return modulesBundle;
+};
+
+LmdBuilder.prototype._build = function (config, isBundle) {
+    isBundle = isBundle || false;
+
+    var self = this,
+        lazy = config.lazy || false,
+        cache = config.cache || false,
+        pack = (lazy || cache) ? true : (config.pack || false),
+        isOptimizeLmd = pack || config.optimize || false;
+
+    var result;
+
+    if (config.modules) {
+        var modules = config.modules,
+            modulesInfo = common.collectModulesInfo(config);
+
+        if (config.warn) {
+            common.collectFlagsWarnings(config, modulesInfo).forEach(function (warning) {
+                self.warn(warning, config.warn);
+            });
+        }
+
+        common.collectFlagsNotifications(config).forEach(function (notification) {
+            self.info(notification);
+        });
+
+        var modulesBundle = this.formatModules(modules, modulesInfo, config, pack),
+            sourceMap = '',
+            lmdFile;
+
+        if (isBundle) {
+            lmdFile = this.renderLmdBundle(config, modulesBundle);
+        } else {
+            lmdFile = this.renderLmdPackage(config, modulesBundle, isOptimizeLmd);
+        }
+
+        if (config.sourcemap) {
+            var sourceMapResult = this.createSourceMap(modules, lmdFile, config);
+
+            lmdFile = sourceMapResult.source;
+            sourceMap = sourceMapResult.sourceMap;
+        }
+
+        if (pack) {
+            // TODO(azproduction) Add sourceMap to it
+            lmdFile = this.compress(lmdFile, config.pack_options);
+        }
+
+        result = {};
+        result.source = lmdFile;
+        result.sourceMap =  sourceMap;
+    }
+
+    if (config.bundles) {
+        var bundles = config.bundles;
+        for (var bundleName in bundles) {
+            bundles[bundleName] = this._build(bundles[bundleName], true);
+        }
+
+        result = result || {};
+        result.bundles = bundles;
+    }
+
+    return result;
+};
+
+LmdBuilder.prototype._initBundlesStreams = function (bundles) {
+    var self = this;
+
+    Object.keys(bundles).forEach(function (bundleName) {
+        var stream = new Stream();
+        stream.readable = true;
+
+        self.bundles[bundleName] = stream;
+
+        stream.sourceMap = new Stream();
+        stream.sourceMap.readable = true;
+    });
+};
+
+/**
+ *
+ * @param bundles
+ * @return {*}
+ * @private
+ */
+LmdBuilder.prototype._streamBundles = function (bundles) {
+    var self = this;
+
+    Object.keys(bundles).forEach(function (bundleName) {
+        var bundle = bundles[bundleName],
+            stream = self.bundles[bundleName];
+
+        stream.emit('data', bundle.source);
+        stream.sourceMap.emit('data', bundle.sourceMap.toString());
+    });
+};
+
+/**
+ * @private
+ */
+LmdBuilder.prototype._closeBundleStreams = function () {
+    var self = this;
+
+    Object.keys(self.bundles).forEach(function (bundleName) {
+        var stream = self.bundles[bundleName];
+
+        if (stream.readable) {
+            stream.emit('end');
+            stream.readable = false;
+        }
+
+        if (stream.sourceMap.readable) {
+            stream.sourceMap.emit('end');
+            stream.sourceMap.readable = false;
+        }
+    });
+};
+
 /**
  * Main builder
  *
  * @returns {Object} {source: cleanSource, sourceMap: sourceMap}
  */
 LmdBuilder.prototype.build = function (config) {
+    // TODO TEST BUNDLES!!!!
     for (var i = 0, c = config.errors.length; i < c; i++) {
         this.warn(config.errors[i], config.warn);
     }
-
-    var self = this,
-        lazy = config.lazy || false,
-        cache = config.cache || false,
-        mainModuleName = config.main,
-        pack = (lazy || cache) ? true : (config.pack || false),
-        isOptimizeLmd = pack || config.optimize || false,
-        lmdModules = [],
-        lmdMain,
-        lmdFile,
-        coverageResult,
-        modulesOptions = {},
-        module,
-        modules,
-        moduleInfo,
-        modulesInfo;
 
     if (typeof config.ie === "undefined") {
         config.ie = true;
@@ -1306,120 +1675,9 @@ LmdBuilder.prototype.build = function (config) {
             'Please define **version** to enable cache.', config.warn);
     }
 
-    if (config.modules) {
-        modules = config.modules;
-        modulesInfo = common.collectModulesInfo(config);
-
-        // build modules string
-        for (var index in modules) {
-            module = modules[index];
-            moduleInfo = modulesInfo[index];
-
-            // pipe warnings to errors
-            moduleInfo.warns.forEach(function (warning) {
-                self.warn(warning, config.warn);
-            });
-
-            if (moduleInfo.type === "shortcut") {
-                if (module.name === mainModuleName) {
-                    this.warn('Main module can not be a shortcut. Your app will throw an error.', config.warn);
-                } else {
-                    lmdModules.push(this.escape(module.name) + ': ' + this.escape(module.path));
-                }
-                continue;
-            }
-
-            if (config.sourcemap) {
-                if (this.isModuleCanBeUnderSourceMap(module)) {
-                    var originalCodeWithToken = this.createToken(module.path) + moduleInfo.originalCode;
-                    // reapply wrapper
-                    moduleInfo.code = common.wrapModule(originalCodeWithToken, module, moduleInfo.type);
-                    module.lines = this.calculateModuleLines(moduleInfo.code);
-                }
-            }
-
-            switch (moduleInfo.type) {
-                case "amd":
-                case "fd":
-                case "fe":
-                case "plain":
-                case "3-party":
-                    // #26 Code coverage
-                    if (module.is_coverage) {
-                        var skipLines = ({
-                            fd: 1,
-                            fe: 1,
-                            plain: 0,
-                            amd: -1
-                        })[moduleInfo.type];
-
-                        coverageResult = lmdCoverage.interpret(module.name, module.path, moduleInfo.code, skipLines);
-                        modulesOptions[module.name] = coverageResult.options;
-                        modulesOptions[module.name].coverage = 1;
-                        moduleInfo.code = coverageResult.code;
-                    }
-
-                    if (module.is_lazy || pack) {
-                        moduleInfo.code = this.compress(moduleInfo.code, config.pack_options);
-                    }
-
-                    if (module.name !== mainModuleName && module.is_lazy) {
-                        moduleInfo.code = moduleInfo.code.replace(/^function[^\(]*/, 'function');
-                        if (moduleInfo.code.indexOf('(function(') !== 0) {
-                            moduleInfo.code = '(' + moduleInfo.code + ')';
-                        }
-                        moduleInfo.code = this.escape(moduleInfo.code);
-                    }
-                    break;
-                case "string":
-                    moduleInfo.code = this.escape(moduleInfo.code);
-                    break;
-            }
-
-            if (module.name === mainModuleName) {
-                lmdMain = moduleInfo.code;
-            } else {
-                lmdModules.push(this.escape(module.name) + ': ' + moduleInfo.code);
-            }
-        }
-
-        if (config.warn) {
-            common.collectFlagsWarnings(config, modulesInfo).forEach(function (warning) {
-                self.warn(warning, config.warn);
-            });
-        }
-
-        common.collectFlagsNotifications(config).forEach(function (notification) {
-            self.info(notification);
-        });
-
-        var sandboxedModules = this.getSandboxedModules(modules, config);
-        for (var moduleName in sandboxedModules) {
-            if (!modulesOptions[moduleName]) {
-                modulesOptions[moduleName] = {};
-            }
-            modulesOptions[moduleName].sandbox = 1;
-        }
-        lmdFile = this.render(config, lmdModules, lmdMain, isOptimizeLmd, modulesOptions);
-
-        var sourceMap = '';
-        if (config.sourcemap) {
-            var sourceMapResult = this.createSourceMap(modules, lmdFile, config);
-
-            lmdFile = sourceMapResult.source;
-            sourceMap = sourceMapResult.sourceMap;
-        }
-
-        if (pack) {
-            // TODO(azproduction) Add sourceMap to it
-            lmdFile = this.compress(lmdFile, config.pack_options);
-        }
-
-        return {
-            source: lmdFile,
-            sourceMap: sourceMap
-        };
-    }
+    return this._build(config);
 };
 
 module.exports = LmdBuilder;
+module.exports.Writer = Writer;
+module.exports.Cli = Cli;

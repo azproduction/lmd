@@ -5,7 +5,8 @@ var fs = require('fs'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
     info = require(__dirname + '/info.js'),
-    common = require(__dirname + '/../../lib/lmd_common.js');
+    common = require(__dirname + '/../../lib/lmd_common.js'),
+    resolveName = common.getModuleFileByShortName;
 
 var optimist = require('optimist');
 
@@ -36,8 +37,8 @@ function template(json, options) {
     return JSON.stringify(json, null, '    ');
 }
 
-function updateBuild(cwd, buildName, options) {
-    var lmdConfig = path.join(cwd, '.lmd', buildName + '.lmd.json'),
+function updateBuild(cwd, buildFile, options) {
+    var lmdConfig = path.join(cwd, '.lmd', buildFile),
         json = common.readConfig(lmdConfig);
 
     fs.writeFileSync(lmdConfig, template(json, options), 'utf8');
@@ -68,12 +69,15 @@ module.exports = function (cli, argv, cwd) {
         return;
     }
 
-
-    var extraFlags = Object.keys(argv);
+    var extraFlags = Object.keys(argv),
+        lmdDir = path.join(cwd, '.lmd'),
+        buildFile = resolveName(lmdDir, buildName);
 
     if (extraFlags.length) {
+        updateBuild(cwd, buildFile, argv);
+
         cli.ok('');
-        cli.ok('Build `' + buildName +  '` (.lmd/' + buildName + '.lmd.json) updated');
+        cli.ok('Build `' + buildName.green + '` (' + path.join('.lmd', buildFile).green + ') updated');
         cli.ok('');
 
         cli.ok('These options are changed'.cyan.bold + ':');
@@ -91,8 +95,6 @@ module.exports = function (cli, argv, cwd) {
             cli.ok('  ' + flagName.green + spaces + JSON.stringify(argv[flagName]));
         });
         cli.ok('');
-
-        updateBuild(cwd, buildName, argv);
     } else {
         printHelp(cli);
     }

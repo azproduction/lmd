@@ -1,11 +1,11 @@
 require('colors');
 
-var fs = require('fs'),
-    path = require('path'),
+var path = require('path'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
     list = require(__dirname + '/list.js'),
     common = require(__dirname + '/../../lib/lmd_common.js'),
+    resolveName = common.getModuleFileByShortName,
     assembleLmdConfig = common.assembleLmdConfig,
     flagToOptionNameMap = common.LMD_PLUGINS;
 
@@ -352,7 +352,8 @@ module.exports = function (cli, argv, cwd) {
         status,
         mixinBuilds = argv._[1],
         sortOrder = argv.sort,
-        isDeepAnalytics = argv.deep;
+        isDeepAnalytics = argv.deep,
+        lmdDir = path.join(cwd, '.lmd');
 
     if (mixinBuilds) {
         mixinBuilds = mixinBuilds.split('+');
@@ -400,28 +401,29 @@ module.exports = function (cli, argv, cwd) {
         }
     }
 
-    mixinBuilds = mixinBuilds.map(function (build) {
-        return './' + build + '.lmd.json';
+    mixinBuilds = mixinBuilds.map(function (mixinName) {
+        return resolveName(lmdDir, mixinName);
     });
 
     if (mixinBuilds.length) {
         argv.mixins = mixinBuilds;
     }
 
-    var lmdFile = path.join(cwd, '.lmd', buildName + '.lmd.json');
+    var buildFile = resolveName(lmdDir, buildName),
+        lmdFile = path.join(lmdDir, buildFile);
 
     var rawConfig = common.readConfig(lmdFile),
         flags = Object.keys(flagToOptionNameMap),
         extraFlags = common.SOURCE_TWEAK_FLAGS,
         config = assembleLmdConfig(lmdFile, flags, argv),
-        root = fs.realpathSync(cwd + '/.lmd/' + config.root),
+        root = path.join(cwd, '.lmd', config.root),
         output = config.output ? path.join(root, config.output) : 'STDOUT'.yellow,
-        sourcemap = config.sourcemap ? fs.realpathSync(root + '/' + config.sourcemap) : false,
-        www = config.www_root ? fs.realpathSync(cwd + '/.lmd/' + config.www_root + '/') : false,
+        sourcemap = config.sourcemap ? path.join(root, config.sourcemap) : false,
+        www = config.www_root ? path.join(cwd, '.lmd', config.www_root) : false,
         versionString = config.version ? ' - version ' + config.version.toString().cyan : '';
 
     cli.ok('');
-    cli.ok('LMD Package `' + buildName.green + '` (' + ('.lmd/' + buildName + '.lmd.json').green + ')' + versionString);
+    cli.ok('LMD Package `' + buildName.green + '` (' + path.join('.lmd', buildFile).green + ')' + versionString);
     cli.ok('');
 
     if (rawConfig.extends) {

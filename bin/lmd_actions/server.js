@@ -7,6 +7,7 @@ var fs = require('fs'),
     create = require(__dirname + '/create.js'),
     info = require(__dirname + '/info.js'),
     common = require(__dirname + '/../../lib/lmd_common.js'),
+    resolveName = common.getModuleFileByShortName,
     LmdStatsServer = require(__dirname + '/../../stats_server/index.js'),
     assembleLmdConfig = common.assembleLmdConfig,
     flagToOptionNameMap = common.LMD_PLUGINS;
@@ -103,11 +104,12 @@ module.exports = function (cli, argv, cwd) {
         }
         return;
     }
-
-    var lmdFile =  path.join(cwd, '.lmd', buildName + '.lmd.json');
+    var lmdDir = path.join(cwd, '.lmd'),
+        buildFile = resolveName(lmdDir, buildName),
+        lmdFile = path.join(lmdDir, buildFile);
 
     var config = assembleLmdConfig(lmdFile, Object.keys(flagToOptionNameMap)),
-        logsDir = path.join(cwd, '.lmd/logs'),
+        logsDir = path.join(cwd, '.lmd', 'logs'),
         currentLogDir = path.join(logsDir, buildName),
         wwwDir = path.join(cwd, '.lmd', config.www_root);
 

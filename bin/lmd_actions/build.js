@@ -6,7 +6,10 @@ var fs = require('fs'),
     init = require(__dirname + '/init.js'),
     info = require(__dirname + '/info.js'),
     create = require(__dirname + '/create.js'),
-    lmdPackage = require(__dirname + '/../lmd_builder.js');
+    common = require(__dirname + '/../../lib/lmd_common.js'),
+    resolveName = common.getModuleFileByShortName,
+    lmdPackage = require(__dirname + '/../lmd_builder.js'),
+    LmdWriter = lmdPackage.Writer;
 
 function printHelp(cli, errorMessage) {
     var help = [
@@ -44,7 +47,8 @@ module.exports = function (cli, argv, cwd) {
 
     var status,
         buildName,
-        mixinBuilds = argv._[1];
+        mixinBuilds = argv._[1],
+        lmdDir = path.join(cwd, '.lmd');
 
     if (mixinBuilds) {
         mixinBuilds = mixinBuilds.split('+');
@@ -88,58 +92,27 @@ module.exports = function (cli, argv, cwd) {
         }
     }
 
-    mixinBuilds = mixinBuilds.map(function (build) {
-        return './' + build + '.lmd.json';
+    mixinBuilds = mixinBuilds.map(function (mixinName) {
+        return resolveName(lmdDir, mixinName);
     });
 
     if (mixinBuilds.length) {
         argv.mixins = mixinBuilds;
     }
 
-    var lmdFile =  path.join(cwd, '.lmd', buildName + '.lmd.json');
+    var lmdFile = path.join(lmdDir, resolveName(lmdDir, buildName)),
+        buildResult = new lmdPackage(lmdFile, argv);
 
-    var buildResult = new lmdPackage(lmdFile, argv),
-        buildConfig = buildResult.buildConfig;
-
-    // fatal error
-    if (buildResult.readable === false && buildConfig.log && buildConfig.output) {
-        console.log(buildResult.readable, buildConfig.log, buildConfig.output);
-        buildResult.log.pipe(cli.stream);
-        return;
-    }
-
-    if (buildConfig.log && buildConfig.output) {
-        var versionString = buildConfig.version ? ' - version ' + buildConfig.version.toString().cyan : '';
-        cli.ok('Building `' + buildName.green +  '` (' + ('.lmd/' + buildName + '.lmd.json').green + ')' + versionString);
-        if (mixinBuilds.length) {
-            cli.ok('Extra mixins ' + mixinBuilds);
-        }
-    }
-
-    var configDir = path.join(path.dirname(fs.realpathSync(lmdFile)), buildConfig.root || "");
-
-    if (buildConfig.sourcemap) {
-        buildResult.sourceMap.pipe(createWritableFile(path.join(configDir, buildConfig.sourcemap)));
-
-        if (buildConfig.log && buildConfig.output) {
-            buildResult.sourceMap.on('end', function () {
-                cli.ok('Writing Source Map to ' + buildConfig.sourcemap.green);
-            });
-        }
-    }
-
-    if (buildConfig.output && buildConfig.output) {
-        buildResult.pipe(createWritableFile(path.join(configDir, buildConfig.output)));
-        if (buildConfig.log) {
-            buildResult.log.pipe(cli.stream);
-            buildResult.on('end', function () {
-                cli.ok('Writing LMD Package to ' + buildConfig.output.green);
-            });
-        }
-    } else {
-        buildResult.pipe(cli.stream);
-    }
-
+    new LmdWriter(buildResult)
+        .relativeTo(cwd)
+        .logTo(cli)
+        .writeAll(function (err) {
+            if (err) {
+                cli.error('Build failed');
+            } else {
+                cli.ok('Build complete'.green);
+            }
+        });
 };
 
 module.exports.completion = function (cli, argv, cwd, completionOptions) {

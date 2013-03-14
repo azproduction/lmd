@@ -166,6 +166,7 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
   * `node` - set true if LMD package will run as Node.js script. See [demo](http://lmdjs.org/examples/plugins/node/), [code](examples/plugins/node/)
   * `ie` - **enabled by default** set false if script will run only in modern browsers
   * `opera_mobile` - set true if LMD package will run in Opera Mobile
+  * `file_protocol` - set to true if LMD package itself or it parts will be loaded using `file://` protocol
 
 ### Loaders (async, js, css, image) features and optimizations
 
@@ -192,6 +193,8 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
   * sandbox - some of your modules can be in the "sandbox". They cant require, but can provide some resources. See [demo](http://lmdjs.org/examples/features/sandbox/), [code](examples/features/sandbox/)
   * optimize - optimisations of LMD source(not your project files) without minification/packing. See Optimisations section of [LMD Plugins overview](https://github.com/azproduction/lmd/wiki/LMD-Plugins-overview) wiki page. See [demo](http://lmdjs.org/examples/features/optimize/), [code](examples/features/optimize/)
   * adaptation - using any JavaScripts as modules. See Wiki page [Adopting modules](https://github.com/azproduction/lmd/wiki/Adopting-modules). See [demo](http://lmdjs.org/examples/features/adaptation/), [code](examples/features/adaptation/)
+  * bundles - a way to split your application into separete parts. See [demo](http://lmdjs.org/examples/features/bundles/), [code](examples/features/bundles/)
+  * lmdjs_configs - you can write config files in JavaScript. See [demo](http://lmdjs.org/examples/features/lmdjs_configs/), [code](examples/features/lmdjs_configs/)
 
 ## Config extras
 
@@ -213,5 +216,7 @@ Installation `lmd completion >> ~/.bashrc` (or `~/.zshrc`). Do not forget to res
 `phantomjs` is required to run test via `npm test` see [test](test) for details
 
 --
+
+LMD is developing with help of [these people](AUTHORS)
 
 If you like LMD - ★ it via `npm star lmd`
