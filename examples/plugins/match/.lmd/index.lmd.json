@@ -1,0 +1,16 @@
+{
+    "name": "require.match() and Glob example",
+
+    "root": "../js",
+    "output": "../index.lmd.js",
+    "www_root": "../",
+    "modules": {
+        "<%= file %>Template": "templates/**/*.html",
+        "main": "main.js"
+    },
+    "main": "main",
+
+    "ie": false,
+    "optimize": true,
+    "match": true
+}
