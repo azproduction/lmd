@@ -68,9 +68,13 @@
             }
         },
 
+        "match_<%= file %>Template": "match/should_match/*.html",
+
         "setTimeout": "@setTimeout"
     },
     "depends": true,
 
-    "shortcuts": true
+    "shortcuts": true,
+
+    "match": true
 }
