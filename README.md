@@ -1,4 +1,4 @@
-# LMD: Lazy Module Declaration [![Build Status](https://secure.travis-ci.org/azproduction/lmd.png?branch=master)](http://travis-ci.org/azproduction/lmd)
+# LMD: Lazy Module Declaration [![Build Status](https://secure.travis-ci.org/azproduction/lmd.png?branch=master)](http://travis-ci.org/azproduction/lmd) [![NPM version](https://badge.fury.io/js/lmd.png)](http://badge.fury.io/js/lmd) [![Dependency Status](https://gemnasium.com/azproduction/lmd.png)](https://gemnasium.com/azproduction/lmd)
 
 Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without
 touching any part of DOM. It evals module only when they are required.
@@ -178,6 +178,10 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
 
   * `shortcuts` - enables shortcuts in LMD package. See [demo](http://lmdjs.org/examples/plugins/promise/), [code](examples/plugins/promise/) (promise example uses shortcuts)
   * `amd` - enables AMD RequreJS modules in LMD package. See [demo](http://lmdjs.org/examples/plugins/amd/), [code](examples/plugins/amd/)
+
+## Module management
+
+  * `match` - enables `require.match(RegExp): Object` requires every matched module name. See [demo](http://lmdjs.org/examples/plugins/match/), [code](examples/plugins/match/)
 
 ### Stats and Code coverage
 
