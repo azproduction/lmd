@@ -110,5 +110,8 @@
     },
     "file_protocol": {
         "preprocess": ["$P.FILE_PROTOCOL"]
+    },
+    "match": {
+        "require": "match.js"
     }
 }

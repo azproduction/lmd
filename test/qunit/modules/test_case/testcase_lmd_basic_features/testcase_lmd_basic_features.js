@@ -121,6 +121,21 @@
             module.someFunction() === "ok", '3-party modules can use custom context (this)');
     });
 
+    test("require.match() requires every matched module name", function () {
+        expect(1);
+
+        var pattern = /^match_([a-z]+)Template$/,
+            matchedModules = require.match(pattern),
+            shouldMatch = ['app', 'item', 'items', 'user', 'users'],
+            moduleNames = Object.keys(matchedModules);
+
+        var isEveryModuleMatched = moduleNames.every(function (moduleName) {
+            return shouldMatch.indexOf(moduleName.match(pattern)[1]) !== -1;
+        });
+
+        ok(isEveryModuleMatched && shouldMatch.length === moduleNames.length, 'should match only required modules');
+    });
+
     if (ENV_NAME === "Node") {
         test("require() node.js npm, node, local modules", function () {
             expect(3);
