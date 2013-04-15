@@ -139,17 +139,17 @@
     test("require() multi-path module", function () {
         expect(1);
 
-        var module = require('multi-third_party_module_backbone');
-        ok(typeof module === "object" &&
-           module.Plugin1() === "Plugin1" &&
-           module.Plugin2() === "Plugin2", 'Modules can consists of multiply files');
+        var backbone = require('multi-third_party_module_backbone');
+        ok(typeof backbone === "object" &&
+           backbone.Plugin1() === "Plugin1" &&
+           backbone.Plugin2() === "Plugin2", 'Modules can consists of multiply files');
     });
 
     test("require() 3-party multi-path module", function () {
         expect(1);
 
         var $ = require('multi-third_party_module_jquery');
-        ok(typeof module === "function" &&
+        ok(typeof $ === "function" &&
             $().plugin() === 'plugin' &&
             $().plugin2() === 'plugin2' &&
             $.plugin3() === 'plugin3', '3-party modules can consists of multiply files');

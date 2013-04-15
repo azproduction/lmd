@@ -77,7 +77,7 @@
             "exports": "jQuery"
         },
 
-        "multi-third_party_module_backbone": ["multi_module/bb*.js"]
+        "multi-third_party_module_backbone": ["multi_module/bb.js", "multi_module/bb.*.js"]
     },
     "depends": true,
 
