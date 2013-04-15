@@ -70,7 +70,14 @@
 
         "match_<%= file %>Template": "match/should_match/*.html",
 
-        "setTimeout": "@setTimeout"
+        "setTimeout": "@setTimeout",
+
+        "multi-third_party_module_jquery": {
+            "path": ["multi_module/fake_jquery.js", "multi_module/fake_jquery-plugin3.js", "multi_module/fake_jquery.*.js"],
+            "exports": "jQuery"
+        },
+
+        "multi-third_party_module_backbone": ["multi_module/bb*.js"]
     },
     "depends": true,
 
