@@ -248,8 +248,8 @@ LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
     for (var moduleName in modules) {
         if (!modules[moduleName].is_exists) {
             errorMessage = 'Module "' + moduleName.cyan + '": "' +
-                modules[moduleName].originalPath.red + '" (' +
-                modules[moduleName].path.red + ') is not exists. ' +
+                modules[moduleName].originalPath.toString().red + '" (' +
+                modules[moduleName].path.toString().red + ') is not exists. ' +
                 'Project root: "' + projectRoot.green + '". ';
 
             this.error(errorMessage);
@@ -1148,9 +1148,13 @@ LmdBuilder.prototype.fsWatch = function (config) {
             for (var moduleName in modules) {
                 module = modules[moduleName];
 
-                // Skip shortcuts
-                if (module.path.charAt(0) === '@') continue;
-                names.push(module.path);
+                if (Array.isArray(module.path)) {
+                    names = names.concat(module.path);
+                } else {
+                    // Skip shortcuts
+                    if (module.path.charAt(0) === '@') continue;
+                    names.push(module.path);
+                }
             }
 
             // Collect modules from bundles
@@ -1407,7 +1411,8 @@ LmdBuilder.prototype.calculateModuleLines = function (source) {
 LmdBuilder.prototype.isModuleCanBeUnderSourceMap = function (moduleDescriptor) {
     return !moduleDescriptor.is_shortcut &&
            !moduleDescriptor.is_coverage &&
-           !moduleDescriptor.is_lazy;
+           !moduleDescriptor.is_lazy &&
+           !moduleDescriptor.is_multi_path_module;
 };
 
 LmdBuilder.prototype.applySourceMap = function (module, moduleInfo) {
