@@ -15,7 +15,7 @@
         register_module = function (moduleName, module) {
             lmd_trigger('lmd-register:before-register', moduleName, module);
             // Predefine in case of recursive require
-            var output = {exports: {}};
+            var output = {'exports': {}};
             initialized_modules[moduleName] = 1;
             modules[moduleName] = output.exports;
 
@@ -23,14 +23,14 @@
                 // if undefined - try to pick up module from globals (like jQuery)
                 // or load modules from nodejs/worker environment
                 module = lmd_trigger('js:request-environment-module', moduleName, module)[1] || global[moduleName];
-            } else if (typeof module === "function") {
+            } else if (typeof module === 'function') {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
                 var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, lmd_require)[1];
 
                 // Make sure that sandboxed modules cant require
                 if (modules_options[moduleName] &&
                     modules_options[moduleName].sandbox &&
-                    typeof module_require === "function") {
+                    typeof module_require === 'function') {
 
                     module_require = local_undefined;
                 }
@@ -103,13 +103,13 @@
             lmd_trigger('*:before-init', moduleName, module);
 
             // Lazy LMD module not a string
-            if (typeof module === "string" && module.indexOf('(function(') === 0) {
+            if (typeof module === 'string' && module.indexOf('(function(') === 0) {
                 module = global_eval(module);
             }
 
             return register_module(moduleName, module);
         },
-        output = {exports: {}},
+        output = {'exports': {}},
 
         /**
          * Sandbox object for plugins
@@ -117,24 +117,24 @@
          * @important Do not rename it!
          */
         sandbox = {
-            global: global,
-            modules: modules,
-            modules_options: modules_options,
-            options: options,
+            'global': global,
+            'modules': modules,
+            'modules_options': modules_options,
+            'options': options,
 
-            eval: global_eval,
-            register: register_module,
-            require: lmd_require,
-            initialized: initialized_modules,
+            'eval': global_eval,
+            'register': register_module,
+            'require': lmd_require,
+            'initialized': initialized_modules,
 
-            /*if ($P.OFF_PACKAGE) {*/noop: global_noop,/*}*/
-            document: global_document,
-            /*if ($P.CACHE) {*/lmd: lmd,/*}*/
-            /*if ($P.CACHE) {*/main: main,/*}*/
+            /*if ($P.OFF_PACKAGE) {*/'noop': global_noop,/*}*/
+            'document': global_document,
+            /*if ($P.CACHE) {*/'lmd': lmd,/*}*/
+            /*if ($P.CACHE) {*/'main': main,/*}*/
 
-            on: lmd_on,
-            trigger: lmd_trigger,
-            undefined: local_undefined
+            'on': lmd_on,
+            'trigger': lmd_trigger,
+            'undefined': local_undefined
         };
 
     for (var moduleName in modules) {
@@ -144,5 +144,5 @@
 
 /*{{LMD_PLUGINS_LOCATION}}*/
 
-    main(lmd_trigger('lmd-register:decorate-require', "main", lmd_require)[1], output.exports, output);
+    main(lmd_trigger('lmd-register:decorate-require', 'main', lmd_require)[1], output.exports, output);
 })/*DO NOT ADD ; !*/
