@@ -129,4 +129,5 @@
   - `lmdjs_configs` - you can write config files in JavaScript. See [demo](http://lmdjs.org/examples/features/lmdjs_configs/), [code](examples/features/lmdjs_configs/)
   - `match` - enables `require.match(RegExp): Object` requires every matched module name. See [demo](http://lmdjs.org/examples/plugins/match/), [code](examples/plugins/match/)`
   - `multi_module` - feature allows you to use multiply files as one module. Eg jquery+plugins. See [demo](http://lmdjs.org/examples/features/multi_module/), [code](examples/features/multi_module/)
+  - Google Closure Compile is ADVANCED mode
 
