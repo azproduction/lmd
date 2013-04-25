@@ -6,11 +6,9 @@ var path = require('path'),
 var fileName = path.join(__dirname, '../examples/demos/getting_started/.lmd/index.lmd.json');
 
 var logger = new Logger();
-
-logger.log('Init build <id>' + 'index' + '</id> file <file>' + fileName + '</file>');
+logger.log1('Init build %id file %file', 'index', fileName);
 
 var build = new Build('index', fileName);
-
 build.withLogger(logger)
     .load()
     .then(function (build) {
