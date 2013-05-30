@@ -12,8 +12,11 @@
 
 function cache_async(moduleName, module) {
     if (sb.global.localStorage && sb.options.version) {
+        var scriptElement = sb.document.getElementById('lmd-initializer'),
+            storageKey = scriptElement ? scriptElement.getAttribute('data-key') : 'lmd';
+
         try {
-            sb.global.localStorage['lmd:' + sb.options.version + ':' + moduleName] = sb.global.JSON.stringify(module);
+            sb.global.localStorage[storageKey + ':' + sb.options.version + ':' + moduleName] = sb.global.JSON.stringify(module);
         } catch(e) {}
     }
 }
