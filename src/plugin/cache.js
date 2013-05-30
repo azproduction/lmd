@@ -12,8 +12,11 @@
     // then dump application source
     if (sb.global.localStorage && sb.options.version/*if ($P.OPERA_MOBILE) {*/ && /_/.test(function(_){}) /*}*/) {
         (function () {
+            var scriptElement = sb.document.getElementById('lmd-initializer'),
+                storageKey = scriptElement ? scriptElement.getAttribute('data-key') : 'lmd';
+
             try {
-                sb.global.localStorage['lmd'] = sb.global.JSON.stringify({
+                sb.global.localStorage[storageKey] = sb.global.JSON.stringify({
                     modules: sb.modules,
                     // main module function
                     main: '(' + sb.main + ')',
