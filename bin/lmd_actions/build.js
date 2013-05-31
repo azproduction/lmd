@@ -107,6 +107,9 @@ module.exports = function (cli, argv, cwd) {
         .relativeTo(cwd)
         .logTo(cli)
         .writeAll(function (err) {
+            if (!buildResult.buildConfig.output) {
+                return;
+            }
             if (err) {
                 cli.error('Build failed');
             } else {
