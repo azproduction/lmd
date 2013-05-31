@@ -117,14 +117,17 @@ LmdBuilder.watch = function (configFile, options) {
     }
     process.nextTick(function () {
         if (!isFatalErrors) {
-            if (configFile) {
-                if (self.watchConfig.output) {
-                    self.fsWatch(self.watchConfig);
-                    return;
-                }
+            if (!configFile) {
+                return;
             }
 
-            self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.js(on)'.green + ' ' + 'output.lmd.js'.green + '\n');
+            if (typeof self.watchConfig.output === 'string') {
+                self.fsWatch(self.watchConfig);
+                return;
+            } else {
+                self.log.emit('data', 'ERRO'.red.inverse + ':' + '    Check your config file. "output" parameter should be a {String} eg "../path"'.red + '\n');
+                return;
+            }
         } else {
             self.printFatalErrors(self.watchConfig);
         }
@@ -1100,14 +1103,16 @@ LmdBuilder.prototype.fsWatch = function (config) {
                 return;
             }
 
-            var buildResult = self.build(buildConfig),
-                lmdOutputFile = path.join(self.configDir, config.root, config.output),
-                lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
+            var buildResult = self.build(buildConfig);
 
-            log('info'.green + ':    Writing LMD Package to ' + lmdOutputFile.green + '\n');
-            fs.writeFileSync(lmdOutputFile, buildResult.source, 'utf8');
+            if (typeof config.output === 'string') {
+                var lmdOutputFile = path.join(self.configDir, config.root, config.output);
+                log('info'.green + ':    Writing LMD Package to ' + lmdOutputFile.green + '\n');
+                fs.writeFileSync(lmdOutputFile, buildResult.source, 'utf8');
+            }
 
-            if (config.sourcemap) {
+            if (typeof config.sourcemap === 'string') {
+                var lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
                 log('info'.green + ':    Writing Source Map to ' + lmdSourceMapFile.green + '\n');
                 fs.writeFileSync(lmdSourceMapFile, buildResult.sourceMap.toString(), 'utf8');
             }
@@ -1638,6 +1643,10 @@ LmdBuilder.prototype._streamBundles = function (bundles) {
  */
 LmdBuilder.prototype._closeBundleStreams = function () {
     var self = this;
+
+    if (!self.bundles) {
+        return;
+    }
 
     Object.keys(self.bundles).forEach(function (bundleName) {
         var stream = self.bundles[bundleName];
