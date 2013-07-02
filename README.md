@@ -3,7 +3,7 @@
 New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getting-started),
 [Wiki](https://github.com/azproduction/lmd/wiki/) and [examples](examples/)
 
-## Why LMD? Why not AMD (RequireJS)?
+## Why LMD? Why not AMD?
 
  - Modules are CommonJS
    - Actually LMD can work with any JavaScript modules
