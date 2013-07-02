@@ -18,7 +18,7 @@ All modules are **already compiled**. But you can do it by yourself.
 
 ```bash
 $ npm install lmd -g
-$ cd dependency-examples/backbone_lmd
+$ cd lmd/examples/demos/backbone_lmd/backbone_lmd
 
 # To see the build info
 $ lmd info dev-cache
