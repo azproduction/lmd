@@ -35,7 +35,8 @@
     },
     "devDependencies": {
         "http-server": ">= 0.5.1",
-        "colors": ">= 0.6.0"
+        "colors": ">= 0.6.0",
+        "json-stringify-safe": "*"
     },
     "engines": {
         "node": ">= 0.8.0"
