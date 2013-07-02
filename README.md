@@ -3,17 +3,12 @@
 New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getting-started),
 [Wiki](https://github.com/azproduction/lmd/wiki/) and [examples](examples/)
 
-Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without
-touching any part of DOM. It evals module only when they are required.
-LMD is inspired by AMD and provides similar module interface
-
 ## Why LMD? Why not AMD (RequireJS)?
 
- - Module design is similar to Node.js
+ - Modules are CommonJS
    - Actually LMD can work with any JavaScript modules
    - There is no define wrapper!
    - You can use node modules without dirty hacks like `typeof exports ? :`
-   - But you can use old-school function-wrapped-modules. Like IIFE? - Good!
    - You can use strings as string without any "template" plugins
    - You can use JSON file as Object
  - Total and honest isolation
