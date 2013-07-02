@@ -24,4 +24,4 @@ New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getti
  - [Match](plugins/) - use `require.match(/Pattern/)` to grep all modules that you need
  - [And more...](plugins/)
 
-**Hint** You can try all examples live! Just add `http://azproduction.github.io/lmd/` to example path `examples/demos/backbone_lmd/` = [http://azproduction.github.io/lmd/demos/backbone_lmd/](http://azproduction.github.io/lmd/demos/backbone_lmd/)
+**Hint** You can try all examples live! Just add `http://azproduction.github.io/lmd/` to example path `examples/demos/backbone_lmd/` = [http://azproduction.github.io/lmd/examples/demos/backbone_lmd/](http://azproduction.github.io/lmd/examples/demos/backbone_lmd/)
