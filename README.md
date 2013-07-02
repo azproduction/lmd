@@ -1,5 +1,8 @@
 # LMD: Lazy Module Declaration [![Build Status](https://secure.travis-ci.org/azproduction/lmd.png?branch=master)](http://travis-ci.org/azproduction/lmd) [![NPM version](https://badge.fury.io/js/lmd.png)](http://badge.fury.io/js/lmd) [![Dependency Status](https://gemnasium.com/azproduction/lmd.png)](https://gemnasium.com/azproduction/lmd)
 
+New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getting-started),
+[Wiki](https://github.com/azproduction/lmd/wiki/) and [examples](examples/)
+
 Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without
 touching any part of DOM. It evals module only when they are required.
 LMD is inspired by AMD and provides similar module interface
@@ -93,11 +96,6 @@ LMD is inspired by AMD and provides similar module interface
 ## Installing
 
 `npm install lmd -g` global is prefered for LMD CLI comands.
-
-## Getting started with LMD
-
-See [Getting Started](https://github.com/azproduction/lmd/wiki/Getting-started)
-and [Wiki](https://github.com/azproduction/lmd/wiki/)
 
 ## LMD Config file
 
