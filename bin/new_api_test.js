@@ -1,7 +1,8 @@
 var path = require('path'),
     Build = require('../lib/build'),
     BuildRender = require('../lib/buildRender'),
-    Logger = require('../lib/logger');
+    Logger = require('../lib/logger'),
+    stringify = require('json-stringify-safe');
 
 var fileName = path.join(__dirname, '../examples/demos/getting_started/.lmd/index.lmd.json');
 
@@ -14,6 +15,8 @@ build.withLogger(logger)
     .then(function (build) {
         var code = new BuildRender(build).render();
         console.log(code);
+
+        console.log(stringify(build, null, 4));
     }, function (error) {
         console.log(error.stack);
     });
