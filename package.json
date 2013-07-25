@@ -5,7 +5,7 @@
         "name": "Mikhail Davydov",
         "email": "azazel.private@gmail.com"
     },
-    "version": "1.10.14",
+    "version": "1.10.15",
     "bin": {
         "lmd": "./bin/lmd"
     },
@@ -26,7 +26,7 @@
         "uglify-js": "1.3.4",
         "jade": "0.26.1",
         "express": "2.5.9",
-        "colors": ">= 0.6.0",
+        "colors": "= 0.6.0-1",
         "source-map": ">= 0.1.3",
         "optimist": ">= 0.3.5",
         "lodash-template": "1.0.0",
