@@ -1313,11 +1313,16 @@ LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
  * @return {Object} {source: cleanSource, sourceMap: sourceMap}
  */
 LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, config) {
-    var generatedFile = path.join(this.configDir, config.root, config.output),
-        root = path.join(this.configDir, config.root, config.www_root),
-        www = config.sourcemap_www,
-        sourceMapFile = path.join(this.configDir, config.root, config.sourcemap),
-        isInline = config.sourcemap_inline,
+    var configRoot = config.root || config.path || '',
+        configOutput = config.output || '',
+        configWwwRoot = config.www_root || '',
+        configSourcemapWww = config.sourcemap_www || '',
+        configSourcemap = config.sourcemap || '';
+
+    var generatedFile = path.join(this.configDir, configRoot, configOutput),
+        root = path.join(this.configDir, configRoot, configWwwRoot),
+        sourceMapFile = path.join(this.configDir, configRoot, configSourcemap),
+        isInline = config.sourcemap_inline || false,
         isWarn = config.warn;
 
     var self = this,
@@ -1329,7 +1334,7 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
 
     var sourceMap = new SourceMapGenerator({
         file: fs.realpathSync(generatedFile).replace(root, ''),
-        sourceRoot: www || ""
+        sourceRoot: configSourcemapWww
     });
 
     for (var moduleName in modules) {
