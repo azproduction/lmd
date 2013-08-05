@@ -1,0 +1,7 @@
+/**
+ * LMD ignoring example
+ */
+
+$(function () {
+
+});
