@@ -193,6 +193,7 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
   * bundles - a way to split your application into separete parts. See [demo](http://lmdjs.org/examples/features/bundles/), [code](examples/features/bundles/)
   * lmdjs_configs - you can write config files in JavaScript. See [demo](http://lmdjs.org/examples/features/lmdjs_configs/), [code](examples/features/lmdjs_configs/)
   * multi_modules - using jQuery or Backbone with plugins? This feature is for you. See [demo](http://lmdjs.org/examples/features/multi_module/), [code](examples/features/multi_module/)
+  * ignore_module - ignore module from build, can be used with glob to ignore some modules. See [demo](http://lmdjs.org/examples/features/ignore_module/), [code](examples/features/ignore_module/)
 
 ## Config extras
 
