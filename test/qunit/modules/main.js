@@ -22,4 +22,7 @@
 
     // User Plugins
     require('testcase_lmd_user_plugins');
+
+    // Ignore Modules
+    require('testcase_lmd_ignore_module');
 });

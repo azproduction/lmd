@@ -1,0 +1,15 @@
+{
+    "name": "Ignoring example",
+    "extends": "./all.lmd.json",
+
+    "root": "../js",
+    "output": "../index.lmd.js",
+    "modules": {
+        "*": "*.js",
+        "a": null,
+        "b": null
+    },
+    "main": "main",
+    "ie": false,
+    "optimize": true
+}

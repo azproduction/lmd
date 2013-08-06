@@ -1,0 +1,7 @@
+{
+    "root": "../../",
+
+    "modules": {
+        "ignore_module_ignored_module2": "modules/ignore_module/ignored_module2.js"
+    }
+}
