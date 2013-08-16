@@ -25,4 +25,7 @@
 
     // Ignore Modules
     require('testcase_lmd_ignore_module');
+
+    // Subdir Module template variable
+    require('testcase_lmd_subdir');
 });
