@@ -15,7 +15,8 @@
         "testcase_lmd_cache": "test_case/testcase_lmd_cache/testcase_lmd_cache.js",
         "testcase_lmd_amd":"test_case/testcase_lmd_amd/testcase_lmd_amd.js",
         "testcase_lmd_user_plugins": "test_case/testcase_lmd_user_plugins/testcae_lmd_user_plugins.js",
-        "testcase_lmd_ignore_module": "test_case/testcase_lmd_ignore_module/testcase_lmd_ignore_module.js"
+        "testcase_lmd_ignore_module": "test_case/testcase_lmd_ignore_module/testcase_lmd_ignore_module.js",
+        "testcase_lmd_subdir": "test_case/testcase_lmd_subdir/testcase_lmd_subdir.js"
 
     },
 

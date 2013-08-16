@@ -1,0 +1,9 @@
+{
+    "root": "../../subdir",
+
+    "modules": {
+        "subdir_${subdir}${file}": "a/**/*.js",
+        "subdir_<%= subdir.length > 0 ? subdir.reverse().join('/') + '/' : '' %>${file}": "b/**/*.js",
+        "subdir_<%= subdir %><%= file %>": "*.js"
+    }
+}

@@ -8,6 +8,8 @@
     "modules": {
         "<%= file %><%= dir[0][0].toUpperCase() %><%= dir[0].slice(1, -1) %>": "{collections,helpers,models,routers,templates,views}/**/*.{js,html}",
         "../${dir[2]}/${dir[1]}/${dir[0]}/${file}.${ext}": "test/**/*.js",
+        "${subdir}${file}": "deep/**/*.js",
+        "subdir/${ subdir.reverse().join('/') }/${file}": "deep/**/*.js",
         "*": "*.js"
     },
     "main": "main",
