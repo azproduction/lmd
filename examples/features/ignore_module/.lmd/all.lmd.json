@@ -1,0 +1,12 @@
+{
+    "name": "Ignoring example",
+
+    "root": "../js",
+    "output": "../index.lmd.js",
+    "modules": {
+        "*": "*.js"
+    },
+    "main": "main",
+    "ie": false,
+    "optimize": true
+}

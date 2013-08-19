@@ -117,14 +117,17 @@ LmdBuilder.watch = function (configFile, options) {
     }
     process.nextTick(function () {
         if (!isFatalErrors) {
-            if (configFile) {
-                if (self.watchConfig.output) {
-                    self.fsWatch(self.watchConfig);
-                    return;
-                }
+            if (!configFile) {
+                return;
             }
 
-            self.log.emit('data', 'lmd watcher usage:\n\t    ' + 'lmd watch'.blue + ' ' + 'config.lmd.js(on)'.green + ' ' + 'output.lmd.js'.green + '\n');
+            if (typeof self.watchConfig.output === 'string') {
+                self.fsWatch(self.watchConfig);
+                return;
+            } else {
+                self.log.emit('data', 'ERRO'.red.inverse + ':' + '    Check your config file. "output" parameter should be a {String} eg "../path"'.red + '\n');
+                return;
+            }
         } else {
             self.printFatalErrors(self.watchConfig);
         }
@@ -248,8 +251,8 @@ LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
     for (var moduleName in modules) {
         if (!modules[moduleName].is_exists) {
             errorMessage = 'Module "' + moduleName.cyan + '": "' +
-                modules[moduleName].originalPath.red + '" (' +
-                modules[moduleName].path.red + ') is not exists. ' +
+                modules[moduleName].originalPath.toString().red + '" (' +
+                modules[moduleName].path.toString().red + ') is not exists. ' +
                 'Project root: "' + projectRoot.green + '". ';
 
             this.error(errorMessage);
@@ -1100,14 +1103,16 @@ LmdBuilder.prototype.fsWatch = function (config) {
                 return;
             }
 
-            var buildResult = self.build(buildConfig),
-                lmdOutputFile = path.join(self.configDir, config.root, config.output),
-                lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
+            var buildResult = self.build(buildConfig);
 
-            log('info'.green + ':    Writing LMD Package to ' + lmdOutputFile.green + '\n');
-            fs.writeFileSync(lmdOutputFile, buildResult.source, 'utf8');
+            if (typeof config.output === 'string') {
+                var lmdOutputFile = path.join(self.configDir, config.root, config.output);
+                log('info'.green + ':    Writing LMD Package to ' + lmdOutputFile.green + '\n');
+                fs.writeFileSync(lmdOutputFile, buildResult.source, 'utf8');
+            }
 
-            if (config.sourcemap) {
+            if (typeof config.sourcemap === 'string') {
+                var lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
                 log('info'.green + ':    Writing Source Map to ' + lmdSourceMapFile.green + '\n');
                 fs.writeFileSync(lmdSourceMapFile, buildResult.sourceMap.toString(), 'utf8');
             }
@@ -1148,9 +1153,13 @@ LmdBuilder.prototype.fsWatch = function (config) {
             for (var moduleName in modules) {
                 module = modules[moduleName];
 
-                // Skip shortcuts
-                if (module.path.charAt(0) === '@') continue;
-                names.push(module.path);
+                if (Array.isArray(module.path)) {
+                    names = names.concat(module.path);
+                } else {
+                    // Skip shortcuts
+                    if (module.path.charAt(0) === '@') continue;
+                    names.push(module.path);
+                }
             }
 
             // Collect modules from bundles
@@ -1304,11 +1313,16 @@ LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
  * @return {Object} {source: cleanSource, sourceMap: sourceMap}
  */
 LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, config) {
-    var generatedFile = path.join(this.configDir, config.root, config.output),
-        root = path.join(this.configDir, config.root, config.www_root),
-        www = config.sourcemap_www,
-        sourceMapFile = path.join(this.configDir, config.root, config.sourcemap),
-        isInline = config.sourcemap_inline,
+    var configRoot = config.root || config.path || '',
+        configOutput = config.output || '',
+        configWwwRoot = config.www_root || '',
+        configSourcemapWww = config.sourcemap_www || '',
+        configSourcemap = config.sourcemap || '';
+
+    var generatedFile = path.join(this.configDir, configRoot, configOutput),
+        root = path.join(this.configDir, configRoot, configWwwRoot),
+        sourceMapFile = path.join(this.configDir, configRoot, configSourcemap),
+        isInline = config.sourcemap_inline || false,
         isWarn = config.warn;
 
     var self = this,
@@ -1320,7 +1334,7 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
 
     var sourceMap = new SourceMapGenerator({
         file: fs.realpathSync(generatedFile).replace(root, ''),
-        sourceRoot: www || ""
+        sourceRoot: configSourcemapWww
     });
 
     for (var moduleName in modules) {
@@ -1407,7 +1421,8 @@ LmdBuilder.prototype.calculateModuleLines = function (source) {
 LmdBuilder.prototype.isModuleCanBeUnderSourceMap = function (moduleDescriptor) {
     return !moduleDescriptor.is_shortcut &&
            !moduleDescriptor.is_coverage &&
-           !moduleDescriptor.is_lazy;
+           !moduleDescriptor.is_lazy &&
+           !moduleDescriptor.is_multi_path_module;
 };
 
 LmdBuilder.prototype.applySourceMap = function (module, moduleInfo) {
@@ -1633,6 +1648,10 @@ LmdBuilder.prototype._streamBundles = function (bundles) {
  */
 LmdBuilder.prototype._closeBundleStreams = function () {
     var self = this;
+
+    if (!self.bundles) {
+        return;
+    }
 
     Object.keys(self.bundles).forEach(function (bundleName) {
         var stream = self.bundles[bundleName];

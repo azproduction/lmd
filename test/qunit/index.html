@@ -2,10 +2,10 @@
 <html>
     <head>
 	    <meta charset="UTF-8">
-        <link rel="stylesheet" href="vendors/qunit/qunit/qunit.css">
+        <link rel="stylesheet" href="vendors/qunit.css">
 
         <!--QUnit-->
-        <script src="vendors/qunit/qunit/qunit.js"></script>
+        <script src="vendors/qunit.js"></script>
         <script>
             (function () {
                 var log = !this.console ? function () {} : function (a) {
@@ -39,8 +39,8 @@
         <script src="mock/worker_global_environment.js"></script>
 
         <!--Tests-->
-        <script src="out/test.lmd.js"></script>
         <script src="out/worker_test.lmd.js"></script>
+        <script src="out/test.lmd.js"></script>
         <script src="out/node_test.lmd.js"></script>
         <script src="out/promise_test.lmd.js"></script>
     </head>

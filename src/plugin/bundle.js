@@ -46,7 +46,7 @@
         }
 
         if (typeof _main === "function") {
-            var output = {exports: {}};
+            var output = {'exports': {}};
             _main(sb.trigger('lmd-register:decorate-require', "<bundle:main>", sb.require)[1], output.exports, output);
         }
     };

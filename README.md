@@ -1,16 +1,14 @@
 # LMD: Lazy Module Declaration [![Build Status](https://secure.travis-ci.org/azproduction/lmd.png?branch=master)](http://travis-ci.org/azproduction/lmd) [![NPM version](https://badge.fury.io/js/lmd.png)](http://badge.fury.io/js/lmd) [![Dependency Status](https://gemnasium.com/azproduction/lmd.png)](https://gemnasium.com/azproduction/lmd)
 
-Big JavaScript application cause huge startup latency. A 1Mb of JavaScript initializes about ~600-3000ms! without
-touching any part of DOM. It evals module only when they are required.
-LMD is inspired by AMD and provides similar module interface
+New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getting-started),
+[Wiki](https://github.com/azproduction/lmd/wiki/) and [examples](examples/)
 
-## Why LMD? Why not AMD (RequireJS)?
+## Why LMD? Why not AMD?
 
- - Module design is similar to Node.js
+ - Modules are CommonJS
    - Actually LMD can work with any JavaScript modules
    - There is no define wrapper!
    - You can use node modules without dirty hacks like `typeof exports ? :`
-   - But you can use old-school function-wrapped-modules. Like IIFE? - Good!
    - You can use strings as string without any "template" plugins
    - You can use JSON file as Object
  - Total and honest isolation
@@ -93,11 +91,6 @@ LMD is inspired by AMD and provides similar module interface
 ## Installing
 
 `npm install lmd -g` global is prefered for LMD CLI comands.
-
-## Getting started with LMD
-
-See [Getting Started](https://github.com/azproduction/lmd/wiki/Getting-started)
-and [Wiki](https://github.com/azproduction/lmd/wiki/)
 
 ## LMD Config file
 
@@ -199,6 +192,8 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
   * adaptation - using any JavaScripts as modules. See Wiki page [Adopting modules](https://github.com/azproduction/lmd/wiki/Adopting-modules). See [demo](http://lmdjs.org/examples/features/adaptation/), [code](examples/features/adaptation/)
   * bundles - a way to split your application into separete parts. See [demo](http://lmdjs.org/examples/features/bundles/), [code](examples/features/bundles/)
   * lmdjs_configs - you can write config files in JavaScript. See [demo](http://lmdjs.org/examples/features/lmdjs_configs/), [code](examples/features/lmdjs_configs/)
+  * multi_modules - using jQuery or Backbone with plugins? This feature is for you. See [demo](http://lmdjs.org/examples/features/multi_module/), [code](examples/features/multi_module/)
+  * ignore_module - ignore module from build, can be used with glob to ignore some modules. See [demo](http://lmdjs.org/examples/features/ignore_module/), [code](examples/features/ignore_module/)
 
 ## Config extras
 

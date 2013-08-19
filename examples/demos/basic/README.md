@@ -1,7 +1,7 @@
 All-in-on-example
 -----------------
 
-1. `cfgs/` - config build files
+1. `.lmd` - config build files
 2. `css/` - stylesheets, loaded dynamically using `require.css()`
 3. `modules/` - LMD modules, both in-package and off-package (functions, objects, strings), loaded using `require()` and `require.async()`
 4. `vendors/` - **non-LMD modules** (lmd cant work with them directly), loaded dynamically using `require.js()`

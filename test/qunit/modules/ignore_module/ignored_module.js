@@ -1,0 +1,1 @@
+throw new Error('It should be ignored');

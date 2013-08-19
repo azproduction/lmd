@@ -1,0 +1,22 @@
+{
+    "name": "Adaptation example",
+
+    "description": "LMD can adopt jQuery with plugins",
+
+    "root": "../js",
+    "output": "../index.js",
+    "modules": {
+        "main": "main.js",
+
+        "jquery": {
+            "path": ["vendors/fake_jquery.js", "vendors/fake_jquery-plugin3.js", "vendors/fake_jquery.*.js"],
+            "exports": "jQuery"
+        },
+
+        "backbone": ["vendors/bb*.js"]
+    },
+    "main": "main",
+    "ie": false,
+
+    "optimize": true
+}

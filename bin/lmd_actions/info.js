@@ -233,14 +233,31 @@ function printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytic
     }, 0);
 
     modulesNames.forEach(function (name) {
-        var moduleInfo = name.cyan + new Array(longestName - name.length + 2).join(' ') + ' <- ';
+        var moduleShortPadding = new Array(longestName - name.length + 2).join(' '),
+            modulePath = [].concat(modules[name].path);
+
+        var moduleLongPadding = new Array(name.length + 5).join(' ') + moduleShortPadding;
 
         if (modules[name].is_exists) {
-            moduleInfo += modules[name].path.green;
-            cli.ok(moduleInfo);
+            modulePath.forEach(function (modulePath, index) {
+                var moduleInfo;
+                if (!index) {
+                    moduleInfo = name.cyan + moduleShortPadding + ' <- ' + modulePath.green;
+                } else {
+                    moduleInfo = moduleLongPadding + modulePath.green;
+                }
+                cli.ok(moduleInfo);
+            });
         } else {
-            moduleInfo += modules[name].path.red + ' (not exists)';
-            cli.error(moduleInfo);
+            modulePath.forEach(function (modulePath, index) {
+                var moduleInfo;
+                if (!index) {
+                    moduleInfo = name.cyan + moduleShortPadding + ' <- ' + modulePath.red;
+                } else {
+                    moduleInfo = moduleLongPadding + modulePath.red;
+                }
+                cli.error(moduleInfo + ' (not exists)');
+            });
         }
         if (!isDeepAnalytics) {
             return;

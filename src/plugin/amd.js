@@ -43,7 +43,7 @@ var define = function (name, deps, module) {
         return;
     }
 
-    var output = {exports: {}};
+    var output = {'exports': {}};
     if (!deps) {
         deps = ["require", "exports", "module"];
     }

@@ -24,7 +24,7 @@
         fallbackUrl = scriptElement[getAttribute](prefix + 'src'),
         ls = global.localStorage,
         // lmd:%version%:%module_name%
-        rx = /^lmd:([^:]+):(.*)$/,
+        rx = new RegExp('^' + storageKey + ':([^:]+):(.*)$'),
 
         script, json, head, item, main, lmd, match;
 

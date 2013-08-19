@@ -136,6 +136,25 @@
         ok(isEveryModuleMatched && shouldMatch.length === moduleNames.length, 'should match only required modules');
     });
 
+    test("require() multi-path module", function () {
+        expect(1);
+
+        var backbone = require('multi-third_party_module_backbone');
+        ok(typeof backbone === "object" &&
+           backbone.Plugin1() === "Plugin1" &&
+           backbone.Plugin2() === "Plugin2", 'Modules can consists of multiply files');
+    });
+
+    test("require() 3-party multi-path module", function () {
+        expect(1);
+
+        var $ = require('multi-third_party_module_jquery');
+        ok(typeof $ === "function" &&
+            $().plugin() === 'plugin' &&
+            $().plugin2() === 'plugin2' &&
+            $.plugin3() === 'plugin3', '3-party modules can consists of multiply files');
+    });
+
     if (ENV_NAME === "Node") {
         test("require() node.js npm, node, local modules", function () {
             expect(3);
