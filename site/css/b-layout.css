@@ -26,9 +26,15 @@ body, html, .b-layout__table, .b-layout__cell {
     margin-left: 20%;
 }
 
-.b-layout__description {
+.b-layout__title,
+.b-layout__subtitle {
     color: #333;
     font-size: 2em;
+    margin-bottom: 0.2em;
+}
+
+.b-layout__subtitle {
+    font-size: 1.5em;
 }
 
 .b-layout__button {
