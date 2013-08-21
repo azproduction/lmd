@@ -6,7 +6,7 @@ New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getti
 ## Demo applications
 
  - [Backbone LMD](demos/backbone_lmd/) - TodoMVC application based on Backbone.js with LMD as application assembler. [Run](http://azproduction.github.io/lmd/examples/demos/backbone_lmd/)
- - [Mock Chat](demos/mock_chat/) - Part of [loaders benchmark](https://github.com/azproduction/loader-test/), than measures LMD performance. [Run](http://azproduction.github.io/lmd/examples/demos/mock_chat/). [Run using cache](http://azproduction.github.io/lmd/examples/demos/mock_chat/index-cache.html)
+ - [Mock Chat](demos/mock_chat/) - Part of [loaders benchmark](https://github.com/azproduction/loader-test/), than measures LMD performance. [Run](http://azproduction.github.io/lmd/examples/demos/mock_chat/). [Run using cache](http://azproduction.github.io/lmd/examples/demos/mock_chat/index_cache.html)
  - [Getting Started](demos/getting_started/) - Example from [Getting Started wiki page](https://github.com/azproduction/lmd/wiki/Getting-started). [Run](http://azproduction.github.io/lmd/examples/demos/getting_started/)
  - [And more...](demos/)
 
