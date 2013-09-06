@@ -13,6 +13,7 @@ var build = new Build('index', fileName);
 build.withLogger(logger)
     .load()
     .then(function (build) {
+        // TODO a way to render sub-bundles
         var code = new BuildRender(build).render();
         console.log(code);
 
