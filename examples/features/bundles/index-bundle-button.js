@@ -1,5 +1,5 @@
 // This file was automatically generated from "index.lmd.json"
-_a8caf640((function (require, exports, module) { /* wrapped by builder */
+_45809b73((function (require, exports, module) { /* wrapped by builder */
 console.log('[OK] bundle button loaded!');
 
 }),{
