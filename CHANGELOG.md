@@ -133,3 +133,4 @@
   - #137 Custom localStorage key for LMD cache plugin
   - #138 lmd watch fix for node 0.10.x
   - #144 `ignore_module` feature. See [demo](http://lmdjs.org/examples/features/ignore_module/), [code](examples/features/ignore_module/)
+  - #147 `sourcemap_url` config property. See [Wiki page about Source Map](https://github.com/azproduction/lmd/wiki/SourceMap)
