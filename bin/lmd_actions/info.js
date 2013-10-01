@@ -485,6 +485,7 @@ module.exports = function (cli, argv, cwd) {
         cli.ok('sourcemap'.cyan + '         ' + printValue(sourcemap));
         cli.ok('sourcemap_www'.cyan + '     ' + printValue(config.sourcemap_www || '/'));
         cli.ok('sourcemap_inline'.cyan + '  ' + printValue(config.sourcemap_inline));
+        cli.ok('sourcemap_url'.cyan + '     ' + printValue(config.sourcemap_url || '/' + sourcemap.replace(www, '')));
     }
 
     var errors = config.errors;
