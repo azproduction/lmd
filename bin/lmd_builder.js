@@ -1334,7 +1334,7 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
     root = fs.realpathSync(root);
 
     var sourceMap = new SourceMapGenerator({
-        file: fs.realpathSync(generatedFile).replace(root, ''),
+        file: path.relative(root, generatedFile),
         sourceRoot: configSourcemapWww
     });
 
@@ -1349,7 +1349,7 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
             }
 
             var offset = self.getModuleOffset(sourceWithTokens, tokenIndex),
-                source = module.path.replace(root, '');
+                source = path.relative(root, module.path);
 
             // add mapping for each line
             for (var i = 0; i < module.lines; i++) {
@@ -1383,7 +1383,7 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
         this.warn('Source Map is not applied for these modules: **' + sourceMapSkipped.join('**, **') + '**', isWarn);
     }
 
-    configSourceMappingURL = configSourceMappingURL || fs.realpathSync(sourceMapFile).replace(root, '') + '?' + Math.random();
+    configSourceMappingURL = configSourceMappingURL || path.relative(root, sourceMapFile) + '?' + Math.random();
 
     if (isInline && sourceMapsApplied !== 0) {
         // append helper
