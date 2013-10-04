@@ -1316,7 +1316,7 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
     var configRoot = config.root || config.path || '',
         configOutput = config.output || '',
         configWwwRoot = config.www_root || '',
-        configSourcemapWww = config.sourcemap_www || '',
+        configSourcemapWww = config.sourcemap_www || '/',
         configSourcemap = config.sourcemap || '',
         configSourceMappingURL = config.sourcemap_url || '';
 
@@ -1383,7 +1383,7 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
         this.warn('Source Map is not applied for these modules: **' + sourceMapSkipped.join('**, **') + '**', isWarn);
     }
 
-    configSourceMappingURL = configSourceMappingURL || path.relative(root, sourceMapFile) + '?' + Math.random();
+    configSourceMappingURL = configSourceMappingURL || '/' + path.relative(root, sourceMapFile) + '?' + Math.random();
 
     if (isInline && sourceMapsApplied !== 0) {
         // append helper
