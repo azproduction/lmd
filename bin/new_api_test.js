@@ -14,8 +14,9 @@ build.withLogger(logger)
     .load()
     .then(function (build) {
         // TODO a way to render sub-bundles
-        var code = new BuildRender(build).render();
-        console.log(code);
+        new BuildRender(build).render().then(function (code) {
+            console.log(code);
+        });
 
         console.log(stringify(build, null, 4));
     }, function (error) {
