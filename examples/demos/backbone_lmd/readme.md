@@ -18,7 +18,7 @@ All modules are **already compiled**. But you can do it by yourself.
 
 ```bash
 $ npm install lmd -g
-$ cd dependency-examples/backbone_lmd
+$ cd lmd/examples/demos/backbone_lmd/backbone_lmd
 
 # To see the build info
 $ lmd info dev-cache
@@ -31,6 +31,9 @@ info:    Writing LMD Package to ../compiled/dev.lmd.js
 $ lmd build dev-cache
 info:    Building `dev-cache` (.lmd/dev-cache.lmd.json)
 info:    Writing LMD Package to ../compiled/dev-cache.lmd.js
+
+# Setup watcher
+$ lmd watch dev
 ```
 
 ## Credit

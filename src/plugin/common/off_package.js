@@ -3,8 +3,8 @@
  */
 (function (sb) {
     var domOnlyLoaders = {
-        css: true,
-        image: true
+        'css': true,
+        'image': true
     };
 
     var reEvalable = /(java|ecma)script|json/,

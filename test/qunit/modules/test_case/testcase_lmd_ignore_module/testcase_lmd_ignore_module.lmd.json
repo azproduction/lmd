@@ -1,0 +1,10 @@
+{
+    "root": "../../",
+    "mixins": ["./testcase_lmd_ignore_module.mixin.lmd.json"],
+
+    "modules": {
+        "ignore_module_ignored_module": null,
+        "ignore_module_ignored_module2": null
+    },
+    "extends": "./testcase_lmd_ignore_module.all.lmd.json"
+}

@@ -129,4 +129,8 @@
   - `lmdjs_configs` - you can write config files in JavaScript. See [demo](http://lmdjs.org/examples/features/lmdjs_configs/), [code](examples/features/lmdjs_configs/)
   - `match` - enables `require.match(RegExp): Object` requires every matched module name. See [demo](http://lmdjs.org/examples/plugins/match/), [code](examples/plugins/match/)`
   - `multi_module` - feature allows you to use multiply files as one module. Eg jquery+plugins. See [demo](http://lmdjs.org/examples/features/multi_module/), [code](examples/features/multi_module/)
-
+  - Google Closure Compile is ADVANCED mode
+  - #137 Custom localStorage key for LMD cache plugin
+  - #138 lmd watch fix for node 0.10.x
+  - #144 `ignore_module` feature. See [demo](http://lmdjs.org/examples/features/ignore_module/), [code](examples/features/ignore_module/)
+  - #147 `sourcemap_url` config property. See [Wiki page about Source Map](https://github.com/azproduction/lmd/wiki/SourceMap)

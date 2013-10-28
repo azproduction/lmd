@@ -45,7 +45,7 @@ function init(stdout, argv, cwd) {
         action = argv[2],
         logWriter = new cli.LogWriter(stdout);
 
-    if (argv.length === 3 && options.v || options.version) {
+    if (argv.length === 3 && (options.v || options.version)) {
         stdout.write(require(__dirname + '/../package.json').version + '\n');
 
     } else if (!actionsAliases.hasOwnProperty(action)) {
