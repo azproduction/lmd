@@ -42,7 +42,7 @@ var LMD_PLUGINS = common.LMD_PLUGINS;
  *      .pipe(process.stdout);
  */
 var LmdBuilder = function (configFile, options) {
-    this.options = this.defaults(options);
+    this.options = options || {};
     var self = this;
 
     // apply config
@@ -54,7 +54,7 @@ var LmdBuilder = function (configFile, options) {
     this.bundles = {};
 
     // Let return instance before build
-    this.buildConfig = self.compileConfig(configFile, self.options);
+    this.buildConfig = this.compileConfig(configFile, self.options);
 
     var isFatalErrors = !this.isAllModulesExists(this.buildConfig);
     if (isFatalErrors) {
@@ -99,7 +99,7 @@ var LmdBuilder = function (configFile, options) {
  *      .log.pipe(process.stdout);
  */
 LmdBuilder.watch = function (configFile, options) {
-    this.options = this.defaults(options);
+    this.options = options || {};
     var self = this;
 
     this.configFile = configFile;
@@ -109,7 +109,7 @@ LmdBuilder.watch = function (configFile, options) {
     this.readable = false;
 
     // Let return instance before build
-    self.watchConfig = self.compileConfig(self.configFile, self.options);
+    this.watchConfig = this.compileConfig(self.configFile, self.options);
 
     var isFatalErrors = !this.isAllModulesExists(this.watchConfig);
     if (isFatalErrors) {
@@ -198,7 +198,7 @@ LmdBuilder.prototype.init = function () {
  * @param options
  */
 LmdBuilder.prototype.compileConfig = function (configFile, options) {
-    return assembleLmdConfig(configFile, Object.keys(this.flagToOptionNameMap), options);
+    return this.defaults(assembleLmdConfig(configFile, Object.keys(this.flagToOptionNameMap), options));
 };
 
 /**
