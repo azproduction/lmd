@@ -182,6 +182,26 @@ function printModules(cli, config, deepModulesInfo, sortColumnName) {
     cli.ok('');
 }
 
+function printStyles(cli, config) {
+    var styles = config.styles || [];
+    if (!styles.length) {
+        return;
+    }
+
+    cli.ok(('Styles (' + styles.length + ')').white.bold.underline);
+    cli.ok('');
+
+    styles.forEach(function (style) {
+        if (!style.is_exists) {
+            cli.error(style.path.red + ' (not exists)');
+        } else {
+            cli.ok(style.path.green);
+        }
+    });
+
+    cli.ok('');
+}
+
 function printFlags(cli, config, availableFlags) {
     var longestName = availableFlags.reduce(function (max, current) {
         if (typeof config[current] === "undefined") {
@@ -435,6 +455,7 @@ module.exports = function (cli, argv, cwd) {
         config = assembleLmdConfig(lmdFile, flags, argv),
         root = path.join(cwd, '.lmd', config.root),
         output = config.output ? path.join(root, config.output) : 'STDOUT'.yellow,
+        styles_output = config.styles_output ? path.join(root, config.styles_output) : '/dev/null'.yellow,
         sourcemap = config.sourcemap ? path.join(root, config.sourcemap) : false,
         www = config.www_root ? path.join(cwd, '.lmd', config.www_root) : false,
         versionString = config.version ? ' - version ' + config.version.toString().cyan : '';
@@ -468,14 +489,16 @@ module.exports = function (cli, argv, cwd) {
     var deepModulesInfo = common.collectModulesInfo(config);
     printModules(cli, config, deepModulesInfo, sortOrder);
     printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytics);
+    printStyles(cli, config);
     printUserPlugins(cli, config);
     printFlags(cli, config, flags.concat(extraFlags));
 
     cli.ok('Paths'.white.bold.underline);
     cli.ok('');
-    cli.ok('root'.cyan + '      ' + printValue(root));
-    cli.ok('output'.cyan + '    ' + printValue(output));
-    cli.ok('www_root'.cyan + '  ' + printValue(www));
+    cli.ok('root'.cyan + '           ' + printValue(root));
+    cli.ok('output'.cyan + '         ' + printValue(output));
+    cli.ok('styles_output'.cyan + '  ' + printValue(styles_output));
+    cli.ok('www_root'.cyan + '       ' + printValue(www));
 
     if (sourcemap) {
         cli.ok('');

@@ -1,0 +1,25 @@
+{
+    "name": "styles - styles assembler",
+    "mixins": [
+        "./textarea.lmd.json"
+    ],
+
+    "root": "../components",
+    "output": "../www/index.js",
+    "styles_output": "../www/index.css",
+
+    "modules": {
+        "components/*": "**/*.js",
+        "launch": "../js/launch/launch.js",
+        "main": "../js/index.js"
+    },
+    "depends": "*.lmd.json",
+    "styles": [
+        "button/button.css"
+    ],
+
+    "main": "main",
+    "optimize": true,
+
+    "ie": false
+}

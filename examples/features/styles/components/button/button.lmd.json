@@ -1,0 +1,6 @@
+{
+    "name": "button component",
+    "styles": [
+        "*.css"
+    ]
+}
