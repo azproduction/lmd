@@ -1,0 +1,8 @@
+{
+    "root": "../css",
+    "styles": [
+        "a.css",
+        "b.css",
+        "c.css"
+    ]
+}

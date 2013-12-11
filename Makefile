@@ -1,8 +1,11 @@
 LMD_BUILD = ../../bin/lmd.js
+BIN = ./node_modules/.bin
+MOCHA = $(BIN)/mocha
 
 all: test
 
 test: build_test
+	$(MOCHA) -u bdd -R spec --recursive test/build
 	@node ./test/qunit/run-test.js
 
 build_test:
@@ -54,4 +57,4 @@ run_stats:
 help:
 	@echo "USAGE:\n\tmake\n\tmake test\ntmake coverage\n\tmake run_qunit\n\tmake run_coverage"
 
-.PHONY: all test clean
+.PHONY: all test clean test_builder

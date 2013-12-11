@@ -1,0 +1,14 @@
+{
+    "root": "../css",
+    "output": "../index.js",
+    "styles": [
+        "a.css"
+    ],
+    "bundles": {
+        "ie": {
+            "styles": [
+                "b.css"
+            ]
+        }
+    }
+}

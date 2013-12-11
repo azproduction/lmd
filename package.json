@@ -35,7 +35,10 @@
     },
     "devDependencies": {
         "http-server": ">= 0.5.1",
-        "colors": ">= 0.6.0"
+        "colors": ">= 0.6.0",
+        "mocha": "1.11.0",
+        "chai": "*",
+        "vow": "*"
     },
     "engines": {
         "node": ">= 0.8.0"

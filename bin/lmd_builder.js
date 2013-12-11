@@ -178,7 +178,7 @@ LmdBuilder.prototype.defaults = function (options) {
  * Common init for LmdBuilder and LmdBuilder.watch
  */
 LmdBuilder.prototype.init = function () {
-    var self = this;
+    this._closeStreams = this.closeStreams.bind(this);
 
     this.configDir = path.dirname(this.configFile);
     this.flagToOptionNameMap = LMD_PLUGINS;
@@ -209,9 +209,7 @@ LmdBuilder.prototype.init = function () {
 
     // LmdBuilder is readable stream
     this.readable = true;
-    process.on('exit', function () {
-        self.closeStreams();
-    });
+    process.once('exit', this._closeStreams);
 };
 
 /**
@@ -283,7 +281,7 @@ LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
             errorMessage = 'Module "' + moduleName.cyan + '": "' +
                 modules[moduleName].originalPath.toString().red + '" (' +
                 modules[moduleName].path.toString().red + ') is not exists. ' +
-                'Project root: "' + projectRoot.green + '". ';
+                'Project root: "' + String(projectRoot).green + '". ';
 
             this.error(errorMessage);
         }
@@ -293,7 +291,7 @@ LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
         if (!styles[i].is_exists) {
             errorMessage = 'Style (' +
                 styles[i].path.toString().red + ') is not exists. ' +
-                'Project root: "' + projectRoot.green + '". ';
+                'Project root: "' + String(projectRoot).green + '". ';
 
             this.error(errorMessage);
         }
@@ -305,7 +303,7 @@ LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
         if (bundle instanceof Error) {
             errorMessage = 'Bundle "' + bundleName.cyan + '": (' +
                 bundle.message.red + ') is not exists. ' +
-                'Project root: "' + projectRoot.green + '". ';
+                'Project root: "' + String(projectRoot).green + '". ';
 
             this.error(errorMessage);
         } else {
@@ -340,6 +338,7 @@ LmdBuilder.prototype.closeStreams = function () {
     }
 
     this._closeBundleStreams();
+    process.removeListener('exit', this._closeStreams);
 };
 
 /**
