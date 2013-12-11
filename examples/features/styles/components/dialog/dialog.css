@@ -1,0 +1,29 @@
+.dialog
+{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+}
+
+.dialog__content
+{
+    display: inline-block;
+    vertical-align: middle;
+    text-align: left;
+
+    padding: 20px;
+    border: solid 1px #BBB;
+    border-radius: 5px;
+    box-shadow: 0 5px 5px #CCC;
+}
+
+.dialog__aligner
+{
+    display: inline-block;
+    width: 0;
+    height: 100%;
+    vertical-align: middle;
+}

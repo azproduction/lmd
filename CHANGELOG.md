@@ -138,3 +138,4 @@
 **v1.11.x**
 
   - `styles` - styles builder. See [demo](http://lmdjs.org/examples/features/styles/), [code](examples/features/styles/)
+  - default bundle separator replaced from `-bundle-` to `.`

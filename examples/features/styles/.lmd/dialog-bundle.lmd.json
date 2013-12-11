@@ -1,0 +1,8 @@
+{
+    "name": "dialog bundle",
+    "root": "../components",
+    "modules": {
+        "components/dialog": "dialog/dialog.js"
+    },
+    "depends": "*.lmd.json"
+}
