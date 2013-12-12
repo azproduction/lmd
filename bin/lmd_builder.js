@@ -1398,12 +1398,12 @@ LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
  * @return {Object} {source: cleanSource, sourceMap: sourceMap}
  */
 LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, config) {
-    var configRoot = config.root || config.path || '',
-        configOutput = config.output || '',
-        configWwwRoot = config.www_root || '',
-        configSourcemapWww = config.sourcemap_www || '/',
-        configSourcemap = config.sourcemap || '',
-        configSourceMappingURL = config.sourcemap_url || '';
+    var configRoot = String(config.root || config.path || ''),
+        configOutput = String(config.output || ''),
+        configWwwRoot = String(config.www_root || ''),
+        configSourcemapWww = String(config.sourcemap_www || '/'),
+        configSourcemap = String(config.sourcemap || ''),
+        configSourceMappingURL = String(config.sourcemap_url || '');
 
     var generatedFile = path.join(this.configDir, configRoot, configOutput),
         root = path.join(this.configDir, configRoot, configWwwRoot),
