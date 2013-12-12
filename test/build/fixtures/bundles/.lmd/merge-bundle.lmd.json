@@ -1,0 +1,8 @@
+{
+    "root": "../js",
+    "mixins": [
+        "./b.lmd.json",
+        "./b2.lmd.json"
+    ],
+    "output": "index.js"
+}

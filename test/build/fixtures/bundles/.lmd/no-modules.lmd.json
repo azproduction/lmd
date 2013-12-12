@@ -1,0 +1,9 @@
+{
+    "root": "../js",
+    "output": "index.js",
+    "bundles": {
+        "b": {
+            "match": true
+        }
+    }
+}

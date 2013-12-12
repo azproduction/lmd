@@ -57,6 +57,8 @@ var LmdBuilder = function (configFile, options) {
     // Let return instance before build
     this.buildConfig = this.compileConfig(configFile, self.options);
 
+    this.makeEmptyStreamsUnreadable(this.buildConfig);
+
     var isFatalErrors = !this.isAllModulesExists(this.buildConfig);
     if (isFatalErrors) {
         this.readable = false;
@@ -113,6 +115,8 @@ LmdBuilder.watch = function (configFile, options) {
 
     // Let return instance before build
     this.watchConfig = this.compileConfig(self.configFile, self.options);
+
+    this.makeEmptyStreamsUnreadable(this.watchConfig);
 
     var isFatalErrors = !this.isAllModulesExists(this.watchConfig);
     if (isFatalErrors) {
@@ -210,6 +214,21 @@ LmdBuilder.prototype.init = function () {
     // LmdBuilder is readable stream
     this.readable = true;
     process.once('exit', this._closeStreams);
+};
+
+/**
+ * Makes empty streams unreadable
+ * @param config
+ */
+LmdBuilder.prototype.makeEmptyStreamsUnreadable = function (config) {
+    // modules
+    this.readable = this._has(config, 'modules');
+
+    // source map
+    this.sourceMap.readable = this._has(config, 'modules');
+
+    // styles
+    this.style.readable = this._has(config, 'styles');
 };
 
 /**
@@ -1164,33 +1183,19 @@ LmdBuilder.prototype.fsWatch = function (config) {
 
             log(' Rebuilding...\n');
 
-            var buildConfig = self.compileConfig(self.configFile, self.options),
-                isFatalErrors = !self.isAllModulesExists(buildConfig);
+            var buildResult = new LmdBuilder(self.configFile, self.options);
 
-            if (isFatalErrors) {
-                self.printFatalErrors(buildConfig);
-                return;
-            }
-
-            var buildResult = self.build(buildConfig);
-
-            if (typeof config.output === 'string') {
-                var lmdOutputFile = path.join(self.configDir, config.root, config.output);
-                log('info'.green + ':    Writing LMD Package to ' + lmdOutputFile.green + '\n');
-                fs.writeFileSync(lmdOutputFile, buildResult.source, 'utf8');
-            }
-
-            if (typeof config.styles_output === 'string') {
-                var styleOutputFile = path.join(self.configDir, config.root, config.styles_output);
-                log('info'.green + ':    Writing Style to ' + styleOutputFile.green + '\n');
-                fs.writeFileSync(styleOutputFile, buildResult.style, 'utf8');
-            }
-
-            if (typeof config.sourcemap === 'string') {
-                var lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
-                log('info'.green + ':    Writing Source Map to ' + lmdSourceMapFile.green + '\n');
-                fs.writeFileSync(lmdSourceMapFile, buildResult.sourceMap.toString(), 'utf8');
-            }
+            new Writer(buildResult)
+                .writeAll(function (err) {
+                    if (!buildResult.buildConfig.output) {
+                        return;
+                    }
+                    if (err) {
+                        log('info'.red + ':    Build failed'.red + '\n');
+                    } else {
+                        log('info'.green + ':    Build complete'.green + '\n');
+                    }
+                });
 
         },
         watch = function (event, filename) {
@@ -1328,7 +1333,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text, isWarn) {
     if (isWarn) {
         text = this.formatLog(text);
-        this.log.emit('data', this.addPaddingToText('warn'.red, text));
+        this.log.emit('data', this.addPaddingToText('warn'.yellow, text));
     }
 };
 
@@ -1393,12 +1398,12 @@ LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
  * @return {Object} {source: cleanSource, sourceMap: sourceMap}
  */
 LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, config) {
-    var configRoot = config.root || config.path || '',
-        configOutput = config.output || '',
-        configWwwRoot = config.www_root || '',
-        configSourcemapWww = config.sourcemap_www || '/',
-        configSourcemap = config.sourcemap || '',
-        configSourceMappingURL = config.sourcemap_url || '';
+    var configRoot = String(config.root || config.path || ''),
+        configOutput = String(config.output || ''),
+        configWwwRoot = String(config.www_root || ''),
+        configSourcemapWww = String(config.sourcemap_www || '/'),
+        configSourcemap = String(config.sourcemap || ''),
+        configSourceMappingURL = String(config.sourcemap_url || '');
 
     var generatedFile = path.join(this.configDir, configRoot, configOutput),
         root = path.join(this.configDir, configRoot, configWwwRoot),
@@ -1652,7 +1657,7 @@ LmdBuilder.prototype._build = function (config, isBundle) {
             self.info(notification);
         });
 
-        var modulesBundle = this.formatModules(modules, modulesInfo, config, pack),
+        var modulesBundle = this.formatModules(modules, modulesInfo[common.ROOT_BUNDLE_ID], config, pack),
             sourceMap = '',
             lmdFile;
 
@@ -1698,20 +1703,24 @@ LmdBuilder.prototype._build = function (config, isBundle) {
     return result;
 };
 
+LmdBuilder.prototype._has = function (config, what) {
+    return !!(config && config[what] && Object.keys(config[what]).length);
+};
+
 LmdBuilder.prototype._initBundlesStreams = function (bundles) {
     var self = this;
 
     Object.keys(bundles).forEach(function (bundleName) {
         var stream = new Stream();
-        stream.readable = true;
+        stream.readable = self._has(bundles[bundleName], 'modules');
 
         self.bundles[bundleName] = stream;
 
         stream.sourceMap = new Stream();
-        stream.sourceMap.readable = true;
+        stream.sourceMap.readable = self._has(bundles[bundleName], 'modules');
 
         stream.style = new Stream();
-        stream.style.readable = true;
+        stream.style.readable = self._has(bundles[bundleName], 'styles');
     });
 };
 

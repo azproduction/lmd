@@ -70,6 +70,6 @@ function Button($el) {
 module.exports = Button;
 
 }),
-"@index.dialog.css": "@www/index.dialog.css?0.23912667343392968",
-"@index.dialog.js": "@www/index.dialog.js?0.43046099646016955"
-},{},{"promise":"$.Deferred","bundle":"_880823fc"});
+"@index.dialog.css": "@www/index.dialog.css?0.3017174261622131",
+"@index.dialog.js": "@www/index.dialog.js?0.4189665298908949"
+},{},{"promise":"$.Deferred","bundle":"_aa08f3ba"});

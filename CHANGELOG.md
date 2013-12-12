@@ -138,4 +138,8 @@
 **v1.11.x**
 
   - `styles` - styles builder. See [demo](http://lmdjs.org/examples/features/styles/), [code](examples/features/styles/)
-  - default bundle separator replaced from `-bundle-` to `.`
+  - default bundle separator changed from `-bundle-` to `.`
+  - empty styles and scripts will not be printed into file
+  - lmd-info(1) ✘ and warn become yellow
+  - lmd-info(1) prints bundles info include missing bundles
+  - lmd-info(1) prints styles info
