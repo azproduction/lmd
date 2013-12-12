@@ -57,6 +57,8 @@ var LmdBuilder = function (configFile, options) {
     // Let return instance before build
     this.buildConfig = this.compileConfig(configFile, self.options);
 
+    this.makeEmptyStreamsUnreadable(this.buildConfig);
+
     var isFatalErrors = !this.isAllModulesExists(this.buildConfig);
     if (isFatalErrors) {
         this.readable = false;
@@ -113,6 +115,8 @@ LmdBuilder.watch = function (configFile, options) {
 
     // Let return instance before build
     this.watchConfig = this.compileConfig(self.configFile, self.options);
+
+    this.makeEmptyStreamsUnreadable(this.watchConfig);
 
     var isFatalErrors = !this.isAllModulesExists(this.watchConfig);
     if (isFatalErrors) {
@@ -210,6 +214,21 @@ LmdBuilder.prototype.init = function () {
     // LmdBuilder is readable stream
     this.readable = true;
     process.once('exit', this._closeStreams);
+};
+
+/**
+ * Makes empty streams unreadable
+ * @param config
+ */
+LmdBuilder.prototype.makeEmptyStreamsUnreadable = function (config) {
+    // modules
+    this.readable = this._has(config, 'modules');
+
+    // source map
+    this.sourceMap.readable = this._has(config, 'modules');
+
+    // styles
+    this.style.readable = this._has(config, 'styles');
 };
 
 /**
@@ -1652,7 +1671,7 @@ LmdBuilder.prototype._build = function (config, isBundle) {
             self.info(notification);
         });
 
-        var modulesBundle = this.formatModules(modules, modulesInfo, config, pack),
+        var modulesBundle = this.formatModules(modules, modulesInfo[common.ROOT_BUNDLE_ID], config, pack),
             sourceMap = '',
             lmdFile;
 
@@ -1698,20 +1717,24 @@ LmdBuilder.prototype._build = function (config, isBundle) {
     return result;
 };
 
+LmdBuilder.prototype._has = function (config, what) {
+    return !!(config && config[what] && Object.keys(config[what]).length);
+};
+
 LmdBuilder.prototype._initBundlesStreams = function (bundles) {
     var self = this;
 
     Object.keys(bundles).forEach(function (bundleName) {
         var stream = new Stream();
-        stream.readable = true;
+        stream.readable = self._has(bundles[bundleName], 'modules');
 
         self.bundles[bundleName] = stream;
 
         stream.sourceMap = new Stream();
-        stream.sourceMap.readable = true;
+        stream.sourceMap.readable = self._has(bundles[bundleName], 'modules');
 
         stream.style = new Stream();
-        stream.style.readable = true;
+        stream.style.readable = self._has(bundles[bundleName], 'styles');
     });
 };
 

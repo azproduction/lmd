@@ -4,13 +4,13 @@
 console.log('[OK] main module executed');
 
 function renderButton(text) {
-    return require.bundle("bundle-button").pipe(function () {
+    return require.bundle('bundle-button').pipe(function () {
         return require('buttonView')(text);
     });
 }
 
 function renderTextarea() {
-    return require.bundle("bundle-textarea").pipe(function () {
+    return require.bundle('bundle-textarea').pipe(function () {
         return require('textareaView')();
     });
 }
@@ -29,13 +29,13 @@ renderButton('Create textarea!')
     $body.html($el);
 });
 
-require.bundle("/undefined.js").then($.noop, function () {
+require.bundle('/undefined.js').then($.noop, function () {
     console.log('[OK] undefined-bundle is failed to load');
 });
 
 
 }),{
 "template": "<!DOCTYPE html>\n<html>\n<head>\n    <title></title>\n</head>\n<body>\n\n</body>\n</html>",
-"bundle-button": "@index-bundle-button.js?0.7413717c",
-"bundle-textarea": "@index-bundle-textarea.js?0.7413717c"
-},{},{"promise":"$.Deferred","bundle":"_45809b73"});
+"bundle-button": "@index.button.js?0.7c3adad4",
+"bundle-textarea": "@index.textarea.js?0.7c3adad4"
+},{},{"promise":"$.Deferred","bundle":"_4555759b"});

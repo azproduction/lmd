@@ -156,16 +156,21 @@ describe('lmd', function() {
             var build = new Builder(cfgPath('bundles-sub'));
 
             vow.all({
-                    sub: readStream(build.bundles.sub.style),
                     sub_ie: readStream(build.bundles['sub' + SUB_BUNDLE_SEPARATOR + 'ie'].style),
                     sub_ie8: readStream(build.bundles['sub' + SUB_BUNDLE_SEPARATOR + 'ie8'].style)
                 })
                 .then(function (bundles) {
-                    expect(bundles.sub).to.eql('');
                     expect(bundles.sub_ie).to.eql('.a { color: red; }');
                     expect(bundles.sub_ie8).to.eql('.b { color: blue; }');
                 })
                 .then(done, done);
+        });
+
+        it('makes style stream unreadable if no styles defined', function () {
+            var build = new Builder(cfgPath('bundles-sub'));
+
+            expect(build.style).to.have.property('readable', false);
+            expect(build.bundles.sub.style).to.have.property('readable', false);
         });
     });
 

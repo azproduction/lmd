@@ -80,27 +80,30 @@ function printValue(value) {
     return value;
 }
 
-function printModules(cli, config, deepModulesInfo, sortColumnName) {
-    var modules = config.modules || {};
+function printModules(cli, config, deepModulesInfo, conflicts, sortColumnName) {
+    var modulesCount = 0;
+    var bundles = common.groupModulesByBundles(config);
+    common.iterateModulesInfo(bundles, function () {
+        modulesCount++;
+    });
 
-    var modulesNames = Object.keys(modules);
-
-    if (!modulesNames.length) {
+    if (!modulesCount) {
         return;
     }
 
-    cli.ok(('Modules (' + modulesNames.length + ')').white.bold.underline);
+    cli.ok(('Modules (' + modulesCount + ')').white.bold.underline);
     cli.ok('');
 
-    var headers = ['name', 'depends', 'type', 'lazy', 'greedy', 'coverage', 'sandbox'];
+    var headers = ['name', 'depends', 'type', 'lazy', 'greedy', 'coverage', 'sandbox', 'bundle'];
 
     var columnLengths = headers.map(function (item) {
         return item.length;
     });
 
-    var moduleRows = modulesNames.map(function (moduleName) {
-        var module = modules[moduleName],
-            moduleExtra = deepModulesInfo[moduleName];
+    var moduleRows = [];
+
+    common.iterateModulesInfo(bundles, function (module, moduleName, bundleName) {
+        var moduleExtra = deepModulesInfo[bundleName][moduleName];
 
         if (moduleName.length > columnLengths[0]) {
             columnLengths[0] = moduleName.length;
@@ -114,15 +117,16 @@ function printModules(cli, config, deepModulesInfo, sortColumnName) {
             columnLengths[2] = moduleExtra.type.length;
         }
 
-        return [
+        return moduleRows.push([
             moduleName,
             module.depends ? module.depends : false,
             moduleExtra.type,
             !!module.is_lazy,
             !!module.is_greedy,
             !!module.is_coverage,
-            !!module.is_sandbox
-        ];
+            !!module.is_sandbox,
+            bundleName === common.ROOT_BUNDLE_ID ? false : bundleName
+        ]);
     });
 
     var sortColumnIndex = headers.indexOf(sortColumnName);
@@ -158,7 +162,11 @@ function printModules(cli, config, deepModulesInfo, sortColumnName) {
             }
 
             if (!index && rowIndex) {
-                item = item.cyan;
+                if (item in conflicts) {
+                    item = item.yellow;
+                } else {
+                    item = item.cyan;
+                }
             }
 
             // type=not-found
@@ -236,43 +244,62 @@ function printFlags(cli, config, availableFlags) {
     cli.ok('');
 }
 
-function printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytics) {
-    var modules = config.modules || {},
-        modulesNames = Object.keys(modules),
-        globalsNames = common.getGlobals(config);
+function printModulePathsAndDepends(cli, config, deepModulesInfo, conflicts, isDeepAnalytics) {
+    var modulesCount = 0,
+        longestName = 0,
+        modulesNames = [];
 
-    if (!modulesNames.length) {
+    var bundles = common.groupModulesByBundles(config);
+
+    common.iterateModulesInfo(bundles, function (module, name) {
+        modulesCount++;
+        if (longestName < name.length) {
+            longestName = name.length;
+        }
+        modulesNames.push(name);
+    });
+
+    var globalsNames = common.getGlobals(config);
+
+    if (!modulesCount) {
         return;
     }
 
     cli.ok('Module Paths, Depends and Features'.white.bold.underline);
     cli.ok('');
 
-    var longestName = modulesNames.reduce(function (max, name) {
-        return max < name.length ? name.length : max;
-    }, 0);
+    common.iterateModulesInfo(bundles, function (module, moduleName, bundleName) {
+        var moduleShortPadding = new Array(longestName - moduleName.length + 2).join(' '),
+            modulePath = [].concat(module.path);
 
-    modulesNames.forEach(function (name) {
-        var moduleShortPadding = new Array(longestName - name.length + 2).join(' '),
-            modulePath = [].concat(modules[name].path);
+        var moduleLongPadding = new Array(moduleName.length + 5).join(' ') + moduleShortPadding;
 
-        var moduleLongPadding = new Array(name.length + 5).join(' ') + moduleShortPadding;
-
-        if (modules[name].is_exists) {
+        if (module.is_exists) {
             modulePath.forEach(function (modulePath, index) {
                 var moduleInfo;
-                if (!index) {
-                    moduleInfo = name.cyan + moduleShortPadding + ' <- ' + modulePath.green;
+                if (moduleName in conflicts) {
+                    modulePath = modulePath.yellow;
                 } else {
-                    moduleInfo = moduleLongPadding + modulePath.green;
+                    modulePath = modulePath.green;
                 }
-                cli.ok(moduleInfo);
+
+                if (!index) {
+                    moduleInfo = moduleName.cyan + moduleShortPadding + ' <- ' + modulePath;
+                } else {
+                    moduleInfo = moduleLongPadding + modulePath;
+                }
+
+                if (moduleName in conflicts) {
+                    cli.ok(moduleInfo + ' (name conflict)');
+                } else {
+                    cli.ok(moduleInfo);
+                }
             });
         } else {
             modulePath.forEach(function (modulePath, index) {
                 var moduleInfo;
                 if (!index) {
-                    moduleInfo = name.cyan + moduleShortPadding + ' <- ' + modulePath.red;
+                    moduleInfo = moduleName.cyan + moduleShortPadding + ' <- ' + modulePath.red;
                 } else {
                     moduleInfo = moduleLongPadding + modulePath.red;
                 }
@@ -282,7 +309,7 @@ function printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytic
         if (!isDeepAnalytics) {
             return;
         }
-        var depends = deepModulesInfo[name].depends;
+        var depends = deepModulesInfo[bundleName][moduleName].depends;
         if (depends.length) {
             depends.forEach(function (name) {
                 var moduleType = common.discoverModuleType(name, modulesNames, globalsNames);
@@ -297,15 +324,68 @@ function printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytic
                         cli.ok(' +-' + name.toString().yellow + ' (' + moduleType + ')');
                 }
             });
-
-            cli.ok('');
         }
-        var features = Object.keys(deepModulesInfo[name].features);
+        var features = Object.keys(deepModulesInfo[bundleName][moduleName].features);
         if (features.length) {
             cli.ok('  ' + 'Uses'.green + ': ' + features.join(', '));
             cli.ok('');
         }
     });
+
+//    modulesNames.forEach(function (name) {
+//        var moduleShortPadding = new Array(longestName - name.length + 2).join(' '),
+//            modulePath = [].concat(modules[name].path);
+//
+//        var moduleLongPadding = new Array(name.length + 5).join(' ') + moduleShortPadding;
+//
+//        if (modules[name].is_exists) {
+//            modulePath.forEach(function (modulePath, index) {
+//                var moduleInfo;
+//                if (!index) {
+//                    moduleInfo = name.cyan + moduleShortPadding + ' <- ' + modulePath.green;
+//                } else {
+//                    moduleInfo = moduleLongPadding + modulePath.green;
+//                }
+//                cli.ok(moduleInfo);
+//            });
+//        } else {
+//            modulePath.forEach(function (modulePath, index) {
+//                var moduleInfo;
+//                if (!index) {
+//                    moduleInfo = name.cyan + moduleShortPadding + ' <- ' + modulePath.red;
+//                } else {
+//                    moduleInfo = moduleLongPadding + modulePath.red;
+//                }
+//                cli.error(moduleInfo + ' (not exists)');
+//            });
+//        }
+//        if (!isDeepAnalytics) {
+//            return;
+//        }
+//        var depends = deepModulesInfo[name].depends;
+//        if (depends.length) {
+//            depends.forEach(function (name) {
+//                var moduleType = common.discoverModuleType(name, modulesNames, globalsNames);
+//                switch (moduleType) {
+//                    case 'in-package':
+//                        cli.ok(' +-' + name.toString().cyan);
+//                        break;
+//                    case 'global':
+//                        cli.ok(' +-' + name.toString().cyan + ' (' + moduleType + ')');
+//                        break;
+//                    default:
+//                        cli.ok(' +-' + name.toString().yellow + ' (' + moduleType + ')');
+//                }
+//            });
+//
+//            cli.ok('');
+//        }
+//        var features = Object.keys(deepModulesInfo[name].features);
+//        if (features.length) {
+//            cli.ok('  ' + 'Uses'.green + ': ' + features.join(', '));
+//            cli.ok('');
+//        }
+//    });
 
     cli.ok('');
 }
@@ -486,9 +566,11 @@ module.exports = function (cli, argv, cwd) {
         cli.ok('');
     }
 
-    var deepModulesInfo = common.collectModulesInfo(config);
-    printModules(cli, config, deepModulesInfo, sortOrder);
-    printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytics);
+    var deepModulesInfo = common.collectModulesInfo(config),
+        conflicts = common.getSuspiciousNames(config, deepModulesInfo).conflicts;
+
+    printModules(cli, config, deepModulesInfo, conflicts, sortOrder);
+    printModulePathsAndDepends(cli, config, deepModulesInfo, conflicts, isDeepAnalytics);
     printStyles(cli, config);
     printUserPlugins(cli, config);
     printFlags(cli, config, flags.concat(extraFlags));
@@ -514,11 +596,9 @@ module.exports = function (cli, argv, cwd) {
     var errors = config.errors;
 
     // pipe warnings
-    for (var noduleName in deepModulesInfo) {
-        deepModulesInfo[noduleName].warns.forEach(function (warning) {
-            errors.push(warning);
-        });
-    }
+    common.iterateModulesInfo(deepModulesInfo, function (info) {
+        errors.push.apply(errors, info.warns)
+    });
 
     errors = errors.concat(common.collectFlagsWarnings(config, deepModulesInfo));
 
