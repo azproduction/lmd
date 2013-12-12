@@ -1,0 +1,15 @@
+{
+    "name": "button component",
+    "styles": [
+        "button.css",
+        "button_*.css"
+    ],
+    "bundles": {
+        "ie": {
+            "styles": [
+                "button.ie.css"
+            ],
+            "output": false
+        }
+    }
+}

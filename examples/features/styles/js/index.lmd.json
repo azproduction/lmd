@@ -1,0 +1,7 @@
+{
+    "name": "index page",
+    "modules": {
+        "declare": "declare/declare.js"
+    },
+    "depends": "*.lmd.json"
+}

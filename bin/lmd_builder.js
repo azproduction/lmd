@@ -9,6 +9,7 @@ var fs = require('fs'),
     Stream = require('stream'),
     path = require('path'),
     uglifyCompress = require("uglify-js"),
+    csso = require('csso'),
     SourceMapGenerator = require('source-map').SourceMapGenerator,
     colors = require('colors'),
     parser = uglifyCompress.parser,
@@ -59,6 +60,7 @@ var LmdBuilder = function (configFile, options) {
     var isFatalErrors = !this.isAllModulesExists(this.buildConfig);
     if (isFatalErrors) {
         this.readable = false;
+        this.style.readable = false;
         this.sourceMap.readable = false;
     } else {
         this._initBundlesStreams(this.buildConfig.bundles);
@@ -69,6 +71,7 @@ var LmdBuilder = function (configFile, options) {
                 var buildResult = self.build(self.buildConfig);
 
                 self.emit('data', buildResult.source);
+                self.style.emit('data', buildResult.style);
                 self.sourceMap.emit('data', buildResult.sourceMap.toString());
                 self._streamBundles(buildResult.bundles);
             } else {
@@ -157,6 +160,17 @@ LmdBuilder.prototype.defaults = function (options) {
         options.log = true;
     }
 
+    if (typeof options.output === 'undefined') {
+        options.output = false;
+    }
+
+    if (typeof options.styles_output === 'undefined' && typeof options.output === 'string') {
+        options.styles_output = path.join(
+            path.dirname(options.output),
+            path.basename(options.output, path.extname(options.output)) + '.css'
+        );
+    }
+
     return options;
 };
 
@@ -164,7 +178,7 @@ LmdBuilder.prototype.defaults = function (options) {
  * Common init for LmdBuilder and LmdBuilder.watch
  */
 LmdBuilder.prototype.init = function () {
-    var self = this;
+    this._closeStreams = this.closeStreams.bind(this);
 
     this.configDir = path.dirname(this.configFile);
     this.flagToOptionNameMap = LMD_PLUGINS;
@@ -185,11 +199,17 @@ LmdBuilder.prototype.init = function () {
     this.sourceMap = new Stream();
     this.sourceMap.readable = true;
 
+    /**
+     * Style
+     *
+     * @type {Stream}
+     */
+    this.style = new Stream();
+    this.style.readable = true;
+
     // LmdBuilder is readable stream
     this.readable = true;
-    process.on('exit', function () {
-        self.closeStreams();
-    });
+    process.once('exit', this._closeStreams);
 };
 
 /**
@@ -210,10 +230,17 @@ LmdBuilder.prototype.isAllModulesExists = function (buildConfig) {
     var self = this;
     var modules = buildConfig.modules || {},
         bundles = buildConfig.bundles || {},
+        styles = buildConfig.styles || [],
         bundle;
 
     for (var moduleName in modules) {
         if (!modules[moduleName].is_exists) {
+            return false;
+        }
+    }
+
+    for (var i = 0, c = styles.length; i < c; i++) {
+        if (!styles[i].is_exists) {
             return false;
         }
     }
@@ -244,6 +271,7 @@ LmdBuilder.prototype.isAllModulesExists = function (buildConfig) {
 LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
     var modules = buildConfig.modules || {},
         bundles = buildConfig.bundles || {},
+        styles = buildConfig.styles || {},
         bundle,
         projectRoot = buildConfig.path || buildConfig.root,
         errorMessage;
@@ -253,7 +281,17 @@ LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
             errorMessage = 'Module "' + moduleName.cyan + '": "' +
                 modules[moduleName].originalPath.toString().red + '" (' +
                 modules[moduleName].path.toString().red + ') is not exists. ' +
-                'Project root: "' + projectRoot.green + '". ';
+                'Project root: "' + String(projectRoot).green + '". ';
+
+            this.error(errorMessage);
+        }
+    }
+
+    for (var i = 0, c = styles.length; i < c; i++) {
+        if (!styles[i].is_exists) {
+            errorMessage = 'Style (' +
+                styles[i].path.toString().red + ') is not exists. ' +
+                'Project root: "' + String(projectRoot).green + '". ';
 
             this.error(errorMessage);
         }
@@ -265,7 +303,7 @@ LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
         if (bundle instanceof Error) {
             errorMessage = 'Bundle "' + bundleName.cyan + '": (' +
                 bundle.message.red + ') is not exists. ' +
-                'Project root: "' + projectRoot.green + '". ';
+                'Project root: "' + String(projectRoot).green + '". ';
 
             this.error(errorMessage);
         } else {
@@ -294,7 +332,13 @@ LmdBuilder.prototype.closeStreams = function () {
         this.sourceMap.readable = false;
     }
 
+    if (this.style.readable) {
+        this.style.emit('end');
+        this.style.readable = false;
+    }
+
     this._closeBundleStreams();
+    process.removeListener('exit', this._closeStreams);
 };
 
 /**
@@ -803,6 +847,31 @@ LmdBuilder.prototype.renderLmdPackage = function (config, modulesBundle, isOptim
 };
 
 /**
+ * Styles renderer
+ *
+ * @param {Array}   styles
+ * @param {Boolean} isOptimizeCss
+ *
+ * @returns {String}
+ */
+LmdBuilder.prototype.renderStyles = function (styles, isOptimizeCss) {
+    if (!styles || !styles.length) {
+        return '';
+    }
+
+    var allCss = styles
+        .filter(function (style) {
+            return style.is_exists;
+        })
+        .map(function (style) {
+            return fs.readFileSync(style.path, 'utf8');
+        })
+        .join('\n');
+
+    return isOptimizeCss ? csso.justDoIt(allCss, true) : allCss;
+};
+
+/**
  * Module code renderer
  *
  * @param {Array}   config
@@ -1111,6 +1180,12 @@ LmdBuilder.prototype.fsWatch = function (config) {
                 fs.writeFileSync(lmdOutputFile, buildResult.source, 'utf8');
             }
 
+            if (typeof config.styles_output === 'string') {
+                var styleOutputFile = path.join(self.configDir, config.root, config.styles_output);
+                log('info'.green + ':    Writing Style to ' + styleOutputFile.green + '\n');
+                fs.writeFileSync(styleOutputFile, buildResult.style, 'utf8');
+            }
+
             if (typeof config.sourcemap === 'string') {
                 var lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
                 log('info'.green + ':    Writing Source Map to ' + lmdSourceMapFile.green + '\n');
@@ -1147,6 +1222,7 @@ LmdBuilder.prototype.fsWatch = function (config) {
                 module,
                 bundle,
                 modules = config.modules,
+                styles = config.styles,
                 bundles = config.bundles;
 
             // Collect modules
@@ -1160,6 +1236,10 @@ LmdBuilder.prototype.fsWatch = function (config) {
                     if (module.path.charAt(0) === '@') continue;
                     names.push(module.path);
                 }
+            }
+
+            for (var i = 0, c = styles.length; i < c; i++) {
+                names.push(styles[i].path);
             }
 
             // Collect modules from bundles
@@ -1191,7 +1271,7 @@ LmdBuilder.prototype.fsWatch = function (config) {
 
         // add lmd.json too
         addWatcherFor(this.configFile);
-        log('info'.green + ':    Now watching ' + watchedModulesCount.toString().green + ' module files. Ctrl+C to stop\n');
+        log('info'.green + ':    Now watching ' + watchedModulesCount.toString().green + ' files. Ctrl+C to stop\n');
 
         // Rebuild at startup
         rebuild();
@@ -1594,9 +1674,15 @@ LmdBuilder.prototype._build = function (config, isBundle) {
             lmdFile = this.compress(lmdFile, config.pack_options);
         }
 
-        result = {};
+        result = result || {};
         result.source = lmdFile;
         result.sourceMap =  sourceMap;
+    }
+
+    if (config.styles) {
+        var style = this.renderStyles(config.styles, isOptimizeLmd);
+        result = result || {};
+        result.style = style;
     }
 
     if (config.bundles) {
@@ -1623,6 +1709,9 @@ LmdBuilder.prototype._initBundlesStreams = function (bundles) {
 
         stream.sourceMap = new Stream();
         stream.sourceMap.readable = true;
+
+        stream.style = new Stream();
+        stream.style.readable = true;
     });
 };
 
@@ -1640,6 +1729,7 @@ LmdBuilder.prototype._streamBundles = function (bundles) {
             stream = self.bundles[bundleName];
 
         stream.emit('data', bundle.source);
+        stream.style.emit('data', bundle.style);
         stream.sourceMap.emit('data', bundle.sourceMap.toString());
     });
 };
@@ -1660,6 +1750,11 @@ LmdBuilder.prototype._closeBundleStreams = function () {
         if (stream.readable) {
             stream.emit('end');
             stream.readable = false;
+        }
+
+        if (stream.style.readable) {
+            stream.style.emit('end');
+            stream.style.readable = false;
         }
 
         if (stream.sourceMap.readable) {
