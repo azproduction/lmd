@@ -1183,33 +1183,19 @@ LmdBuilder.prototype.fsWatch = function (config) {
 
             log(' Rebuilding...\n');
 
-            var buildConfig = self.compileConfig(self.configFile, self.options),
-                isFatalErrors = !self.isAllModulesExists(buildConfig);
+            var buildResult = new LmdBuilder(self.configFile, self.options);
 
-            if (isFatalErrors) {
-                self.printFatalErrors(buildConfig);
-                return;
-            }
-
-            var buildResult = self.build(buildConfig);
-
-            if (typeof config.output === 'string') {
-                var lmdOutputFile = path.join(self.configDir, config.root, config.output);
-                log('info'.green + ':    Writing LMD Package to ' + lmdOutputFile.green + '\n');
-                fs.writeFileSync(lmdOutputFile, buildResult.source, 'utf8');
-            }
-
-            if (typeof config.styles_output === 'string') {
-                var styleOutputFile = path.join(self.configDir, config.root, config.styles_output);
-                log('info'.green + ':    Writing Style to ' + styleOutputFile.green + '\n');
-                fs.writeFileSync(styleOutputFile, buildResult.style, 'utf8');
-            }
-
-            if (typeof config.sourcemap === 'string') {
-                var lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
-                log('info'.green + ':    Writing Source Map to ' + lmdSourceMapFile.green + '\n');
-                fs.writeFileSync(lmdSourceMapFile, buildResult.sourceMap.toString(), 'utf8');
-            }
+            new Writer(buildResult)
+                .writeAll(function (err) {
+                    if (!buildResult.buildConfig.output) {
+                        return;
+                    }
+                    if (err) {
+                        log('info'.red + ':    Build failed'.red + '\n');
+                    } else {
+                        log('info'.green + ':    Build complete'.green + '\n');
+                    }
+                });
 
         },
         watch = function (event, filename) {
@@ -1347,7 +1333,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text, isWarn) {
     if (isWarn) {
         text = this.formatLog(text);
-        this.log.emit('data', this.addPaddingToText('warn'.red, text));
+        this.log.emit('data', this.addPaddingToText('warn'.yellow, text));
     }
 };
 

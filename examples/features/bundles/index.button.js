@@ -1,5 +1,5 @@
 // This file was automatically generated from "index.lmd.json"
-_4555759b({
+_b195a7fb({
 "main": (function (require, exports, module) { /* wrapped by builder */
 console.log('[OK] bundle button loaded!');
 

@@ -1,0 +1,17 @@
+{
+    "root": "../js",
+    "bundles": {
+        "a": "./a.lmd.json",
+        "b": {
+            "modules": {
+                "b": "b.js"
+            }
+        }
+    },
+    "warn": true,
+    "log": true,
+    "lazy": true,
+    "pack": true,
+    "pack_options": {},
+    "optimize": true
+}

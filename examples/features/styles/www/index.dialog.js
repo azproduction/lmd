@@ -1,5 +1,5 @@
 // This file was automatically generated from "index.lmd.js"
-_953f36b6({
+_aa08f3ba({
 "components/dialog/template": "<div class=\"dialog\">\n    <div class=\"dialog__content\">{content}</div>\n    <div class=\"dialog__aligner\"></div>\n</div>",
 "components/dialog": (function (require, exports, module) { /* wrapped by builder */
 var template = require('components/dialog/template');

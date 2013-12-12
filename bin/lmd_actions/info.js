@@ -25,7 +25,7 @@ var options = {
 var optimist = require('optimist');
 
 var YES = '✔'.green,
-    NO = '✘'.red,
+    NO = '✘'.yellow,
     NO_YES = [NO, YES];
 
 function printHelp(cli, errorMessage) {
