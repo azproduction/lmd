@@ -298,9 +298,13 @@ LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
     for (var moduleName in modules) {
         if (!modules[moduleName].is_exists) {
             errorMessage = 'Module "' + moduleName.cyan + '": "' +
-                modules[moduleName].originalPath.toString().red + '" (' +
-                modules[moduleName].path.toString().red + ') is not exists. ' +
-                'Project root: "' + String(projectRoot).green + '". ';
+                modules[moduleName].originalPath.toString().red;
+            errorMessage += '" (';
+            // check multi path modules
+            errorMessage += [].concat(modules[moduleName].path).map(function (path) {
+                return String(path)[fs.existsSync(path) ? 'green' : 'red'];
+            }).join(', ');
+            errorMessage += ') is not exists. Project root: "' + String(projectRoot).green + '". ';
 
             this.error(errorMessage);
         }

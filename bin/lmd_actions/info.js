@@ -1,6 +1,7 @@
 require('colors');
 
 var path = require('path'),
+    fs = require('fs'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
     list = require(__dirname + '/list.js'),
@@ -297,13 +298,17 @@ function printModulePathsAndDepends(cli, config, deepModulesInfo, conflicts, isD
             });
         } else {
             modulePath.forEach(function (modulePath, index) {
-                var moduleInfo;
+                var moduleInfo,
+                    // Module may consists of many parts, check each of them
+                    isModulePartExists = fs.existsSync(modulePath),
+                    color = isModulePartExists ? 'green' : 'red';
+
                 if (!index) {
-                    moduleInfo = moduleName.cyan + moduleShortPadding + ' <- ' + modulePath.red;
+                    moduleInfo = moduleName.cyan + moduleShortPadding + ' <- ' + modulePath[color];
                 } else {
-                    moduleInfo = moduleLongPadding + modulePath.red;
+                    moduleInfo = moduleLongPadding + modulePath[color];
                 }
-                cli.error(moduleInfo + ' (not exists)');
+                cli.error(moduleInfo + (isModulePartExists ? '' : ' (not exists)'));
             });
         }
         if (!isDeepAnalytics) {
