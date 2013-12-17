@@ -50,21 +50,16 @@ New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getti
 ## What's on the board
 
   * All builders/loaders stuff bla-bla-bla
-  * Build Analyzer (1-click code coverage, depends, startup perfomance)
-
-![](images/coverage_package.png)
-
+  * [Build Analyzer](images/coverage_package.png) (1-click code coverage, depends, startup perfomance)
   * Smart and simple CLI tool
 
 ![](images/lmd_cli.png)
 
-  * GUI for LMD (in development)
-
-![](images/lmd_gui_prototype.png)
+  * [GUI for LMD](images/lmd_gui_prototype.png) (in development)
 
 ## Other features
 
-1. Modules are similar to AMD: there is a require, but no define
+1. Modules are CommonJS
 2. LMD does not create globals
 3. LMD is standalone, tiny and flexible (minimal only 288bytes!)
 4. Each function-module can be initialized/evaled on demand (`lazy: true`)
