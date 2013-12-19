@@ -1,4 +1,8 @@
 var i18n = require('i18n'),
-    name = require('name');
+    link = require('tpls/link');
 
-document.getElementById('name').innerHTML = name.replace('#{name}', i18n.name.replace('#', prompt('Your name', '')));
+var login = prompt('Twitter login', 'twitter') || 'twitter', html;
+
+html = link.replace(/{login}/g, login);
+html = i18n.message.replace(/{link}/g, html);
+document.getElementById('link').innerHTML = html;
