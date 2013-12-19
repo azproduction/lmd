@@ -1,0 +1,58 @@
+{
+    "root": "../../",
+
+    "modules": {
+        "test-bundle-test-mix": "@/out/test-mix-bundle-test.lmd.js",
+        "test-bundle-test-with-main": "@/out/test-bundle-test-with-main.lmd.js",
+        "test-bundle-test-simultaneous-1": "@/out/test-bundle-test-simultaneous-1.lmd.js",
+        "test-bundle-test-simultaneous-2": "@/out/test-bundle-test-simultaneous-2.lmd.js",
+        "test-bundle-test-exists-1": "@/out/test-bundle-test-exists-1.lmd.js",
+        "test-bundle-test-exists-2": "@/out/test-bundle-test-exists-2.lmd.js",
+        "test-bundle-test-not-exists": "@/out/test-bundle-test-not-exists.lmd.js"
+    },
+
+    "bundles": {
+        "test-mix": {
+            "modules": {
+                "bundle-test-mix_js": "bundles/bundled.js",
+                "bundle-test-mix_json": "bundles/bundled.json",
+                "bundle-test-mix_html": "bundles/bundled.html"
+            },
+            "output": "qunit/out/test-mix-bundle-test.lmd.js"
+        },
+        "test-with-main": {
+            "modules": {
+                "bundle-test-with-main_main_js": "bundles/main.js",
+                "bundle-test-with-main_js": "bundles/bundled.js"
+            },
+            "main": "bundle-test-with-main_main_js",
+            "output": "qunit/out/test-bundle-test-with-main.lmd.js"
+        },
+        "test-simultaneous-1": {
+            "modules": {
+                "bundle-test-simultaneous-1_js": "bundles/bundled.js"
+            },
+            "output": "qunit/out/test-bundle-test-simultaneous-1.lmd.js"
+        },
+        "test-simultaneous-2": {
+            "modules": {
+                "bundle-test-simultaneous-2_js": "bundles/bundled.js"
+            },
+            "output": "qunit/out/test-bundle-test-simultaneous-2.lmd.js"
+        },
+        "test-exists-1": {
+            "modules": {
+                "bundle-test-exists_js": "bundles/bundled.js"
+            },
+            "output": "qunit/out/test-bundle-test-exists-1.lmd.js"
+        },
+        "test-exists-2": {
+            "modules": {
+                "bundle-test-exists_js": "bundles/bundled.js"
+            },
+            "output": "qunit/out/test-bundle-test-exists-2.lmd.js"
+        }
+    },
+
+    "shortcuts": true
+}

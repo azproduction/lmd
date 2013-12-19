@@ -4,6 +4,7 @@
 examples/demos/*/node_modules/
 test/coverage/*
 test/qunit/out/*.js
+test/qunit/out/*.css
 test/qunit/out/*.map
 examples/demos/mock_chat/logs/*
 examples/demos/mock_chat/js/*/.lmd/logs/*

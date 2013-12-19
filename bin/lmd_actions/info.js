@@ -337,61 +337,6 @@ function printModulePathsAndDepends(cli, config, deepModulesInfo, conflicts, isD
         }
     });
 
-//    modulesNames.forEach(function (name) {
-//        var moduleShortPadding = new Array(longestName - name.length + 2).join(' '),
-//            modulePath = [].concat(modules[name].path);
-//
-//        var moduleLongPadding = new Array(name.length + 5).join(' ') + moduleShortPadding;
-//
-//        if (modules[name].is_exists) {
-//            modulePath.forEach(function (modulePath, index) {
-//                var moduleInfo;
-//                if (!index) {
-//                    moduleInfo = name.cyan + moduleShortPadding + ' <- ' + modulePath.green;
-//                } else {
-//                    moduleInfo = moduleLongPadding + modulePath.green;
-//                }
-//                cli.ok(moduleInfo);
-//            });
-//        } else {
-//            modulePath.forEach(function (modulePath, index) {
-//                var moduleInfo;
-//                if (!index) {
-//                    moduleInfo = name.cyan + moduleShortPadding + ' <- ' + modulePath.red;
-//                } else {
-//                    moduleInfo = moduleLongPadding + modulePath.red;
-//                }
-//                cli.error(moduleInfo + ' (not exists)');
-//            });
-//        }
-//        if (!isDeepAnalytics) {
-//            return;
-//        }
-//        var depends = deepModulesInfo[name].depends;
-//        if (depends.length) {
-//            depends.forEach(function (name) {
-//                var moduleType = common.discoverModuleType(name, modulesNames, globalsNames);
-//                switch (moduleType) {
-//                    case 'in-package':
-//                        cli.ok(' +-' + name.toString().cyan);
-//                        break;
-//                    case 'global':
-//                        cli.ok(' +-' + name.toString().cyan + ' (' + moduleType + ')');
-//                        break;
-//                    default:
-//                        cli.ok(' +-' + name.toString().yellow + ' (' + moduleType + ')');
-//                }
-//            });
-//
-//            cli.ok('');
-//        }
-//        var features = Object.keys(deepModulesInfo[name].features);
-//        if (features.length) {
-//            cli.ok('  ' + 'Uses'.green + ': ' + features.join(', '));
-//            cli.ok('');
-//        }
-//    });
-
     cli.ok('');
 }
 

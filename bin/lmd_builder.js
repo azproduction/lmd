@@ -175,6 +175,14 @@ LmdBuilder.prototype.defaults = function (options) {
         );
     }
 
+    if (typeof options.bundles_callback === 'undefined') {
+        options.bundles_callback = '_' + Math.round(Math.random() * 0xFFFFFFFF).toString(16);
+    }
+
+    Object.keys(options.bundles || {}).forEach(function (name) {
+        options.bundles[name].bundles_callback = options.bundles_callback;
+    });
+
     return options;
 };
 
