@@ -22,6 +22,7 @@ build_test:
 	@cd test/qunit; node $(LMD_BUILD) build node_test
 	@cd test/qunit; node $(LMD_BUILD) build worker_test
 	@cd test/qunit; node $(LMD_BUILD) build promise_test
+	@cd test/qunit; node $(LMD_BUILD) build bundles_test
 	@echo 'travis_fold:end:build_test'
 
 build_stats:
