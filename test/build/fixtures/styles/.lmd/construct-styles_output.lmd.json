@@ -1,0 +1,7 @@
+{
+    "root": "../css",
+    "output": "../index.js",
+    "styles": [
+        "a.css"
+    ]
+}

@@ -1,6 +1,7 @@
 require('colors');
 
 var path = require('path'),
+    fs = require('fs'),
     init = require(__dirname + '/init.js'),
     create = require(__dirname + '/create.js'),
     list = require(__dirname + '/list.js'),
@@ -25,7 +26,7 @@ var options = {
 var optimist = require('optimist');
 
 var YES = '✔'.green,
-    NO = '✘'.red,
+    NO = '✘'.yellow,
     NO_YES = [NO, YES];
 
 function printHelp(cli, errorMessage) {
@@ -80,27 +81,30 @@ function printValue(value) {
     return value;
 }
 
-function printModules(cli, config, deepModulesInfo, sortColumnName) {
-    var modules = config.modules || {};
+function printModules(cli, config, deepModulesInfo, conflicts, sortColumnName) {
+    var modulesCount = 0;
+    var bundles = common.groupModulesByBundles(config);
+    common.iterateModulesInfo(bundles, function () {
+        modulesCount++;
+    });
 
-    var modulesNames = Object.keys(modules);
-
-    if (!modulesNames.length) {
+    if (!modulesCount) {
         return;
     }
 
-    cli.ok(('Modules (' + modulesNames.length + ')').white.bold.underline);
+    cli.ok(('Modules (' + modulesCount + ')').white.bold.underline);
     cli.ok('');
 
-    var headers = ['name', 'depends', 'type', 'lazy', 'greedy', 'coverage', 'sandbox'];
+    var headers = ['name', 'depends', 'type', 'lazy', 'greedy', 'coverage', 'sandbox', 'bundle'];
 
     var columnLengths = headers.map(function (item) {
         return item.length;
     });
 
-    var moduleRows = modulesNames.map(function (moduleName) {
-        var module = modules[moduleName],
-            moduleExtra = deepModulesInfo[moduleName];
+    var moduleRows = [];
+
+    common.iterateModulesInfo(bundles, function (module, moduleName, bundleName) {
+        var moduleExtra = deepModulesInfo[bundleName][moduleName];
 
         if (moduleName.length > columnLengths[0]) {
             columnLengths[0] = moduleName.length;
@@ -114,15 +118,16 @@ function printModules(cli, config, deepModulesInfo, sortColumnName) {
             columnLengths[2] = moduleExtra.type.length;
         }
 
-        return [
+        return moduleRows.push([
             moduleName,
             module.depends ? module.depends : false,
             moduleExtra.type,
             !!module.is_lazy,
             !!module.is_greedy,
             !!module.is_coverage,
-            !!module.is_sandbox
-        ];
+            !!module.is_sandbox,
+            bundleName === common.ROOT_BUNDLE_ID ? false : bundleName
+        ]);
     });
 
     var sortColumnIndex = headers.indexOf(sortColumnName);
@@ -158,7 +163,11 @@ function printModules(cli, config, deepModulesInfo, sortColumnName) {
             }
 
             if (!index && rowIndex) {
-                item = item.cyan;
+                if (item in conflicts) {
+                    item = item.yellow;
+                } else {
+                    item = item.cyan;
+                }
             }
 
             // type=not-found
@@ -176,6 +185,26 @@ function printModules(cli, config, deepModulesInfo, sortColumnName) {
             cli.error(rowString);
         } else {
             cli.ok(rowString);
+        }
+    });
+
+    cli.ok('');
+}
+
+function printStyles(cli, config) {
+    var styles = config.styles || [];
+    if (!styles.length) {
+        return;
+    }
+
+    cli.ok(('Styles (' + styles.length + ')').white.bold.underline);
+    cli.ok('');
+
+    styles.forEach(function (style) {
+        if (!style.is_exists) {
+            cli.error(style.path.red + ' (not exists)');
+        } else {
+            cli.ok(style.path.green);
         }
     });
 
@@ -216,53 +245,76 @@ function printFlags(cli, config, availableFlags) {
     cli.ok('');
 }
 
-function printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytics) {
-    var modules = config.modules || {},
-        modulesNames = Object.keys(modules),
-        globalsNames = common.getGlobals(config);
+function printModulePathsAndDepends(cli, config, deepModulesInfo, conflicts, isDeepAnalytics) {
+    var modulesCount = 0,
+        longestName = 0,
+        modulesNames = [];
 
-    if (!modulesNames.length) {
+    var bundles = common.groupModulesByBundles(config);
+
+    common.iterateModulesInfo(bundles, function (module, name) {
+        modulesCount++;
+        if (longestName < name.length) {
+            longestName = name.length;
+        }
+        modulesNames.push(name);
+    });
+
+    var globalsNames = common.getGlobals(config);
+
+    if (!modulesCount) {
         return;
     }
 
     cli.ok('Module Paths, Depends and Features'.white.bold.underline);
     cli.ok('');
 
-    var longestName = modulesNames.reduce(function (max, name) {
-        return max < name.length ? name.length : max;
-    }, 0);
+    common.iterateModulesInfo(bundles, function (module, moduleName, bundleName) {
+        var moduleShortPadding = new Array(longestName - moduleName.length + 2).join(' '),
+            modulePath = [].concat(module.path);
 
-    modulesNames.forEach(function (name) {
-        var moduleShortPadding = new Array(longestName - name.length + 2).join(' '),
-            modulePath = [].concat(modules[name].path);
+        var moduleLongPadding = new Array(moduleName.length + 5).join(' ') + moduleShortPadding;
 
-        var moduleLongPadding = new Array(name.length + 5).join(' ') + moduleShortPadding;
-
-        if (modules[name].is_exists) {
+        if (module.is_exists) {
             modulePath.forEach(function (modulePath, index) {
                 var moduleInfo;
-                if (!index) {
-                    moduleInfo = name.cyan + moduleShortPadding + ' <- ' + modulePath.green;
+                if (moduleName in conflicts) {
+                    modulePath = modulePath.yellow;
                 } else {
-                    moduleInfo = moduleLongPadding + modulePath.green;
+                    modulePath = modulePath.green;
                 }
-                cli.ok(moduleInfo);
+
+                if (!index) {
+                    moduleInfo = moduleName.cyan + moduleShortPadding + ' <- ' + modulePath;
+                } else {
+                    moduleInfo = moduleLongPadding + modulePath;
+                }
+
+                if (moduleName in conflicts) {
+                    cli.ok(moduleInfo + ' (name conflict)');
+                } else {
+                    cli.ok(moduleInfo);
+                }
             });
         } else {
             modulePath.forEach(function (modulePath, index) {
-                var moduleInfo;
+                var moduleInfo,
+                    // Module may consists of many parts, check each of them
+                    isModulePartExists = fs.existsSync(modulePath),
+                    color = isModulePartExists ? 'green' : 'red';
+
                 if (!index) {
-                    moduleInfo = name.cyan + moduleShortPadding + ' <- ' + modulePath.red;
+                    moduleInfo = moduleName.cyan + moduleShortPadding + ' <- ' + modulePath[color];
                 } else {
-                    moduleInfo = moduleLongPadding + modulePath.red;
+                    moduleInfo = moduleLongPadding + modulePath[color];
                 }
-                cli.error(moduleInfo + ' (not exists)');
+                cli.error(moduleInfo + (isModulePartExists ? '' : ' (not exists)'));
             });
         }
         if (!isDeepAnalytics) {
             return;
         }
-        var depends = deepModulesInfo[name].depends;
+        var depends = deepModulesInfo[bundleName][moduleName].depends;
         if (depends.length) {
             depends.forEach(function (name) {
                 var moduleType = common.discoverModuleType(name, modulesNames, globalsNames);
@@ -277,10 +329,8 @@ function printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytic
                         cli.ok(' +-' + name.toString().yellow + ' (' + moduleType + ')');
                 }
             });
-
-            cli.ok('');
         }
-        var features = Object.keys(deepModulesInfo[name].features);
+        var features = Object.keys(deepModulesInfo[bundleName][moduleName].features);
         if (features.length) {
             cli.ok('  ' + 'Uses'.green + ': ' + features.join(', '));
             cli.ok('');
@@ -435,6 +485,7 @@ module.exports = function (cli, argv, cwd) {
         config = assembleLmdConfig(lmdFile, flags, argv),
         root = path.join(cwd, '.lmd', config.root),
         output = config.output ? path.join(root, config.output) : 'STDOUT'.yellow,
+        styles_output = config.styles_output ? path.join(root, config.styles_output) : '/dev/null'.yellow,
         sourcemap = config.sourcemap ? path.join(root, config.sourcemap) : false,
         www = config.www_root ? path.join(cwd, '.lmd', config.www_root) : false,
         versionString = config.version ? ' - version ' + config.version.toString().cyan : '';
@@ -465,17 +516,21 @@ module.exports = function (cli, argv, cwd) {
         cli.ok('');
     }
 
-    var deepModulesInfo = common.collectModulesInfo(config);
-    printModules(cli, config, deepModulesInfo, sortOrder);
-    printModulePathsAndDepends(cli, config, deepModulesInfo, isDeepAnalytics);
+    var deepModulesInfo = common.collectModulesInfo(config),
+        conflicts = common.getSuspiciousNames(config, deepModulesInfo).conflicts;
+
+    printModules(cli, config, deepModulesInfo, conflicts, sortOrder);
+    printModulePathsAndDepends(cli, config, deepModulesInfo, conflicts, isDeepAnalytics);
+    printStyles(cli, config);
     printUserPlugins(cli, config);
     printFlags(cli, config, flags.concat(extraFlags));
 
     cli.ok('Paths'.white.bold.underline);
     cli.ok('');
-    cli.ok('root'.cyan + '      ' + printValue(root));
-    cli.ok('output'.cyan + '    ' + printValue(output));
-    cli.ok('www_root'.cyan + '  ' + printValue(www));
+    cli.ok('root'.cyan + '           ' + printValue(root));
+    cli.ok('output'.cyan + '         ' + printValue(output));
+    cli.ok('styles_output'.cyan + '  ' + printValue(styles_output));
+    cli.ok('www_root'.cyan + '       ' + printValue(www));
 
     if (sourcemap) {
         cli.ok('');
@@ -485,16 +540,15 @@ module.exports = function (cli, argv, cwd) {
         cli.ok('sourcemap'.cyan + '         ' + printValue(sourcemap));
         cli.ok('sourcemap_www'.cyan + '     ' + printValue(config.sourcemap_www || '/'));
         cli.ok('sourcemap_inline'.cyan + '  ' + printValue(config.sourcemap_inline));
+        cli.ok('sourcemap_url'.cyan + '     ' + printValue(config.sourcemap_url || '/' + sourcemap.replace(www, '')));
     }
 
     var errors = config.errors;
 
     // pipe warnings
-    for (var noduleName in deepModulesInfo) {
-        deepModulesInfo[noduleName].warns.forEach(function (warning) {
-            errors.push(warning);
-        });
-    }
+    common.iterateModulesInfo(deepModulesInfo, function (info) {
+        errors.push.apply(errors, info.warns)
+    });
 
     errors = errors.concat(common.collectFlagsWarnings(config, deepModulesInfo));
 

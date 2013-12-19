@@ -1,0 +1,9 @@
+{
+    "root": "../css",
+    "optimize": true,
+    "styles": [
+        "a.css",
+        "b.css",
+        "c.css"
+    ]
+}

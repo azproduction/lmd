@@ -1,0 +1,22 @@
+{
+    "root": "../js",
+    "bundles": {
+        "c": {
+            "modules": {
+                "c": "c.js"
+            },
+            "bundles": {
+                "d": {
+                    "modules": {
+                        "d": "b.js"
+                    }
+                }
+            }
+        },
+        "b": {
+            "modules": {
+                "b": "b.js"
+            }
+        }
+    }
+}

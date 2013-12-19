@@ -1,0 +1,11 @@
+{
+    "root": "../js",
+    "output": "index.js",
+    "bundles": {
+        "b": {
+            "modules": {
+                "x": "x.js"
+            }
+        }
+    }
+}

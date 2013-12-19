@@ -9,6 +9,7 @@ var fs = require('fs'),
     Stream = require('stream'),
     path = require('path'),
     uglifyCompress = require("uglify-js"),
+    csso = require('csso'),
     SourceMapGenerator = require('source-map').SourceMapGenerator,
     colors = require('colors'),
     parser = uglifyCompress.parser,
@@ -42,7 +43,7 @@ var LMD_PLUGINS = common.LMD_PLUGINS;
  *      .pipe(process.stdout);
  */
 var LmdBuilder = function (configFile, options) {
-    this.options = this.defaults(options);
+    this.options = options || {};
     var self = this;
 
     // apply config
@@ -54,11 +55,14 @@ var LmdBuilder = function (configFile, options) {
     this.bundles = {};
 
     // Let return instance before build
-    this.buildConfig = self.compileConfig(configFile, self.options);
+    this.buildConfig = this.compileConfig(configFile, self.options);
+
+    this.makeEmptyStreamsUnreadable(this.buildConfig);
 
     var isFatalErrors = !this.isAllModulesExists(this.buildConfig);
     if (isFatalErrors) {
         this.readable = false;
+        this.style.readable = false;
         this.sourceMap.readable = false;
     } else {
         this._initBundlesStreams(this.buildConfig.bundles);
@@ -69,6 +73,7 @@ var LmdBuilder = function (configFile, options) {
                 var buildResult = self.build(self.buildConfig);
 
                 self.emit('data', buildResult.source);
+                self.style.emit('data', buildResult.style);
                 self.sourceMap.emit('data', buildResult.sourceMap.toString());
                 self._streamBundles(buildResult.bundles);
             } else {
@@ -99,7 +104,7 @@ var LmdBuilder = function (configFile, options) {
  *      .log.pipe(process.stdout);
  */
 LmdBuilder.watch = function (configFile, options) {
-    this.options = this.defaults(options);
+    this.options = options || {};
     var self = this;
 
     this.configFile = configFile;
@@ -109,7 +114,9 @@ LmdBuilder.watch = function (configFile, options) {
     this.readable = false;
 
     // Let return instance before build
-    self.watchConfig = self.compileConfig(self.configFile, self.options);
+    this.watchConfig = this.compileConfig(self.configFile, self.options);
+
+    this.makeEmptyStreamsUnreadable(this.watchConfig);
 
     var isFatalErrors = !this.isAllModulesExists(this.watchConfig);
     if (isFatalErrors) {
@@ -157,6 +164,25 @@ LmdBuilder.prototype.defaults = function (options) {
         options.log = true;
     }
 
+    if (typeof options.output === 'undefined') {
+        options.output = false;
+    }
+
+    if (typeof options.styles_output === 'undefined' && typeof options.output === 'string') {
+        options.styles_output = path.join(
+            path.dirname(options.output),
+            path.basename(options.output, path.extname(options.output)) + '.css'
+        );
+    }
+
+    if (typeof options.bundles_callback === 'undefined') {
+        options.bundles_callback = '_' + Math.round(Math.random() * 0xFFFFFFFF).toString(16);
+    }
+
+    Object.keys(options.bundles || {}).forEach(function (name) {
+        options.bundles[name].bundles_callback = options.bundles_callback;
+    });
+
     return options;
 };
 
@@ -164,7 +190,7 @@ LmdBuilder.prototype.defaults = function (options) {
  * Common init for LmdBuilder and LmdBuilder.watch
  */
 LmdBuilder.prototype.init = function () {
-    var self = this;
+    this._closeStreams = this.closeStreams.bind(this);
 
     this.configDir = path.dirname(this.configFile);
     this.flagToOptionNameMap = LMD_PLUGINS;
@@ -185,11 +211,32 @@ LmdBuilder.prototype.init = function () {
     this.sourceMap = new Stream();
     this.sourceMap.readable = true;
 
+    /**
+     * Style
+     *
+     * @type {Stream}
+     */
+    this.style = new Stream();
+    this.style.readable = true;
+
     // LmdBuilder is readable stream
     this.readable = true;
-    process.on('exit', function () {
-        self.closeStreams();
-    });
+    process.once('exit', this._closeStreams);
+};
+
+/**
+ * Makes empty streams unreadable
+ * @param config
+ */
+LmdBuilder.prototype.makeEmptyStreamsUnreadable = function (config) {
+    // modules
+    this.readable = this._has(config, 'modules');
+
+    // source map
+    this.sourceMap.readable = this._has(config, 'modules');
+
+    // styles
+    this.style.readable = this._has(config, 'styles');
 };
 
 /**
@@ -198,7 +245,7 @@ LmdBuilder.prototype.init = function () {
  * @param options
  */
 LmdBuilder.prototype.compileConfig = function (configFile, options) {
-    return assembleLmdConfig(configFile, Object.keys(this.flagToOptionNameMap), options);
+    return this.defaults(assembleLmdConfig(configFile, Object.keys(this.flagToOptionNameMap), options));
 };
 
 /**
@@ -210,10 +257,17 @@ LmdBuilder.prototype.isAllModulesExists = function (buildConfig) {
     var self = this;
     var modules = buildConfig.modules || {},
         bundles = buildConfig.bundles || {},
+        styles = buildConfig.styles || [],
         bundle;
 
     for (var moduleName in modules) {
         if (!modules[moduleName].is_exists) {
+            return false;
+        }
+    }
+
+    for (var i = 0, c = styles.length; i < c; i++) {
+        if (!styles[i].is_exists) {
             return false;
         }
     }
@@ -244,6 +298,7 @@ LmdBuilder.prototype.isAllModulesExists = function (buildConfig) {
 LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
     var modules = buildConfig.modules || {},
         bundles = buildConfig.bundles || {},
+        styles = buildConfig.styles || {},
         bundle,
         projectRoot = buildConfig.path || buildConfig.root,
         errorMessage;
@@ -251,9 +306,23 @@ LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
     for (var moduleName in modules) {
         if (!modules[moduleName].is_exists) {
             errorMessage = 'Module "' + moduleName.cyan + '": "' +
-                modules[moduleName].originalPath.toString().red + '" (' +
-                modules[moduleName].path.toString().red + ') is not exists. ' +
-                'Project root: "' + projectRoot.green + '". ';
+                modules[moduleName].originalPath.toString().red;
+            errorMessage += '" (';
+            // check multi path modules
+            errorMessage += [].concat(modules[moduleName].path).map(function (path) {
+                return String(path)[fs.existsSync(path) ? 'green' : 'red'];
+            }).join(', ');
+            errorMessage += ') is not exists. Project root: "' + String(projectRoot).green + '". ';
+
+            this.error(errorMessage);
+        }
+    }
+
+    for (var i = 0, c = styles.length; i < c; i++) {
+        if (!styles[i].is_exists) {
+            errorMessage = 'Style (' +
+                styles[i].path.toString().red + ') is not exists. ' +
+                'Project root: "' + String(projectRoot).green + '". ';
 
             this.error(errorMessage);
         }
@@ -265,7 +334,7 @@ LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
         if (bundle instanceof Error) {
             errorMessage = 'Bundle "' + bundleName.cyan + '": (' +
                 bundle.message.red + ') is not exists. ' +
-                'Project root: "' + projectRoot.green + '". ';
+                'Project root: "' + String(projectRoot).green + '". ';
 
             this.error(errorMessage);
         } else {
@@ -294,7 +363,13 @@ LmdBuilder.prototype.closeStreams = function () {
         this.sourceMap.readable = false;
     }
 
+    if (this.style.readable) {
+        this.style.emit('end');
+        this.style.readable = false;
+    }
+
     this._closeBundleStreams();
+    process.removeListener('exit', this._closeStreams);
 };
 
 /**
@@ -803,6 +878,31 @@ LmdBuilder.prototype.renderLmdPackage = function (config, modulesBundle, isOptim
 };
 
 /**
+ * Styles renderer
+ *
+ * @param {Array}   styles
+ * @param {Boolean} isOptimizeCss
+ *
+ * @returns {String}
+ */
+LmdBuilder.prototype.renderStyles = function (styles, isOptimizeCss) {
+    if (!styles || !styles.length) {
+        return '';
+    }
+
+    var allCss = styles
+        .filter(function (style) {
+            return style.is_exists;
+        })
+        .map(function (style) {
+            return fs.readFileSync(style.path, 'utf8');
+        })
+        .join('\n');
+
+    return isOptimizeCss ? csso.justDoIt(allCss, true) : allCss;
+};
+
+/**
  * Module code renderer
  *
  * @param {Array}   config
@@ -1095,27 +1195,19 @@ LmdBuilder.prototype.fsWatch = function (config) {
 
             log(' Rebuilding...\n');
 
-            var buildConfig = self.compileConfig(self.configFile, self.options),
-                isFatalErrors = !self.isAllModulesExists(buildConfig);
+            var buildResult = new LmdBuilder(self.configFile, self.options);
 
-            if (isFatalErrors) {
-                self.printFatalErrors(buildConfig);
-                return;
-            }
-
-            var buildResult = self.build(buildConfig);
-
-            if (typeof config.output === 'string') {
-                var lmdOutputFile = path.join(self.configDir, config.root, config.output);
-                log('info'.green + ':    Writing LMD Package to ' + lmdOutputFile.green + '\n');
-                fs.writeFileSync(lmdOutputFile, buildResult.source, 'utf8');
-            }
-
-            if (typeof config.sourcemap === 'string') {
-                var lmdSourceMapFile = path.join(self.configDir, config.root, config.sourcemap);
-                log('info'.green + ':    Writing Source Map to ' + lmdSourceMapFile.green + '\n');
-                fs.writeFileSync(lmdSourceMapFile, buildResult.sourceMap.toString(), 'utf8');
-            }
+            new Writer(buildResult)
+                .writeAll(function (err) {
+                    if (!buildResult.buildConfig.output) {
+                        return;
+                    }
+                    if (err) {
+                        log('info'.red + ':    Build failed'.red + '\n');
+                    } else {
+                        log('info'.green + ':    Build complete'.green + '\n');
+                    }
+                });
 
         },
         watch = function (event, filename) {
@@ -1147,6 +1239,7 @@ LmdBuilder.prototype.fsWatch = function (config) {
                 module,
                 bundle,
                 modules = config.modules,
+                styles = config.styles,
                 bundles = config.bundles;
 
             // Collect modules
@@ -1160,6 +1253,10 @@ LmdBuilder.prototype.fsWatch = function (config) {
                     if (module.path.charAt(0) === '@') continue;
                     names.push(module.path);
                 }
+            }
+
+            for (var i = 0, c = styles.length; i < c; i++) {
+                names.push(styles[i].path);
             }
 
             // Collect modules from bundles
@@ -1191,7 +1288,7 @@ LmdBuilder.prototype.fsWatch = function (config) {
 
         // add lmd.json too
         addWatcherFor(this.configFile);
-        log('info'.green + ':    Now watching ' + watchedModulesCount.toString().green + ' module files. Ctrl+C to stop\n');
+        log('info'.green + ':    Now watching ' + watchedModulesCount.toString().green + ' files. Ctrl+C to stop\n');
 
         // Rebuild at startup
         rebuild();
@@ -1248,7 +1345,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text, isWarn) {
     if (isWarn) {
         text = this.formatLog(text);
-        this.log.emit('data', this.addPaddingToText('warn'.red, text));
+        this.log.emit('data', this.addPaddingToText('warn'.yellow, text));
     }
 };
 
@@ -1313,11 +1410,12 @@ LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
  * @return {Object} {source: cleanSource, sourceMap: sourceMap}
  */
 LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, config) {
-    var configRoot = config.root || config.path || '',
-        configOutput = config.output || '',
-        configWwwRoot = config.www_root || '',
-        configSourcemapWww = config.sourcemap_www || '',
-        configSourcemap = config.sourcemap || '';
+    var configRoot = String(config.root || config.path || ''),
+        configOutput = String(config.output || ''),
+        configWwwRoot = String(config.www_root || ''),
+        configSourcemapWww = String(config.sourcemap_www || '/'),
+        configSourcemap = String(config.sourcemap || ''),
+        configSourceMappingURL = String(config.sourcemap_url || '');
 
     var generatedFile = path.join(this.configDir, configRoot, configOutput),
         root = path.join(this.configDir, configRoot, configWwwRoot),
@@ -1333,7 +1431,7 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
     root = fs.realpathSync(root);
 
     var sourceMap = new SourceMapGenerator({
-        file: fs.realpathSync(generatedFile).replace(root, ''),
+        file: path.relative(root, generatedFile),
         sourceRoot: configSourcemapWww
     });
 
@@ -1348,7 +1446,7 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
             }
 
             var offset = self.getModuleOffset(sourceWithTokens, tokenIndex),
-                source = module.path.replace(root, '');
+                source = path.relative(root, module.path);
 
             // add mapping for each line
             for (var i = 0; i < module.lines; i++) {
@@ -1382,11 +1480,11 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
         this.warn('Source Map is not applied for these modules: **' + sourceMapSkipped.join('**, **') + '**', isWarn);
     }
 
-    sourceMapFile = fs.realpathSync(sourceMapFile).replace(root, '');
+    configSourceMappingURL = configSourceMappingURL || '/' + path.relative(root, sourceMapFile) + '?' + Math.random();
 
     if (isInline && sourceMapsApplied !== 0) {
         // append helper
-        sourceWithTokens += '\n\n//@ sourceMappingURL=' + sourceMapFile + '?' + Math.random() + '\n';
+        sourceWithTokens += '\n\n//@ sourceMappingURL=' + configSourceMappingURL + '\n';
     }
 
     return {
@@ -1571,7 +1669,7 @@ LmdBuilder.prototype._build = function (config, isBundle) {
             self.info(notification);
         });
 
-        var modulesBundle = this.formatModules(modules, modulesInfo, config, pack),
+        var modulesBundle = this.formatModules(modules, modulesInfo[common.ROOT_BUNDLE_ID], config, pack),
             sourceMap = '',
             lmdFile;
 
@@ -1593,9 +1691,15 @@ LmdBuilder.prototype._build = function (config, isBundle) {
             lmdFile = this.compress(lmdFile, config.pack_options);
         }
 
-        result = {};
+        result = result || {};
         result.source = lmdFile;
         result.sourceMap =  sourceMap;
+    }
+
+    if (config.styles) {
+        var style = this.renderStyles(config.styles, isOptimizeLmd);
+        result = result || {};
+        result.style = style;
     }
 
     if (config.bundles) {
@@ -1611,17 +1715,24 @@ LmdBuilder.prototype._build = function (config, isBundle) {
     return result;
 };
 
+LmdBuilder.prototype._has = function (config, what) {
+    return !!(config && config[what] && Object.keys(config[what]).length);
+};
+
 LmdBuilder.prototype._initBundlesStreams = function (bundles) {
     var self = this;
 
     Object.keys(bundles).forEach(function (bundleName) {
         var stream = new Stream();
-        stream.readable = true;
+        stream.readable = self._has(bundles[bundleName], 'modules');
 
         self.bundles[bundleName] = stream;
 
         stream.sourceMap = new Stream();
-        stream.sourceMap.readable = true;
+        stream.sourceMap.readable = self._has(bundles[bundleName], 'modules');
+
+        stream.style = new Stream();
+        stream.style.readable = self._has(bundles[bundleName], 'styles');
     });
 };
 
@@ -1639,6 +1750,7 @@ LmdBuilder.prototype._streamBundles = function (bundles) {
             stream = self.bundles[bundleName];
 
         stream.emit('data', bundle.source);
+        stream.style.emit('data', bundle.style);
         stream.sourceMap.emit('data', bundle.sourceMap.toString());
     });
 };
@@ -1659,6 +1771,11 @@ LmdBuilder.prototype._closeBundleStreams = function () {
         if (stream.readable) {
             stream.emit('end');
             stream.readable = false;
+        }
+
+        if (stream.style.readable) {
+            stream.style.emit('end');
+            stream.style.readable = false;
         }
 
         if (stream.sourceMap.readable) {

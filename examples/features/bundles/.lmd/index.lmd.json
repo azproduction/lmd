@@ -12,8 +12,8 @@
         "main": "main.js",
         "template": "template.html",
 
-        "bundle-button": "@index-bundle-button.js?<%= build_id %>",
-        "bundle-textarea": "@index-bundle-textarea.js?<%= build_id %>"
+        "bundle-button": "@index.button.js?<%= build_id %>",
+        "bundle-textarea": "@index.textarea.js?<%= build_id %>"
     },
 
     "bundles": {

@@ -49,22 +49,16 @@ New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getti
 
 ## What's on the board
 
-  * All builders/loaders stuff bla-bla-bla
-  * Build Analyzer (1-click code coverage, depends, startup perfomance)
-
-![](images/coverage_package.png)
-
+  * All builders/loaders stuff
+  * [GUI for LMD](images/lmd_gui_prototype.png) (in development)
+  * [Build Analyzer](images/coverage_package.png) (1-click code coverage, depends, startup perfomance)
   * Smart and simple CLI tool
 
 ![](images/lmd_cli.png)
 
-  * GUI for LMD (in development)
-
-![](images/lmd_gui_prototype.png)
-
 ## Other features
 
-1. Modules are similar to AMD: there is a require, but no define
+1. Default modules are CommonJS
 2. LMD does not create globals
 3. LMD is standalone, tiny and flexible (minimal only 288bytes!)
 4. Each function-module can be initialized/evaled on demand (`lazy: true`)
@@ -131,57 +125,6 @@ grunt.loadNpmTasks('grunt-lmd');
 
 See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
 
-## LMD Plugins
-
-### Off-package LMD module loader
-
-  * `async` - Provides `require.async()` function. if modules uses off-package module set this to true. See [demo](http://lmdjs.org/examples/plugins/async/), [code](examples/plugins/async/)
-  * `async_plain` - enables async require of both plain and function-modules
-  * `async_plainonly` - if you are using only plain modules enable that flag instead of `async_plain`. See [demo](http://lmdjs.org/examples/plugins/async_plainonly/), [code](examples/plugins/async_plainonly/)
-  * `preload` - this plugins is simmilar to `async`, it only caches modules without executing them. See [demo](http://lmdjs.org/examples/plugins/preload/), [code](examples/plugins/preload/)
-  * `preload_plain` - same as `async_plain`
-  * `async_plainonly` - same as `async_plainonly`
-
-### Cache
-
-  * `cache` - stores all application lmd itself + all modules in localStorage this flag will force all modules to be lazy. See [demo](http://lmdjs.org/examples/plugins/cache/), [code](examples/plugins/cache/)
-  * `cache_async` - enables localStorage cache for `require.async()`. See [demo](http://lmdjs.org/examples/plugins/cache_async/), [code](examples/plugins/cache_async/)
-
-### Non-LMD modules loader
-
-  * `js` - if you are going to load non LMD javascript modules `require.js()` set this flag to true. See [demo](http://lmdjs.org/examples/plugins/js/), [code](examples/plugins/js/)
-  * `css` - enables css-loader feature `require.css()`. See [demo](http://lmdjs.org/examples/plugins/css/), [code](examples/plugins/css/)
-  * `image` - enables image-loader feature `require.image()`. See [demo](http://lmdjs.org/examples/plugins/image/), [code](examples/plugins/image/)
-
-### Environment optimization
-
-  * `worker` - set true if LMD package will run as worker
-  * `node` - set true if LMD package will run as Node.js script. See [demo](http://lmdjs.org/examples/plugins/node/), [code](examples/plugins/node/)
-  * `ie` - **enabled by default** set false if script will run only in modern browsers
-  * `opera_mobile` - set true if LMD package will run in Opera Mobile
-  * `file_protocol` - set to true if LMD package itself or it parts will be loaded using `file://` protocol
-
-### Loaders (async, js, css, image) features and optimizations
-
-  * `race` - set true if you are performing simultaneous loading of the same resources
-  * `parallel` - enables simultaneous loading `require.js([a, b, c], ..)` resources will be executed in load order! And passed to callback in list order. See [demo](http://lmdjs.org/examples/plugins/parallel/), [code](examples/plugins/parallel/)
-  * `promise` - enables promise interface for all loaders `require.js('a.js').then()`. See [demo](http://lmdjs.org/examples/plugins/promise/), [code](examples/plugins/promise/)
-
-### Extra module types
-
-  * `shortcuts` - enables shortcuts in LMD package. See [demo](http://lmdjs.org/examples/plugins/promise/), [code](examples/plugins/promise/) (promise example uses shortcuts)
-  * `amd` - enables AMD RequreJS modules in LMD package. See [demo](http://lmdjs.org/examples/plugins/amd/), [code](examples/plugins/amd/)
-
-## Module management
-
-  * `match` - enables `require.match(RegExp): Object` requires every matched module name. See [demo](http://lmdjs.org/examples/plugins/match/), [code](examples/plugins/match/)
-
-### Stats and Code coverage
-
-  * `stats` - enables `require.stats()` function - every module require, load, eval, call statistics. See [demo](http://lmdjs.org/examples/plugins/stats/), [code](examples/plugins/stats/)
-  * `stats_coverage` - enables code coverage for all in-package modules, you can use list of module names to cover only modules in that list. See [demo](http://lmdjs.org/examples/plugins/stats_coverage/), [code](examples/plugins/stats_coverage/)
-  * `stats_coverage_async` - enables code coverage for all off-package function-modules for that option you can NOT use list of off-package module names. This options is VERY HEAVY +50Kb sources. Each async LMD module will be parsed and patched on the client - it may take A LOT of time
-  * `stats_sendto` - enables `require.stats.sendTo(host[, reportName])` function. It POSTs stats&coverage report to specified stats server
 
 ## Special features
 
@@ -191,6 +134,7 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
   * optimize - optimisations of LMD source(not your project files) without minification/packing. See Optimisations section of [LMD Plugins overview](https://github.com/azproduction/lmd/wiki/LMD-Plugins-overview) wiki page. See [demo](http://lmdjs.org/examples/features/optimize/), [code](examples/features/optimize/)
   * adaptation - using any JavaScripts as modules. See Wiki page [Adopting modules](https://github.com/azproduction/lmd/wiki/Adopting-modules). See [demo](http://lmdjs.org/examples/features/adaptation/), [code](examples/features/adaptation/)
   * bundles - a way to split your application into separete parts. See [demo](http://lmdjs.org/examples/features/bundles/), [code](examples/features/bundles/)
+  * styles - css builder for you bundles. See [demo](http://lmdjs.org/examples/features/styles/), [code](examples/features/styles/)
   * lmdjs_configs - you can write config files in JavaScript. See [demo](http://lmdjs.org/examples/features/lmdjs_configs/), [code](examples/features/lmdjs_configs/)
   * multi_modules - using jQuery or Backbone with plugins? This feature is for you. See [demo](http://lmdjs.org/examples/features/multi_module/), [code](examples/features/multi_module/)
   * ignore_module - ignore module from build, can be used with glob to ignore some modules. See [demo](http://lmdjs.org/examples/features/ignore_module/), [code](examples/features/ignore_module/)

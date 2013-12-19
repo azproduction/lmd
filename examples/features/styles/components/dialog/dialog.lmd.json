@@ -1,0 +1,19 @@
+{
+    "name": "dialog component",
+    "root": "./",
+    "modules": {
+        "components/dialog/template": "dialog.html"
+    },
+    "styles": [
+        "dialog.css"
+    ],
+    "bundles": {
+        "ie": {
+            "name": "pewpew",
+            "styles": [
+                "dialog.ie.css"
+            ],
+            "output": false
+        }
+    }
+}

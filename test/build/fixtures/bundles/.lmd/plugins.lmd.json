@@ -1,0 +1,14 @@
+{
+    "root": "../js",
+    "output": "index.js",
+    "bundles": {
+        "b": {
+            "modules": {
+                "b": "b.js"
+            },
+            "match": true,
+            "ie": false
+        }
+    },
+    "ie": true
+}

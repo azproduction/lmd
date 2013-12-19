@@ -1,0 +1,12 @@
+{
+    "root": "./",
+    "output": "../index.js",
+    "bundles": {
+        "ie": {
+            "styles": [
+                "../css/a.css"
+            ]
+        },
+        "ie8": "./bundles-ie8.lmd.json"
+    }
+}

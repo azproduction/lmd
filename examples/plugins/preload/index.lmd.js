@@ -1,3 +1,4 @@
+// This file was automatically generated from "index.lmd.json"
 (function (global, main, modules, modules_options, options) {
     var initialized_modules = {},
         global_eval = function (code) {
@@ -15,7 +16,7 @@
         register_module = function (moduleName, module) {
             lmd_trigger('lmd-register:before-register', moduleName, module);
             // Predefine in case of recursive require
-            var output = {exports: {}};
+            var output = {'exports': {}};
             initialized_modules[moduleName] = 1;
             modules[moduleName] = output.exports;
 
@@ -23,14 +24,14 @@
                 // if undefined - try to pick up module from globals (like jQuery)
                 // or load modules from nodejs/worker environment
                 module = lmd_trigger('js:request-environment-module', moduleName, module)[1] || global[moduleName];
-            } else if (typeof module === "function") {
+            } else if (typeof module === 'function') {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
                 var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, lmd_require)[1];
 
                 // Make sure that sandboxed modules cant require
                 if (modules_options[moduleName] &&
                     modules_options[moduleName].sandbox &&
-                    typeof module_require === "function") {
+                    typeof module_require === 'function') {
 
                     module_require = local_undefined;
                 }
@@ -88,27 +89,28 @@
         lmd_require = function (moduleName) {
             var module = modules[moduleName];
 
-            lmd_trigger('*:before-check', moduleName, module);
-            // Already inited - return as is
-            if (initialized_modules[moduleName] && module) {
-                return module;
-            }
             var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
             if (replacement) {
                 moduleName = replacement[0];
                 module = replacement[1];
             }
 
+            lmd_trigger('*:before-check', moduleName, module);
+            // Already inited - return as is
+            if (initialized_modules[moduleName] && module) {
+                return module;
+            }
+
             lmd_trigger('*:before-init', moduleName, module);
 
             // Lazy LMD module not a string
-            if (typeof module === "string" && module.indexOf('(function(') === 0) {
+            if (typeof module === 'string' && module.indexOf('(function(') === 0) {
                 module = global_eval(module);
             }
 
             return register_module(moduleName, module);
         },
-        output = {exports: {}},
+        output = {'exports': {}},
 
         /**
          * Sandbox object for plugins
@@ -116,24 +118,24 @@
          * @important Do not rename it!
          */
         sandbox = {
-            global: global,
-            modules: modules,
-            modules_options: modules_options,
-            options: options,
+            'global': global,
+            'modules': modules,
+            'modules_options': modules_options,
+            'options': options,
 
-            eval: global_eval,
-            register: register_module,
-            require: lmd_require,
-            initialized: initialized_modules,
+            'eval': global_eval,
+            'register': register_module,
+            'require': lmd_require,
+            'initialized': initialized_modules,
 
-            noop: global_noop,
-            document: global_document,
+            'noop': global_noop,
+            'document': global_document,
             
             
 
-            on: lmd_on,
-            trigger: lmd_trigger,
-            undefined: local_undefined
+            'on': lmd_on,
+            'trigger': lmd_trigger,
+            'undefined': local_undefined
         };
 
     for (var moduleName in modules) {
@@ -146,9 +148,12 @@
  */
 (function (sb) {
     var domOnlyLoaders = {
-        css: true,
-        image: true
+        'css': true,
+        'image': true
     };
+
+    var reEvalable = /(java|ecma)script|json/,
+        reJson = /json/;
 
     /**
       * Load off-package LMD module
@@ -184,9 +189,9 @@
                 if (xhr.status < 201) {
                     var contentType = xhr.getResponseHeader('content-type');
                     module = xhr.responseText;
-                    if ((/script$|json$/).test(contentType)) {
+                    if (reEvalable.test(contentType)) {
                         module = sb.trigger('*:wrap-module', moduleName, module, contentType)[1];
-                        if (!(/json$/).test(contentType)) {
+                        if (!reJson.test(contentType)) {
                             module = sb.trigger('*:coverage-apply', moduleName, module)[1];
                         }
 
@@ -480,7 +485,7 @@ var async_is_plain_code = function (code) {
 
 var async_plain = function (module, contentTypeOrExtension) {
     // its NOT a JSON ant its a plain code
-    if (!(/json$/).test(contentTypeOrExtension)/*if ($P.ASYNC_PLAIN) {*/ && async_is_plain_code(module)/*}*/) {
+    if (!(/json$/).test(contentTypeOrExtension) && async_is_plain_code(module)) {
         // its not a JSON and its a Plain LMD module - wrap it
         module = '(function(require,exports,module){\n' + module + '\n})';
     }
@@ -520,8 +525,9 @@ sb.on('*:is-plain-module', function (moduleName, module, isPlainCode) {
 
 
 
-    main(lmd_trigger('lmd-register:decorate-require', "main", lmd_require)[1], output.exports, output);
-})/*DO NOT ADD ; !*/(this,(function (require, exports, module) { /* wrapped by builder */
+    main(lmd_trigger('lmd-register:decorate-require', 'main', lmd_require)[1], output.exports, output);
+})/*DO NOT ADD ; !*/
+(this,(function (require, exports, module) { /* wrapped by builder */
 /**
  * LMD require.preload() example
  */
@@ -541,7 +547,6 @@ $(function () {
         // js/md5.js               | CommonJS Module (plain)
         // LMD will figure out type of each module using `preload_plain`
         require.preload(["sha512", "js/md5.js"], function (sha512, md5) {
-            console.log(sha512, md5);
             sha512 = require(sha512);
             md5 = require(md5);
 
@@ -552,4 +557,4 @@ $(function () {
 
 }),{
 "sha512": "@js/sha512.js"
-},{},{})
+},{},{});

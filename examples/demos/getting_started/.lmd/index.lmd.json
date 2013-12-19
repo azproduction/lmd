@@ -1,15 +1,11 @@
 {
-    "name": "Basic build with `en` locale by default",
-
+    "name": "Link to twitter account",
     "root": "../",
-    "output": "index.lmd.js",
     "modules": {
-        "main": "js/main.js",
         "i18n": "i18n/en.json",
-        "name": "tpls/name.html"
+        "tpls/link": "tpls/link.html",
+        "main": "js/main.js"
     },
     "main": "main",
-    "ie": false,
-    "pack": true,
-    "lazy": false
+    "output": "index.lmd.js"
 }

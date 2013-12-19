@@ -1,0 +1,12 @@
+{
+    "root": "../js",
+    "output": "index.js",
+    "bundles": {
+        "a": "./a.lmd.json",
+        "b": {
+            "modules": {
+                "b": "b.js"
+            }
+        }
+    }
+}

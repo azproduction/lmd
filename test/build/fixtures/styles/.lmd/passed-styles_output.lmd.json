@@ -1,0 +1,8 @@
+{
+    "root": "../css",
+    "output": "../index.js",
+    "styles": [
+        "a.css"
+    ],
+    "styles_output": "../_index.ie.css"
+}

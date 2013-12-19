@@ -13,7 +13,7 @@ LogWriter.prototype.ok = function (message) {
 };
 
 LogWriter.prototype.warn = function (message) {
-    this.log('warn'.red + ':    ' + message);
+    this.log('warn'.yellow + ':    ' + message);
 };
 
 LogWriter.prototype.error = function (message) {
