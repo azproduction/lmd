@@ -1,0 +1,7 @@
+{
+  "root": "..",
+  "lmd_license_header": false,
+  "modules": {
+    "empty": "empty.js"
+  }
+}
