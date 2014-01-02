@@ -378,7 +378,8 @@ LmdBuilder.prototype.closeStreams = function () {
  * @param {Object} data
  */
 LmdBuilder.prototype.templatePackage = function (data) {
-    return (data.build_info ? data.build_info + '\n' : '') +
+    return (data.license_header ? data.license_header + '\n' : '') +
+    (data.build_info ? data.build_info + '\n' : '') +
     data.lmd_js +
     '\n(' +
         data.global + ',' +
@@ -865,6 +866,7 @@ LmdBuilder.prototype.renderLmdPackage = function (config, modulesBundle, isOptim
     options = JSON.stringify(options);
 
     result = this.templatePackage({
+        license_header: this._licenseHeader(config),
         build_info: this._buildInfo(config),
         lmd_js: lmd_js,
         global: config.global || 'this',
@@ -921,6 +923,17 @@ LmdBuilder.prototype.renderLmdBundle = function (config, modulesBundle) {
         lmd_modules: '{\n' + modulesBundle.modules.join(',\n') + '\n}',
         modules_options: JSON.stringify(modulesBundle.options)
     });
+};
+
+LmdBuilder.prototype._licenseHeader = function (config) {
+  if (config.lmd_license_header === true) {
+    var licensePath = path.resolve(__dirname, '../LICENCE'),
+        text = fs.readFileSync(licensePath, 'utf8'),
+        license = text.replace(/^LMD includes as dependencies[\s\S]+/m, '');
+    return '/*! LMD loader and stock plugins: ' + license.trim() + '\n*/';
+  } else {
+    return false;
+  }
 };
 
 LmdBuilder.prototype._buildInfo = function (config) {
