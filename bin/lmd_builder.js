@@ -865,7 +865,7 @@ LmdBuilder.prototype.renderLmdPackage = function (config, modulesBundle, isOptim
     options = JSON.stringify(options);
 
     result = this.templatePackage({
-        build_info: this._buildInfo(config),
+        build_info: this._getBundleBanner(config),
         lmd_js: lmd_js,
         global: config.global || 'this',
         lmd_main: lmd_main || 'function(){}',
@@ -917,13 +917,19 @@ LmdBuilder.prototype.renderLmdBundle = function (config, modulesBundle) {
     return this.templateBundle({
         lmd_main: modulesBundle.main,
         bundles_callback: config.bundles_callback,
-        build_info: this._buildInfo(config),
+        build_info: this._getBundleBanner(config),
         lmd_modules: '{\n' + modulesBundle.modules.join(',\n') + '\n}',
         modules_options: JSON.stringify(modulesBundle.options)
     });
 };
 
-LmdBuilder.prototype._buildInfo = function (config) {
+LmdBuilder.prototype._getBundleBanner = function (config) {
+    // If exists return
+    if (typeof config.banner === 'string') {
+        return config.banner;
+    }
+
+    // Else create default
     var configFile = path.basename(this.configFile),
         mixinFiles = (config.mixins || []).map(function (mixin) {
             return path.basename(mixin);

@@ -1,0 +1,21 @@
+{
+    "name": "static banner example",
+    "banner": "/*! Bundle from config \"<%= __filename.replace(__dirname, '').slice(1) %>\" */",
+    "root": "../js",
+    "output": "../index.js",
+    "modules": {
+        "main": "main.js"
+    },
+    "bundles": {
+        "test": {
+            "name": "bundles are inherit banner from parent module",
+            "modules": {
+                "main": "main.js"
+            },
+            "styles_output": false
+        }
+    },
+    "main": "main",
+    "ie": false,
+    "optimize": true
+}

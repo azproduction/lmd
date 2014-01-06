@@ -1,0 +1,7 @@
+{
+    "root": "../js",
+    "mixins": ["./mixin.lmd.json"],
+    "modules": {
+        "main": "main.js"
+    }
+}
