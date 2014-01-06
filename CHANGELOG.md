@@ -9,6 +9,8 @@
   - lmd-info(1) prints styles info
   - Remove strict warnings on dependencies
   - Do not stream styles and scripts If they are not defined
+  - `banner` property. See [code](examples/features/banner/)
+  - Bugfix #169 If no bundles lmd should not print "bundle" in options
 
 **v1.10.x**
 
