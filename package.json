@@ -1,11 +1,18 @@
 {
     "name": "lmd",
+    "version": "1.11.2",
     "description": "LMD: Lazy Module Declaration",
+    "keywords": [
+        "lmd", "amd", "module",
+        "components", "styles", "builder",
+        "optimizer", "cli", "tool"
+    ],
+    "homepage": "http://lmdjs.org/",
+    "license": "MIT",
     "author": {
         "name": "Mikhail Davydov",
-        "email": "azazel.private@gmail.com"
+        "email": "i@azproduction.ru"
     },
-    "version": "1.11.1",
     "bin": {
         "lmd": "./bin/lmd"
     },
@@ -17,11 +24,6 @@
         "type": "git",
         "url": "git@github.com:azproduction/lmd.git"
     },
-    "keywords": [
-        "lmd", "amd", "module",
-        "components", "styles", "builder",
-        "optimizer", "cli", "tool"
-    ],
     "dependencies": {
         "uglify-js": "1.3.4",
         "jade": "0.26.1",
