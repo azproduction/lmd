@@ -1,0 +1,10 @@
+{
+  "root": "../js",
+  "modules": {
+    "main": {
+      "path": "main.js",
+      "sandbox": true,
+      "bind": {}
+    }
+  }
+}
