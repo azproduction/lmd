@@ -1,0 +1,10 @@
+{
+    "root": "../js",
+    "modules": {
+        "test": {
+            "path": "test.js",
+            "sandbox": true,
+            "bind": {}
+        }
+    }
+}
