@@ -36,6 +36,10 @@ info:    Writing LMD Package to ../compiled/dev-cache.lmd.js
 $ lmd watch dev
 ```
 
+## Building using [grunt-lmd](https://github.com/azproduction/grunt-lmd)
+
+See Gruntfile.js for configuration example. Or all available [parameters](https://github.com/azproduction/grunt-lmd#parameters)
+
 ## Credit
 
 Initial release by @azproduction.
