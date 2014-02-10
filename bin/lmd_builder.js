@@ -1419,7 +1419,8 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
     var configRoot = String(config.root || config.path || ''),
         configOutput = String(config.output || ''),
         configWwwRoot = String(config.www_root || ''),
-        configSourcemapWww = String(config.sourcemap_www || '/'),
+        // #174 apply default value only for non-strings
+        configSourcemapWww = typeof config.sourcemap_www === 'string' ? config.sourcemap_www : '/',
         configSourcemap = String(config.sourcemap || ''),
         configSourceMappingURL = String(config.sourcemap_url || '');
 
@@ -1452,7 +1453,8 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
             }
 
             var offset = self.getModuleOffset(sourceWithTokens, tokenIndex),
-                source = path.relative(root, module.path);
+                // #174 replace back slashes with front slashes
+                source = path.relative(root, module.path).replace(/\\/g, '/');
 
             // add mapping for each line
             for (var i = 0; i < module.lines; i++) {
