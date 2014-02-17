@@ -3,7 +3,7 @@
 
 var sum = require('sum');
 
-describe('module', function () {
+describe('sum', function () {
 
     it('calculates sum of two numbers', function () {
         expect(sum(1, 1)).to.eql(2);

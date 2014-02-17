@@ -24,4 +24,8 @@ New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getti
  - [Match](plugins/) - use `require.match(/Pattern/)` to grep all modules that you need
  - [And more...](plugins/)
 
-**Hint** You can try all examples live! Just add `http://azproduction.github.io/lmd/` to example path `examples/demos/backbone_lmd/` = [http://azproduction.github.io/lmd/examples/demos/backbone_lmd/](http://azproduction.github.io/lmd/examples/demos/backbone_lmd/)
+## Test examples
+
+  - [Mocha](tests/mocha) - testing lmd build with mocha and mocha-phantomjs
+
+**Hint** You can try all examples live! Just add `http://lmdjs.org/` to example path `examples/demos/backbone_lmd/` = [http://lmdjs.org/examples/demos/backbone_lmd/](http://lmdjs.org/examples/demos/backbone_lmd/)
