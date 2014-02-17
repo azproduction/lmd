@@ -1,6 +1,6 @@
 {
     "description": "dependencies for test.sum.js test",
-    "root": "./lib",
+    "root": "../lib",
     "modules": {
         "sum": "sum.js"
     }
