@@ -1,0 +1,15 @@
+{
+    "name": "test",
+    "private": true,
+    "version": "0.0.1",
+    "devDependencies" : {
+        "mocha": "1.14.0",
+        "mocha-phantomjs": "3.1.0",
+        "chai": "*",
+        "sinon": "1.7.3",
+        "lmd": "1.11.2"
+    },
+    "scripts": {
+        "test" : "make test"
+    }
+}
