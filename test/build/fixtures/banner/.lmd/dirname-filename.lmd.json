@@ -1,0 +1,7 @@
+{
+    "banner": "// <%= __filename.replace(__dirname, '') %>",
+    "root": "../js",
+    "modules": {
+        "main": "main.js"
+    }
+}

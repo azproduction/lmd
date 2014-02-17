@@ -834,7 +834,7 @@ LmdBuilder.prototype.renderLmdPackage = function (config, modulesBundle, isOptim
         version = config.cache ? config.version : false,
         stats_host = config.stats_auto || false,
         promise = config.promise || false,
-        bundle = config.bundles_callback || false;
+        bundle = config.bundle ? config.bundles_callback : false;
 
     // if version passed -> module will be cached
     if (version) {
@@ -865,7 +865,7 @@ LmdBuilder.prototype.renderLmdPackage = function (config, modulesBundle, isOptim
     options = JSON.stringify(options);
 
     result = this.templatePackage({
-        build_info: this._buildInfo(config),
+        build_info: this._getBundleBanner(config),
         lmd_js: lmd_js,
         global: config.global || 'this',
         lmd_main: lmd_main || 'function(){}',
@@ -917,13 +917,19 @@ LmdBuilder.prototype.renderLmdBundle = function (config, modulesBundle) {
     return this.templateBundle({
         lmd_main: modulesBundle.main,
         bundles_callback: config.bundles_callback,
-        build_info: this._buildInfo(config),
+        build_info: this._getBundleBanner(config),
         lmd_modules: '{\n' + modulesBundle.modules.join(',\n') + '\n}',
         modules_options: JSON.stringify(modulesBundle.options)
     });
 };
 
-LmdBuilder.prototype._buildInfo = function (config) {
+LmdBuilder.prototype._getBundleBanner = function (config) {
+    // If exists return
+    if (typeof config.banner === 'string') {
+        return config.banner;
+    }
+
+    // Else create default
     var configFile = path.basename(this.configFile),
         mixinFiles = (config.mixins || []).map(function (mixin) {
             return path.basename(mixin);
@@ -1413,7 +1419,8 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
     var configRoot = String(config.root || config.path || ''),
         configOutput = String(config.output || ''),
         configWwwRoot = String(config.www_root || ''),
-        configSourcemapWww = String(config.sourcemap_www || '/'),
+        // #174 apply default value only for non-strings
+        configSourcemapWww = typeof config.sourcemap_www === 'string' ? config.sourcemap_www : '/',
         configSourcemap = String(config.sourcemap || ''),
         configSourceMappingURL = String(config.sourcemap_url || '');
 
@@ -1446,7 +1453,8 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
             }
 
             var offset = self.getModuleOffset(sourceWithTokens, tokenIndex),
-                source = path.relative(root, module.path);
+                // #174 replace back slashes with front slashes
+                source = path.relative(root, module.path).replace(/\\/g, '/');
 
             // add mapping for each line
             for (var i = 0; i < module.lines; i++) {

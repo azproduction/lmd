@@ -145,6 +145,10 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
   * depends - your modules can have own depends. You can notify LMD by adding global "depends" paramenter or specify "depends" for each module. See [demo](http://lmdjs.org/examples/features/depends/), [code](examples/features/depends/)
   * extends - your configs can inherit other configs (eg development extends production). See [demo](http://lmdjs.org/examples/features/extends/), [code](examples/features/extends/)
 
+## Testing lmd builds
+
+  * testing lmd build with mocha and mocha-phantomjs See [demo](http://lmdjs.org/examples/tests/mocha/test/common/index-global.html), [code](examples/tests/mocha/)
+
 ## Bash/zsh completion
 
 Installation `lmd completion >> ~/.bashrc` (or `~/.zshrc`). Do not forget to restart shell.

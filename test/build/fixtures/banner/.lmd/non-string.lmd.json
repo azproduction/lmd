@@ -1,0 +1,7 @@
+{
+    "banner": false,
+    "root": "../js",
+    "modules": {
+        "main": "main.js"
+    }
+}

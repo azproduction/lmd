@@ -6,11 +6,13 @@ all: test
 
 test: test_plugins test_builder build_examples
 
+# Build time tests
 test_builder:
 	@echo 'travis_fold:start:test_builder'
 	$(MOCHA) -u bdd -R spec --recursive test/build
 	@echo 'travis_fold:end:test_builder'
 
+# Client-side tests of all plugins
 test_plugins: build_test
 	@echo 'travis_fold:start:test_plugins'
 	@node ./test/qunit/run-test.js
@@ -31,7 +33,7 @@ build_stats:
 	@cd test/qunit; node $(LMD_BUILD) build worker_test
 	@cd test/qunit; node $(LMD_BUILD) build promise_test
 
-# This is smoke test
+# Smoke tests for all examples
 build_examples:
 	@echo 'travis_fold:start:smoke'
 	# Features
@@ -48,6 +50,8 @@ build_examples:
 	@cd examples/features/optimize; node ../$(LMD_BUILD) build index
 	@cd examples/features/sandbox; node ../$(LMD_BUILD) build index
 	@cd examples/features/styles; node ../$(LMD_BUILD) build index
+	@cd examples/features/banner; node ../$(LMD_BUILD) build index
+	@cd examples/features/banner; node ../$(LMD_BUILD) build dynamic
 
 	# Plugins
 	@cd examples/plugins/amd; node ../$(LMD_BUILD) build index
