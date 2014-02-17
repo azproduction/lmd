@@ -2,13 +2,11 @@
 
 Testing lmd build with mocha and mocha-phantomjs
 
-[Live example](http://lmdjs.org/examples/tests/mocha/test/common/index-global.html)
+[Live example](http://lmdjs.org/examples/tests/mocha/)
 
 ## Run tests
 
-*nix environment is required to run Makefile, but it is easy to rewrite it to Node.js
-
-```
+```bash
 $ npm i
 $ npm test
 ```

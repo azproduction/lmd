@@ -1,4 +1,4 @@
-// This file was automatically generated from "test.lmd.js"
+// This file was automatically generated from "test.lmd.js" using mixins "test.sum.lmd.json"
 (function (global, main, modules, modules_options, options) {
     var initialized_modules = {},
         global_eval = function (code) {
@@ -153,7 +153,7 @@
 
 var sum = require('sum');
 
-describe('module', function () {
+describe('sum', function () {
 
     it('calculates sum of two numbers', function () {
         expect(sum(1, 1)).to.eql(2);
