@@ -181,10 +181,23 @@ describe('sum', function () {
 
 }),{
 "sum": (function (require, exports, module) { /* wrapped by builder */
+if (typeof __coverage__ === 'undefined') { __coverage__ = {}; }
+if (!__coverage__['/Users/azproduction/Documents/my/lmd/examples/tests/istanbul/lib/sum.js']) {
+   __coverage__['/Users/azproduction/Documents/my/lmd/examples/tests/istanbul/lib/sum.js'] = {"path":"/Users/azproduction/Documents/my/lmd/examples/tests/istanbul/lib/sum.js","s":{"1":0,"2":0,"3":0,"4":0},"b":{"1":[0,0],"2":[0,0,0,0]},"f":{"1":0},"fnMap":{"1":{"name":"(anonymous_1)","line":1,"loc":{"start":{"line":1,"column":17},"end":{"line":1,"column":33}}}},"statementMap":{"1":{"start":{"line":1,"column":0},"end":{"line":6,"column":2}},"2":{"start":{"line":2,"column":4},"end":{"line":4,"column":5}},"3":{"start":{"line":3,"column":8},"end":{"line":3,"column":57}},"4":{"start":{"line":5,"column":4},"end":{"line":5,"column":17}}},"branchMap":{"1":{"line":2,"type":"if","locations":[{"start":{"line":2,"column":4},"end":{"line":2,"column":4}},{"start":{"line":2,"column":4},"end":{"line":2,"column":4}}]},"2":{"line":2,"type":"binary-expr","locations":[{"start":{"line":2,"column":8},"end":{"line":2,"column":16}},{"start":{"line":2,"column":20},"end":{"line":2,"column":41}},{"start":{"line":2,"column":45},"end":{"line":2,"column":53}},{"start":{"line":2,"column":57},"end":{"line":2,"column":78}}]}}};
+}
+var __cov_lUPduInBuAM$Og2g4eYgKg = __coverage__['/Users/azproduction/Documents/my/lmd/examples/tests/istanbul/lib/sum.js'];
+__cov_lUPduInBuAM$Og2g4eYgKg.s['1']++;
 module.exports = function (a, b) {
-    if (isNaN(a) || typeof a !== 'number' || isNaN(b) || typeof b !== 'number') {
+    __cov_lUPduInBuAM$Og2g4eYgKg.f['1']++;
+    __cov_lUPduInBuAM$Og2g4eYgKg.s['2']++;
+    if ((__cov_lUPduInBuAM$Og2g4eYgKg.b['2'][0]++, isNaN(a)) || (__cov_lUPduInBuAM$Og2g4eYgKg.b['2'][1]++, typeof a !== 'number') || (__cov_lUPduInBuAM$Og2g4eYgKg.b['2'][2]++, isNaN(b)) || (__cov_lUPduInBuAM$Og2g4eYgKg.b['2'][3]++, typeof b !== 'number')) {
+        __cov_lUPduInBuAM$Og2g4eYgKg.b['1'][0]++;
+        __cov_lUPduInBuAM$Og2g4eYgKg.s['3']++;
         throw new TypeError('a and b should be numbers');
+    } else {
+        __cov_lUPduInBuAM$Og2g4eYgKg.b['1'][1]++;
     }
+    __cov_lUPduInBuAM$Og2g4eYgKg.s['4']++;
     return a + b;
 };
 

@@ -26,6 +26,7 @@ New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getti
 
 ## Test examples
 
-  - [Mocha](tests/mocha) - testing lmd build with mocha and mocha-phantomjs
+ - [Mocha](tests/mocha) - testing lmd build with mocha and mocha-phantomjs
+ - [Istanbul](tests/istanbul) - code coverage with istanbul and testing lmd build with mocha and mocha-phantomjs
 
 **Hint** You can try all examples live! Just add `http://lmdjs.org/` to example path `examples/demos/backbone_lmd/` = [http://lmdjs.org/examples/demos/backbone_lmd/](http://lmdjs.org/examples/demos/backbone_lmd/)

@@ -147,7 +147,8 @@ See [grunt-lmd](https://github.com/azproduction/grunt-lmd) for details
 
 ## Testing lmd builds
 
-  * testing lmd build with mocha and mocha-phantomjs See [demo](http://lmdjs.org/examples/tests/mocha/test/common/index-global.html), [code](examples/tests/mocha/)
+  * testing lmd build with mocha and mocha-phantomjs. See [demo](http://lmdjs.org/examples/tests/mocha/), [code](examples/tests/mocha/)
+  * code coverage with istanbul and testing lmd build with mocha and mocha-phantomjs See [demo](http://lmdjs.org/examples/tests/istanbul/), [report](http://lmdjs.org/examples/tests/istanbul/coverage/), [code](examples/tests/istanbul/)
 
 ## Bash/zsh completion
 

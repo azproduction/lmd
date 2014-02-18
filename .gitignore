@@ -10,3 +10,4 @@ examples/demos/mock_chat/logs/*
 examples/demos/mock_chat/js/*/.lmd/logs/*
 npm-debug.log
 test/qunit/.lmd/logs/
+lib-cov
