@@ -3,6 +3,7 @@
 
     "modules": {
         "sk_css_css": "@/modules/shortcuts/css.css",
+        "sk_css_xdomain": "@http://127.0.0.1:8081/modules/shortcuts/xdomain_css.css",
         "sk_js_js": "@/modules/shortcuts/js.js",
         "sk_image_image": "@/modules/shortcuts/image.gif"
     },

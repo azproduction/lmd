@@ -13,6 +13,7 @@
   - Bugfix #169 If no bundles lmd should not print "bundle" in options
   - Bugfix #174 apply default value of `sourcemap_www` only for non-strings & replace back slashes with front slashes for source URLs
   - Test example
+  - `file_protocol` is deprecated
 
 **v1.10.x**
 

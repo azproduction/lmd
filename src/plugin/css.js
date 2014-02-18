@@ -61,7 +61,19 @@
 
         head = sb.document.getElementsByTagName("head")[0];
         head.insertBefore(link, head.firstChild);
-        /*if ($P.FILE_PROTOCOL) {*/function isCode15Safe(e) { try { return e.code === 15 } catch (e) {} }/*}*/
+
+        function isRules(sheet) {
+            if ((sheet.ownerNode || sheet.owningElement).id != id) {
+                return false;
+            }
+            try {
+                // It can be null or throw an Security error in case of cross origin stylesheets
+                return !!(sheet.cssRules || sheet.rules).length;
+            } catch (e) {
+                // In case of access error assume that css is loaded
+                return true;
+            }
+        }
 
         (function poll() {
             if (isNotLoaded) {
@@ -71,8 +83,7 @@
 
                 try {
                     for (; j < k; j++) {
-                        if((sheets[j].ownerNode || sheets[j].owningElement).id == id &&
-                            (sheets[j].cssRules || sheets[j].rules).length) {
+                        if (isRules(sheets[j])) {
 //#JSCOVERAGE_IF 0
                             return onload(1);
 //#JSCOVERAGE_ENDIF
@@ -81,7 +92,6 @@
                     // if we get here, its not in document.styleSheets (we never saw the ID)
                     throw 1;
                 } catch(e) {
-                    /*if ($P.FILE_PROTOCOL) {*/if (e != 1 && ((sheets[j] && sheets[j].cssRules === null) || isCode15Safe(e))) {return onload(1);}/*}*/
                     // Keep polling
                     sb.global.setTimeout(poll, 90);
                 }

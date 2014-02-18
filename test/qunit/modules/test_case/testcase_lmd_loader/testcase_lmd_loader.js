@@ -175,6 +175,18 @@
         });
     });
 
+    asyncTest("require.css() cross origin", function () {
+        expect(2);
+
+        require.css('sk_css_xdomain', function (link_tag) {
+            ok(typeof link_tag === "object" &&
+                link_tag.nodeName.toUpperCase() === "LINK", "should return link tag on success");
+
+            ok(getComputedStyle(document.body, 'min-width') === "960px", "css should be applied");
+            start();
+        });
+    });
+
 // -- image
 
     asyncTest("require.image()", function () {
