@@ -1,7 +1,7 @@
-console.log(process.env);
+var cov = process.argv[2] === '--coverage' ? '-cov' : '';
 module.exports = {
     'name': 'test build',
-    'root': '../lib',
+    'root': '../lib' + cov,
     'output': '../common/test.js',
 
     'modules': {

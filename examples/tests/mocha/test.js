@@ -24,7 +24,7 @@ function buildTestFor(main, cb) {
         warn: true
     };
 
-    var dependencies = join(testDir, basename(main, '.js') + '.lmd.json');
+    var dependencies = join(testDir, basename(main, '.js') + '.lmd.js');
 
     if (exists(dependencies)) {
         options.mixins = [relative(lmdDir, dependencies)];
@@ -46,7 +46,9 @@ function runCurrentTest(cb) {
     spawn(runner, args, options).on('close', cb);
 }
 
-var tests = glob(join(testDir, 'test.*.js'));
+var tests = glob(join(testDir, 'test.*.js')).filter(function (file) {
+    return !/\.lmd\.js$/.test(file);
+});
 
 async.eachSeries(tests, function (mainFile, cb) {
     buildTestFor(relative(lmdDir, mainFile), function (err) {
