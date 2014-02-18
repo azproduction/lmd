@@ -334,6 +334,7 @@
 
         head = sb.document.getElementsByTagName("head")[0];
         head.insertBefore(link, head.firstChild);
+        function isCode15Safe(e) { try { return e.code === 15 } catch (e) {} }
 
         (function poll() {
             if (isNotLoaded) {
@@ -353,7 +354,7 @@
                     // if we get here, its not in document.styleSheets (we never saw the ID)
                     throw 1;
                 } catch(e) {
-                    if (e != 1 && (e.code === 15 || sheets[j].cssRules === null)) {return onload(1);}
+                    if (e != 1 && ((sheets[j] && sheets[j].cssRules === null) || isCode15Safe(e))) {return onload(1);}
                     // Keep polling
                     sb.global.setTimeout(poll, 90);
                 }
