@@ -38,17 +38,14 @@
 /*if ($P.WORKER || $P.NODE) {*///#JSCOVERAGE_IF 0/*}*/
         // Create stylesheet link
         var link = sb.document.createElement("link"),
-            id = +new sb.global.Date,
-            onload = function (e) {
+            id = Math.random() + '',
+            onload = function () {
                 if (isNotLoaded) {
                     isNotLoaded = 0;
                     // register or cleanup
                     link.removeAttribute('id');
 
-                    if (!e) {
-                        sb.trigger('*:request-error', moduleName, module);
-                    }
-                    callback(e ? sb.register(moduleName, link) : head.removeChild(link) && sb.undefined); // e === undefined if error
+                    callback(sb.register(moduleName, link)); // e === undefined if error
                 }
             };
 
@@ -56,8 +53,6 @@
         link.href = moduleName;
         link.rel = "stylesheet";
         link.id = id;
-
-        sb.global.setTimeout(onload, 3000, 0);
 
         head = sb.document.getElementsByTagName("head")[0];
         head.insertBefore(link, head.firstChild);
@@ -85,7 +80,7 @@
                     for (; j < k; j++) {
                         if (isRules(sheets[j])) {
 //#JSCOVERAGE_IF 0
-                            return onload(1);
+                            return onload();
 //#JSCOVERAGE_ENDIF
                         }
                     }

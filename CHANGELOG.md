@@ -14,6 +14,7 @@
   - Bugfix #174 apply default value of `sourcemap_www` only for non-strings & replace back slashes with front slashes for source URLs
   - Test example
   - `file_protocol` is deprecated
+  - `require.css()` does not cleanup link on timeout, "errorback" removed
 
 **v1.10.x**
 
