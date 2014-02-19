@@ -287,7 +287,7 @@
 // -- CSS
 
     asyncTest("require.css().then()", function () {
-        expect(6);
+        expect(4);
 
         require.css('./modules/loader/some_css.css' + rnd).then(function (link_tag) {
             ok(typeof link_tag === "object" &&
@@ -297,12 +297,6 @@
 
             ok(require('./modules/loader/some_css.css' + rnd) === link_tag, "should cache link tag on success");
 
-            return require.css('./modules/loader/some_css_404.css' + rnd);
-        }).then(function () {
-            ok(false, "promise should no be resolved");
-        }, function () {
-            ok(true, "promise should be rejected");
-            ok(typeof require('./modules/loader/some_css_404.css' + rnd) === "undefined", "should not cache errorous modules");
             require.css('module_as_string').then(function (module_as_string) {
                 require.async('module_as_string').then(function (module_as_string_expected) {
                     ok(module_as_string === module_as_string_expected, 'require.css() acts like require.async() if in-package/declared module passed');
@@ -310,6 +304,7 @@
                 });
             });
         });
+
     });
 
     asyncTest("require.css().then() CSS loader without callback", function () {
