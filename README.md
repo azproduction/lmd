@@ -80,7 +80,7 @@ New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getti
 16. Code Coverage? - Easy! (see [Code coverage](https://github.com/azproduction/lmd/wiki/Analytics-and-Code-coverage))
 17. Ready for production - `lmd.js` is 100% covered by unit tests see [test/README.md](test) for details
 18. SourceMap for all LMD modules (see [Source map](https://github.com/azproduction/lmd/wiki/SourceMap))
-19. Reach CLI interface
+19. Rich CLI interface
 
 ## Installing
 
