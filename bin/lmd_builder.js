@@ -1374,6 +1374,9 @@ LmdBuilder.prototype.info = function (text) {
  * @param {String} modulePath
  */
 LmdBuilder.prototype.createToken = function (modulePath) {
+    // issue 178 String modules getting corrupted on Windows when using source map.
+    // replace \ with / in order to fix JSON.stringify escaping issue
+    modulePath = modulePath.replace(/\\/g, '/');
     return '/**[[LMD_TOKEN]]:' + modulePath + '**/';
 };
 
