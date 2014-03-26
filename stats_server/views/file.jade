@@ -172,7 +172,7 @@ html
 
                                 each moduleAccessTimes, moduleName in report.moduleAccessTimes
                                     - var moduleStats = full_report.modules[moduleName]
-                                    if (moduleStats.name === moduleName)
+                                    if (moduleStats && moduleStats.name === moduleName)
                                         tr.b-timeline__line
                                             td.b-timeline__name
                                                 if (moduleStats.shortcuts)
