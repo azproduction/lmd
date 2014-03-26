@@ -100,7 +100,7 @@ html
                                 th.b-list__head__item First require
                         tbody
                             each moduleStats, moduleName in report.modules
-                                if (moduleStats.name === moduleName)
+                                if (moduleStats && moduleStats.name === moduleName)
                                     tr#module-b-module.b-list__line
                                         td.b-list__line__item
                                             if (moduleStats.shortcuts)
