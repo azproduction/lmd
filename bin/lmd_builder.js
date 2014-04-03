@@ -1427,9 +1427,9 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
         configSourcemap = String(config.sourcemap || ''),
         configSourceMappingURL = String(config.sourcemap_url || '');
 
-    var generatedFile = path.join(this.configDir, configRoot, configOutput),
-        root = path.join(this.configDir, configRoot, configWwwRoot),
-        sourceMapFile = path.join(this.configDir, configRoot, configSourcemap),
+    var generatedFile = path.resolve(this.configDir, configRoot, configOutput),
+        root = path.resolve(this.configDir, configRoot, configWwwRoot),
+        sourceMapFile = path.resolve(this.configDir, configRoot, configSourcemap),
         isInline = config.sourcemap_inline || false,
         isWarn = config.warn;
 

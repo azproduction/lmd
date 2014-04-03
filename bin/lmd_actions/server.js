@@ -111,7 +111,7 @@ module.exports = function (cli, argv, cwd) {
     var config = assembleLmdConfig(lmdFile, Object.keys(flagToOptionNameMap)),
         logsDir = path.join(cwd, '.lmd', 'logs'),
         currentLogDir = path.join(logsDir, buildName),
-        wwwDir = path.join(cwd, '.lmd', config.www_root);
+        wwwDir = path.resolve(path.join(cwd, '.lmd'), config.www_root);
 
     if (!config.www_root) {
         printHelp(cli, "Build configured without required parameter `www_root`");
