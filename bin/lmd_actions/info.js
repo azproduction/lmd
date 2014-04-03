@@ -483,11 +483,11 @@ module.exports = function (cli, argv, cwd) {
         flags = Object.keys(flagToOptionNameMap),
         extraFlags = common.SOURCE_TWEAK_FLAGS,
         config = assembleLmdConfig(lmdFile, flags, argv),
-        root = path.join(cwd, '.lmd', config.root),
-        output = config.output ? path.join(root, config.output) : 'STDOUT'.yellow,
-        styles_output = config.styles_output ? path.join(root, config.styles_output) : '/dev/null'.yellow,
-        sourcemap = config.sourcemap ? path.join(root, config.sourcemap) : false,
-        www = config.www_root ? path.join(cwd, '.lmd', config.www_root) : false,
+        root = path.resolve(path.join(cwd, '.lmd'), config.root),
+        output = config.output ? path.resolve(root, config.output) : 'STDOUT'.yellow,
+        styles_output = config.styles_output ? path.resolve(root, config.styles_output) : '/dev/null'.yellow,
+        sourcemap = config.sourcemap ? path.resolve(root, config.sourcemap) : false,
+        www = config.www_root ? path.resolve(path.join(cwd, '.lmd'), config.www_root) : false,
         versionString = config.version ? ' - version ' + config.version.toString().cyan : '';
 
     cli.ok('');
