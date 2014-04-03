@@ -1,3 +1,7 @@
+**v1.12.x**
+
+  - #180 Absolute "root" paths
+
 **v1.11.x**
 
   - changelog reversed
