@@ -1,5 +1,6 @@
 **v1.12.x**
 
+  - #166 Ember.js example. See [demo](http://lmdjs.org/examples/demos/emberjs_lmd/), [code](examples/demos/emberjs_lmd/)
   - #180 Absolute "root" paths
 
 **v1.11.x**
