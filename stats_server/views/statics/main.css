@@ -270,6 +270,7 @@
     overflow-x: auto;
     white-space: nowrap;
     padding-left: 10px;
+    line-height: 19px;
 }
 
 .b-source__line__item_type_line {

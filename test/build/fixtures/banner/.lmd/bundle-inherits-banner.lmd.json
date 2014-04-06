@@ -1,0 +1,14 @@
+{
+    "banner": "//inherits",
+    "root": "../js",
+    "modules": {
+        "main": "main.js"
+    },
+    "bundles": {
+        "test": {
+            "modules": {
+                "main": "main.js"
+            }
+        }
+    }
+}

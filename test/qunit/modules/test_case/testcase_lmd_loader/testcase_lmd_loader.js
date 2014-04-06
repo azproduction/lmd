@@ -108,7 +108,7 @@
 // -- CSS
 
     asyncTest("require.css()", function () {
-        expect(6);
+        expect(4);
 
         require.css('./modules/loader/some_css.css' + rnd, function (link_tag) {
             ok(typeof link_tag === "object" &&
@@ -118,14 +118,10 @@
 
             ok(require('./modules/loader/some_css.css' + rnd) === link_tag, "should cache link tag on success");
 
-            require.css('./modules/loader/some_css_404.css' + rnd, function (link_tag) {
-                ok(typeof link_tag === "undefined", "should return undefined on error in 3 seconds");
-                ok(typeof require('./modules/loader/some_css_404.css' + rnd) === "undefined", "should not cache errorous modules");
-                require.css('module_as_string', function (module_as_string) {
-                    require.async('module_as_string', function (module_as_string_expected) {
-                        ok(module_as_string === module_as_string_expected, 'require.css() acts like require.async() if in-package/declared module passed');
-                        start();
-                    });
+            require.css('module_as_string', function (module_as_string) {
+                require.async('module_as_string', function (module_as_string_expected) {
+                    ok(module_as_string === module_as_string_expected, 'require.css() acts like require.async() if in-package/declared module passed');
+                    start();
                 });
             });
         });
@@ -172,6 +168,18 @@
                 ok(require('sk_css_css') === require('/modules/shortcuts/css.css'), "should be defined using path-to-module");
                 start();
             })
+        });
+    });
+
+    asyncTest("require.css() cross origin", function () {
+        expect(2);
+
+        require.css('sk_css_xdomain', function (link_tag) {
+            ok(typeof link_tag === "object" &&
+                link_tag.nodeName.toUpperCase() === "LINK", "should return link tag on success");
+
+            ok(getComputedStyle(document.body, 'min-width') === "960px", "css should be applied");
+            start();
         });
     });
 

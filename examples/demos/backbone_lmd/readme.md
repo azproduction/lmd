@@ -31,7 +31,14 @@ info:    Writing LMD Package to ../compiled/dev.lmd.js
 $ lmd build dev-cache
 info:    Building `dev-cache` (.lmd/dev-cache.lmd.json)
 info:    Writing LMD Package to ../compiled/dev-cache.lmd.js
+
+# Setup watcher
+$ lmd watch dev
 ```
+
+## Building using [grunt-lmd](https://github.com/azproduction/grunt-lmd)
+
+See Gruntfile.js for configuration example. Or all available [parameters](https://github.com/azproduction/grunt-lmd#parameters)
 
 ## Credit
 

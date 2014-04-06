@@ -1,3 +1,4 @@
+// This file was automatically generated from "index.lmd.json"
 (function (global, main, modules, modules_options, options) {
     var initialized_modules = {},
         global_eval = function (code) {
@@ -15,7 +16,7 @@
         register_module = function (moduleName, module) {
             lmd_trigger('lmd-register:before-register', moduleName, module);
             // Predefine in case of recursive require
-            var output = {exports: {}};
+            var output = {'exports': {}};
             initialized_modules[moduleName] = 1;
             modules[moduleName] = output.exports;
 
@@ -23,14 +24,14 @@
                 // if undefined - try to pick up module from globals (like jQuery)
                 // or load modules from nodejs/worker environment
                 module = lmd_trigger('js:request-environment-module', moduleName, module)[1] || global[moduleName];
-            } else if (typeof module === "function") {
+            } else if (typeof module === 'function') {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, require)[1];
+                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, lmd_require)[1];
 
                 // Make sure that sandboxed modules cant require
                 if (modules_options[moduleName] &&
                     modules_options[moduleName].sandbox &&
-                    typeof module_require === "function") {
+                    typeof module_require === 'function') {
 
                     module_require = local_undefined;
                 }
@@ -85,30 +86,31 @@
          *
          * @returns {*}
          */
-        require = function (moduleName) {
+        lmd_require = function (moduleName) {
             var module = modules[moduleName];
 
-            lmd_trigger('*:before-check', moduleName, module);
-            // Already inited - return as is
-            if (initialized_modules[moduleName] && module) {
-                return module;
-            }
             var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
             if (replacement) {
                 moduleName = replacement[0];
                 module = replacement[1];
             }
 
+            lmd_trigger('*:before-check', moduleName, module);
+            // Already inited - return as is
+            if (initialized_modules[moduleName] && module) {
+                return module;
+            }
+
             lmd_trigger('*:before-init', moduleName, module);
 
             // Lazy LMD module not a string
-            if (typeof module === "string" && module.indexOf('(function(') === 0) {
+            if (typeof module === 'string' && module.indexOf('(function(') === 0) {
                 module = global_eval(module);
             }
 
             return register_module(moduleName, module);
         },
-        output = {exports: {}},
+        output = {'exports': {}},
 
         /**
          * Sandbox object for plugins
@@ -116,24 +118,24 @@
          * @important Do not rename it!
          */
         sandbox = {
-            global: global,
-            modules: modules,
-            modules_options: modules_options,
-            options: options,
+            'global': global,
+            'modules': modules,
+            'modules_options': modules_options,
+            'options': options,
 
-            eval: global_eval,
-            register: register_module,
-            require: require,
-            initialized: initialized_modules,
+            'eval': global_eval,
+            'register': register_module,
+            'require': lmd_require,
+            'initialized': initialized_modules,
 
-            noop: global_noop,
-            document: global_document,
+            'noop': global_noop,
+            'document': global_document,
             
             
 
-            on: lmd_on,
-            trigger: lmd_trigger,
-            undefined: local_undefined
+            'on': lmd_on,
+            'trigger': lmd_trigger,
+            'undefined': local_undefined
         };
 
     for (var moduleName in modules) {
@@ -146,9 +148,81 @@
  */
 (function (sb) {
     var domOnlyLoaders = {
-        css: true,
-        image: true
+        'css': true,
+        'image': true
     };
+
+    var reEvalable = /(java|ecma)script|json/,
+        reJson = /json/;
+
+    /**
+      * Load off-package LMD module
+      *
+      * @param {String|Array} moduleName same origin path to LMD module
+      * @param {Function}     [callback]   callback(result) undefined on error others on success
+      */
+    sb.on('*:preload', function (moduleName, callback, type) {
+        var replacement = sb.trigger('*:request-off-package', moduleName, callback, type), // [[returnResult, moduleName, module, true], callback, type]
+            returnResult = [replacement[0][0], callback, type];
+
+        if (replacement[0][3]) { // isReturnASAP
+            return returnResult;
+        }
+
+        var module = replacement[0][2],
+            XMLHttpRequestConstructor = sb.global.XMLHttpRequest || sb.global.ActiveXObject;
+
+        callback = replacement[1];
+        moduleName = replacement[0][1];
+
+        if (!XMLHttpRequestConstructor) {
+            sb.trigger('preload:require-environment-file', moduleName, module, callback);
+            return returnResult;
+        }
+
+        // Optimized tiny ajax get
+        // @see https://gist.github.com/1625623
+        var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4) {
+                // 3. Check for correct status 200 or 0 - OK?
+                if (xhr.status < 201) {
+                    var contentType = xhr.getResponseHeader('content-type');
+                    module = xhr.responseText;
+                    if (reEvalable.test(contentType)) {
+                        module = sb.trigger('*:wrap-module', moduleName, module, contentType)[1];
+                        if (!reJson.test(contentType)) {
+                            module = sb.trigger('*:coverage-apply', moduleName, module)[1];
+                        }
+
+                        sb.trigger('preload:before-callback', moduleName, module);
+                        module = sb.eval(module);
+                    } else {
+                        sb.trigger('preload:before-callback', moduleName, module);
+                    }
+
+                    if (type === 'preload') {
+                        // 4. Declare it
+                        sb.modules[moduleName] = module;
+                        // 5. Then callback it
+                        callback(moduleName);
+                    } else {
+                        // 4. Callback it
+                        callback(sb.register(moduleName, module));
+                    }
+                } else {
+                    sb.trigger('*:request-error', moduleName, module);
+                    callback();
+                }
+            }
+        };
+        xhr.open('get', moduleName);
+        xhr.send();
+
+        return returnResult;
+
+    });
+
     /**
      * @event *:request-off-package
      *
@@ -181,7 +255,7 @@
         sb.trigger('*:before-check', moduleName, module, type);
         // If module exists or its a node.js env
         if (module || (domOnlyLoaders[type] && !sb.document)) {
-            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            callback(type === "preload" ? moduleName : sb.initialized[moduleName] ? module : sb.require(moduleName));
             return [[returnResult, moduleName, module, true], callback, type];
         }
 
@@ -263,11 +337,14 @@
 
         (function poll() {
             if (isNotLoaded) {
+                var sheets = sb.document.styleSheets,
+                    j = 0,
+                    k = sheets.length;
+
                 try {
-                    var sheets = sb.document.styleSheets;
-                    for (var j = 0, k = sheets.length; j < k; j++) {
-                        if((sheets[j].ownerNode).id == id &&
-                           (sheets[j].cssRules).length) {
+                    for (; j < k; j++) {
+                        if((sheets[j].ownerNode || sheets[j].owningElement).id == id &&
+                            (sheets[j].cssRules || sheets[j].rules).length) {
 //#JSCOVERAGE_IF 0
                             return onload(1);
 //#JSCOVERAGE_ENDIF
@@ -276,6 +353,7 @@
                     // if we get here, its not in document.styleSheets (we never saw the ID)
                     throw 1;
                 } catch(e) {
+                    
                     // Keep polling
                     sb.global.setTimeout(poll, 90);
                 }
@@ -545,7 +623,7 @@ function stats_shortcut(moduleName, shortcut) {
  * @param {String} [moduleName]
  * @return {Object}
  */
-require.stats = function (moduleName) {
+sb.require.stats = function (moduleName) {
     var replacement = sb.trigger('stats:before-return-stats', moduleName, stats_results);
 
     if (replacement && replacement[1]) {
@@ -956,8 +1034,9 @@ sb.on('stats:before-return-stats', function (moduleName, stats_results) {
 
 
 
-    main(lmd_trigger('lmd-register:decorate-require', "main", require)[1], output.exports, output);
-})/*DO NOT ADD ; !*/(this,(function(require, exports, module) {
+    main(lmd_trigger('lmd-register:decorate-require', 'main', lmd_require)[1], output.exports, output);
+})/*DO NOT ADD ; !*/
+(this,(function(require, exports, module) {
     var require = arguments[0];
     require.coverage_function("main", "(?):0:1");
     require.coverage_line("main", "5");
@@ -2120,4 +2199,4 @@ $('.b-stats-button').click(function () {
     }
 });
 })
-},{"main":{"lines":["5","7","8","11","12","16","17","18","19","20","23","25"],"conditions":[],"functions":["(?):0:1","decorateInputs:7:154","(?):11:230","calculateSha512OfMd5:16:349"],"coverage":1},"unused":{"lines":["2","3","4"],"conditions":["if:3:89"],"functions":["(?):0:1","(?):2:67"],"coverage":1},"sha512":{"lines":["14","15","21","21","22","22","23","23","24","25","26","27","28","29","34","36","44","46","52","54","55","55","57","58","60","61","64","65","71","73","73","73","74","75","76","77","79","80","83","89","91","91","91","92","93","94","95","97","100","102","102","103","106","112","114","115","118","119","121","130","132","133","135","136","137","139","140","141","142","143","145","146","150","151","152","154","161","163","164","165","167","170","171","172","174","175","179","180","181","182","184","185","188","189","194","200","202","203","204","206","209","211","212","213","215","222","224","225","226","227","228","229","235","237","238","239","240","246","247","249","252","296","306","324","325","326","327","330","331","333","335","336","337","338","339","340","341","342","344","346","347","350","353","354","355","356","357","359","360","361","362","363","365","368","371","372","375","376","377","378","379","382","383","384","385","386","389","390","392","393","395","396","397","398","399","400","401","402","404","405","406","407","408","409","410","411","415","416","418","419","421","425","427","428","433","435","436","442","444","445","450","452","453","458","460","461","466","468","469","470","471","472","473","477","479","480","481","482","483","484","488","490","491","492","493","494","495","498"],"conditions":["if:55:1976","conditional:74:2469","conditional:98:s","conditional:99:s","if:102:3245","if:142:4457","if:142:4484","undefined:s","if:172:5110","if:172:5110","if:172:5110","if:172:5160","if:179:5289","if:181:5352","if:184:5505","if:188:5723","if:249:7335"],"functions":["(?):0:1","hex_sha512:21:840","b64_sha512:22:918","any_sha512:23:996","hex_hmac_sha512:24:1076","b64_hmac_sha512:26:1184","any_hmac_sha512:28:1292","sha512_vm_test:34:1471","rstr_sha512:44:1739","rstr_hmac_sha512:52:1903","rstr2hex:71:2384","rstr2b64:89:2791","rstr2any:112:3453","str2rstr_utf8:161:4864","str2rstr_utf16le:200:6055","str2rstr_utf16be:209:6310","rstr2binb:222:6686","binb2rstr:235:7012","binb_sha512:247:7299","int64:425:13443","int64copy:433:13588","int64rrot:442:13768","int64revrrot:450:14023","int64shr:458:14273","int64add:466:14488","int64add4:477:14887","int64add5:488:15378"],"coverage":1},"md5":{"lines":["14","15","21","21","22","22","23","23","24","25","26","27","28","29","34","36","42","44","50","52","53","53","55","56","58","59","62","63","69","71","71","71","72","73","74","75","77","78","81","87","89","89","89","90","91","92","93","95","98","100","100","101","104","110","112","113","116","117","119","128","130","131","133","134","135","137","138","139","140","141","143","144","148","149","150","152","159","161","162","163","165","168","169","170","172","173","177","178","179","180","182","183","186","187","192","198","200","201","202","204","207","209","210","211","213","220","222","223","224","225","226","227","233","235","236","237","238","244","247","248","250","251","252","253","255","257","258","259","260","262","263","264","265","266","267","268","269","270","271","272","273","274","275","276","277","279","280","281","282","283","284","285","286","287","288","289","290","291","292","293","294","296","297","298","299","300","301","302","303","304","305","306","307","308","309","310","311","313","314","315","316","317","318","319","320","321","322","323","324","325","326","327","328","330","331","332","333","335","341","343","345","347","349","351","353","355","357","359","366","368","369","370","376","378","381"],"conditions":["if:53:1816","conditional:72:2298","conditional:96:s","conditional:97:s","if:100:3074","if:140:4286","if:140:4313","undefined:s","if:170:4939","if:170:4939","if:170:4939","if:170:4989","if:177:5118","if:179:5181","if:182:5334","if:186:5552"],"functions":["(?):0:1","hex_md5:21:845","b64_md5:22:917","any_md5:23:989","hex_hmac_md5:24:1064","b64_hmac_md5:26:1166","any_hmac_md5:28:1268","md5_vm_test:34:1442","rstr_md5:42:1591","rstr_hmac_md5:50:1746","rstr2hex:69:2213","rstr2b64:87:2620","rstr2any:110:3282","str2rstr_utf8:159:4693","str2rstr_utf16le:198:5884","str2rstr_utf16be:207:6139","rstr2binl:220:6518","binl2rstr:233:6840","binl_md5:244:7107","md5_cmn:341:11082","md5_ff:345:11196","md5_gg:349:11292","md5_hh:353:11388","md5_ii:357:11473","safe_add:366:11693","bit_rol:376:11905"],"coverage":1}},{})
+},{"main":{"lines":["5","7","8","11","12","16","17","18","19","20","23","25"],"conditions":[],"functions":["(?):0:1","decorateInputs:7:154","(?):11:230","calculateSha512OfMd5:16:349"],"coverage":1},"unused":{"lines":["2","3","4"],"conditions":["if:3:89"],"functions":["(?):0:1","(?):2:67"],"coverage":1},"sha512":{"lines":["14","15","21","21","22","22","23","23","24","25","26","27","28","29","34","36","44","46","52","54","55","55","57","58","60","61","64","65","71","73","73","73","74","75","76","77","79","80","83","89","91","91","91","92","93","94","95","97","100","102","102","103","106","112","114","115","118","119","121","130","132","133","135","136","137","139","140","141","142","143","145","146","150","151","152","154","161","163","164","165","167","170","171","172","174","175","179","180","181","182","184","185","188","189","194","200","202","203","204","206","209","211","212","213","215","222","224","225","226","227","228","229","235","237","238","239","240","246","247","249","252","296","306","324","325","326","327","330","331","333","335","336","337","338","339","340","341","342","344","346","347","350","353","354","355","356","357","359","360","361","362","363","365","368","371","372","375","376","377","378","379","382","383","384","385","386","389","390","392","393","395","396","397","398","399","400","401","402","404","405","406","407","408","409","410","411","415","416","418","419","421","425","427","428","433","435","436","442","444","445","450","452","453","458","460","461","466","468","469","470","471","472","473","477","479","480","481","482","483","484","488","490","491","492","493","494","495","498"],"conditions":["if:55:1976","conditional:74:2469","conditional:98:s","conditional:99:s","if:102:3245","if:142:4457","if:142:4484","undefined:s","if:172:5110","if:172:5110","if:172:5110","if:172:5160","if:179:5289","if:181:5352","if:184:5505","if:188:5723","if:249:7335"],"functions":["(?):0:1","hex_sha512:21:840","b64_sha512:22:918","any_sha512:23:996","hex_hmac_sha512:24:1076","b64_hmac_sha512:26:1184","any_hmac_sha512:28:1292","sha512_vm_test:34:1471","rstr_sha512:44:1739","rstr_hmac_sha512:52:1903","rstr2hex:71:2384","rstr2b64:89:2791","rstr2any:112:3453","str2rstr_utf8:161:4864","str2rstr_utf16le:200:6055","str2rstr_utf16be:209:6310","rstr2binb:222:6686","binb2rstr:235:7012","binb_sha512:247:7299","int64:425:13443","int64copy:433:13588","int64rrot:442:13768","int64revrrot:450:14023","int64shr:458:14273","int64add:466:14488","int64add4:477:14887","int64add5:488:15378"],"coverage":1},"md5":{"lines":["14","15","21","21","22","22","23","23","24","25","26","27","28","29","34","36","42","44","50","52","53","53","55","56","58","59","62","63","69","71","71","71","72","73","74","75","77","78","81","87","89","89","89","90","91","92","93","95","98","100","100","101","104","110","112","113","116","117","119","128","130","131","133","134","135","137","138","139","140","141","143","144","148","149","150","152","159","161","162","163","165","168","169","170","172","173","177","178","179","180","182","183","186","187","192","198","200","201","202","204","207","209","210","211","213","220","222","223","224","225","226","227","233","235","236","237","238","244","247","248","250","251","252","253","255","257","258","259","260","262","263","264","265","266","267","268","269","270","271","272","273","274","275","276","277","279","280","281","282","283","284","285","286","287","288","289","290","291","292","293","294","296","297","298","299","300","301","302","303","304","305","306","307","308","309","310","311","313","314","315","316","317","318","319","320","321","322","323","324","325","326","327","328","330","331","332","333","335","341","343","345","347","349","351","353","355","357","359","366","368","369","370","376","378","381"],"conditions":["if:53:1816","conditional:72:2298","conditional:96:s","conditional:97:s","if:100:3074","if:140:4286","if:140:4313","undefined:s","if:170:4939","if:170:4939","if:170:4939","if:170:4989","if:177:5118","if:179:5181","if:182:5334","if:186:5552"],"functions":["(?):0:1","hex_md5:21:845","b64_md5:22:917","any_md5:23:989","hex_hmac_md5:24:1064","b64_hmac_md5:26:1166","any_hmac_md5:28:1268","md5_vm_test:34:1442","rstr_md5:42:1591","rstr_hmac_md5:50:1746","rstr2hex:69:2213","rstr2b64:87:2620","rstr2any:110:3282","str2rstr_utf8:159:4693","str2rstr_utf16le:198:5884","str2rstr_utf16be:207:6139","rstr2binl:220:6518","binl2rstr:233:6840","binl_md5:244:7107","md5_cmn:341:11082","md5_ff:345:11196","md5_gg:349:11292","md5_hh:353:11388","md5_ii:357:11473","safe_add:366:11693","bit_rol:376:11905"],"coverage":1}},{});

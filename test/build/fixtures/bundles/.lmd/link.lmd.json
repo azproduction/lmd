@@ -1,0 +1,6 @@
+{
+    "root": "../",
+    "bundles": {
+        "a": "./a.lmd.json"
+    }
+}

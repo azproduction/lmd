@@ -1,3 +1,4 @@
+// This file was automatically generated from "index.lmd.json"
 (function (global, main, modules, modules_options, options) {
     var initialized_modules = {},
         global_eval = function (code) {
@@ -15,7 +16,7 @@
         register_module = function (moduleName, module) {
             lmd_trigger('lmd-register:before-register', moduleName, module);
             // Predefine in case of recursive require
-            var output = {exports: {}};
+            var output = {'exports': {}};
             initialized_modules[moduleName] = 1;
             modules[moduleName] = output.exports;
 
@@ -23,14 +24,14 @@
                 // if undefined - try to pick up module from globals (like jQuery)
                 // or load modules from nodejs/worker environment
                 module = lmd_trigger('js:request-environment-module', moduleName, module)[1] || global[moduleName];
-            } else if (typeof module === "function") {
+            } else if (typeof module === 'function') {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, require)[1];
+                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, lmd_require)[1];
 
                 // Make sure that sandboxed modules cant require
                 if (modules_options[moduleName] &&
                     modules_options[moduleName].sandbox &&
-                    typeof module_require === "function") {
+                    typeof module_require === 'function') {
 
                     module_require = local_undefined;
                 }
@@ -85,30 +86,31 @@
          *
          * @returns {*}
          */
-        require = function (moduleName) {
+        lmd_require = function (moduleName) {
             var module = modules[moduleName];
 
-            lmd_trigger('*:before-check', moduleName, module);
-            // Already inited - return as is
-            if (initialized_modules[moduleName] && module) {
-                return module;
-            }
             var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
             if (replacement) {
                 moduleName = replacement[0];
                 module = replacement[1];
             }
 
+            lmd_trigger('*:before-check', moduleName, module);
+            // Already inited - return as is
+            if (initialized_modules[moduleName] && module) {
+                return module;
+            }
+
             lmd_trigger('*:before-init', moduleName, module);
 
             // Lazy LMD module not a string
-            if (typeof module === "string" && module.indexOf('(function(') === 0) {
+            if (typeof module === 'string' && module.indexOf('(function(') === 0) {
                 module = global_eval(module);
             }
 
             return register_module(moduleName, module);
         },
-        output = {exports: {}},
+        output = {'exports': {}},
 
         /**
          * Sandbox object for plugins
@@ -116,24 +118,24 @@
          * @important Do not rename it!
          */
         sandbox = {
-            global: global,
-            modules: modules,
-            modules_options: modules_options,
-            options: options,
+            'global': global,
+            'modules': modules,
+            'modules_options': modules_options,
+            'options': options,
 
-            eval: global_eval,
-            register: register_module,
-            require: require,
-            initialized: initialized_modules,
+            'eval': global_eval,
+            'register': register_module,
+            'require': lmd_require,
+            'initialized': initialized_modules,
 
             
-            document: global_document,
+            'document': global_document,
             
             
 
-            on: lmd_on,
-            trigger: lmd_trigger,
-            undefined: local_undefined
+            'on': lmd_on,
+            'trigger': lmd_trigger,
+            'undefined': local_undefined
         };
 
     for (var moduleName in modules) {
@@ -186,7 +188,7 @@ var define = function (name, deps, module) {
         return;
     }
 
-    var output = {exports: {}};
+    var output = {'exports': {}};
     if (!deps) {
         deps = ["require", "exports", "module"];
     }
@@ -244,8 +246,9 @@ sb.on('lmd-register:after-register', function (moduleName, module) {
 
 
 
-    main(lmd_trigger('lmd-register:decorate-require', "main", require)[1], output.exports, output);
-})/*DO NOT ADD ; !*/(this,(function (require) { /* wrapped by builder */
+    main(lmd_trigger('lmd-register:decorate-require', 'main', lmd_require)[1], output.exports, output);
+})/*DO NOT ADD ; !*/
+(this,(function (require) { /* wrapped by builder */
 var define = require.define;
 define(['$', 'button', 'list'], function ($, Button, List) {
 
@@ -313,4 +316,4 @@ define(function (require, exports, module) {
 });
 
 })
-},{},{})
+},{},{});

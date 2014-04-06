@@ -1,0 +1,7 @@
+{
+    "name": "textarea mixin",
+    "root": "../components",
+    "styles": [
+        "textarea/textarea.css"
+    ]
+}

@@ -1,3 +1,4 @@
+// This file was automatically generated from "index.development.lmd.json"
 (function (global, main, modules, modules_options, options) {
     var initialized_modules = {},
         global_eval = function (code) {
@@ -15,7 +16,7 @@
         register_module = function (moduleName, module) {
             lmd_trigger('lmd-register:before-register', moduleName, module);
             // Predefine in case of recursive require
-            var output = {exports: {}};
+            var output = {'exports': {}};
             initialized_modules[moduleName] = 1;
             modules[moduleName] = output.exports;
 
@@ -23,14 +24,14 @@
                 // if undefined - try to pick up module from globals (like jQuery)
                 // or load modules from nodejs/worker environment
                 module = lmd_trigger('js:request-environment-module', moduleName, module)[1] || global[moduleName];
-            } else if (typeof module === "function") {
+            } else if (typeof module === 'function') {
                 // Ex-Lazy LMD module or unpacked module ("pack": false)
-                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, require)[1];
+                var module_require = lmd_trigger('lmd-register:decorate-require', moduleName, lmd_require)[1];
 
                 // Make sure that sandboxed modules cant require
                 if (modules_options[moduleName] &&
                     modules_options[moduleName].sandbox &&
-                    typeof module_require === "function") {
+                    typeof module_require === 'function') {
 
                     module_require = local_undefined;
                 }
@@ -85,30 +86,31 @@
          *
          * @returns {*}
          */
-        require = function (moduleName) {
+        lmd_require = function (moduleName) {
             var module = modules[moduleName];
 
-            lmd_trigger('*:before-check', moduleName, module);
-            // Already inited - return as is
-            if (initialized_modules[moduleName] && module) {
-                return module;
-            }
             var replacement = lmd_trigger('*:rewrite-shortcut', moduleName, module);
             if (replacement) {
                 moduleName = replacement[0];
                 module = replacement[1];
             }
 
+            lmd_trigger('*:before-check', moduleName, module);
+            // Already inited - return as is
+            if (initialized_modules[moduleName] && module) {
+                return module;
+            }
+
             lmd_trigger('*:before-init', moduleName, module);
 
             // Lazy LMD module not a string
-            if (typeof module === "string" && module.indexOf('(function(') === 0) {
+            if (typeof module === 'string' && module.indexOf('(function(') === 0) {
                 module = global_eval(module);
             }
 
             return register_module(moduleName, module);
         },
-        output = {exports: {}},
+        output = {'exports': {}},
 
         /**
          * Sandbox object for plugins
@@ -116,24 +118,24 @@
          * @important Do not rename it!
          */
         sandbox = {
-            global: global,
-            modules: modules,
-            modules_options: modules_options,
-            options: options,
+            'global': global,
+            'modules': modules,
+            'modules_options': modules_options,
+            'options': options,
 
-            eval: global_eval,
-            register: register_module,
-            require: require,
-            initialized: initialized_modules,
+            'eval': global_eval,
+            'register': register_module,
+            'require': lmd_require,
+            'initialized': initialized_modules,
 
-            noop: global_noop,
-            document: global_document,
+            'noop': global_noop,
+            'document': global_document,
             
             
 
-            on: lmd_on,
-            trigger: lmd_trigger,
-            undefined: local_undefined
+            'on': lmd_on,
+            'trigger': lmd_trigger,
+            'undefined': local_undefined
         };
 
     for (var moduleName in modules) {
@@ -146,9 +148,81 @@
  */
 (function (sb) {
     var domOnlyLoaders = {
-        css: true,
-        image: true
+        'css': true,
+        'image': true
     };
+
+    var reEvalable = /(java|ecma)script|json/,
+        reJson = /json/;
+
+    /**
+      * Load off-package LMD module
+      *
+      * @param {String|Array} moduleName same origin path to LMD module
+      * @param {Function}     [callback]   callback(result) undefined on error others on success
+      */
+    sb.on('*:preload', function (moduleName, callback, type) {
+        var replacement = sb.trigger('*:request-off-package', moduleName, callback, type), // [[returnResult, moduleName, module, true], callback, type]
+            returnResult = [replacement[0][0], callback, type];
+
+        if (replacement[0][3]) { // isReturnASAP
+            return returnResult;
+        }
+
+        var module = replacement[0][2],
+            XMLHttpRequestConstructor = sb.global.XMLHttpRequest || sb.global.ActiveXObject;
+
+        callback = replacement[1];
+        moduleName = replacement[0][1];
+
+        if (!XMLHttpRequestConstructor) {
+            sb.trigger('preload:require-environment-file', moduleName, module, callback);
+            return returnResult;
+        }
+
+        // Optimized tiny ajax get
+        // @see https://gist.github.com/1625623
+        var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4) {
+                // 3. Check for correct status 200 or 0 - OK?
+                if (xhr.status < 201) {
+                    var contentType = xhr.getResponseHeader('content-type');
+                    module = xhr.responseText;
+                    if (reEvalable.test(contentType)) {
+                        module = sb.trigger('*:wrap-module', moduleName, module, contentType)[1];
+                        if (!reJson.test(contentType)) {
+                            module = sb.trigger('*:coverage-apply', moduleName, module)[1];
+                        }
+
+                        sb.trigger('preload:before-callback', moduleName, module);
+                        module = sb.eval(module);
+                    } else {
+                        sb.trigger('preload:before-callback', moduleName, module);
+                    }
+
+                    if (type === 'preload') {
+                        // 4. Declare it
+                        sb.modules[moduleName] = module;
+                        // 5. Then callback it
+                        callback(moduleName);
+                    } else {
+                        // 4. Callback it
+                        callback(sb.register(moduleName, module));
+                    }
+                } else {
+                    sb.trigger('*:request-error', moduleName, module);
+                    callback();
+                }
+            }
+        };
+        xhr.open('get', moduleName);
+        xhr.send();
+
+        return returnResult;
+
+    });
+
     /**
      * @event *:request-off-package
      *
@@ -181,7 +255,7 @@
         sb.trigger('*:before-check', moduleName, module, type);
         // If module exists or its a node.js env
         if (module || (domOnlyLoaders[type] && !sb.document)) {
-            callback(sb.initialized[moduleName] ? module : sb.require(moduleName));
+            callback(type === "preload" ? moduleName : sb.initialized[moduleName] ? module : sb.require(moduleName));
             return [[returnResult, moduleName, module, true], callback, type];
         }
 
@@ -217,58 +291,54 @@
      * @param {Function}     [callback]   callback(result) undefined on error others on success
      */
     sb.require.async = function (moduleName, callback) {
-        var replacement = sb.trigger('*:request-off-package', moduleName, callback, 'async'), // [[returnResult, moduleName, module, true], callback, type]
-            returnResult = replacement[0][0];
-
-        if (replacement[0][3]) { // isReturnASAP
-            return returnResult;
-        }
-
-        var module = replacement[0][2],
-            XMLHttpRequestConstructor = sb.global.XMLHttpRequest || sb.global.ActiveXObject;
-
-        callback = replacement[1];
-        moduleName = replacement[0][1];
-
-        if (!XMLHttpRequestConstructor) {
-            sb.trigger('async:require-environment-file', moduleName, module, callback);
-            return returnResult;
-        }
-
-        // Optimized tiny ajax get
-        // @see https://gist.github.com/1625623
-        var xhr = new XMLHttpRequestConstructor("Microsoft.XMLHTTP");
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState == 4) {
-                // 3. Check for correct status 200 or 0 - OK?
-                if (xhr.status < 201) {
-                    var contentType = xhr.getResponseHeader('content-type');
-                    module = xhr.responseText;
-                    if ((/script$|json$/).test(contentType)) {
-                        module = sb.trigger('*:wrap-module', moduleName, module, contentType)[1];
-                        if (!(/json$/).test(contentType)) {
-                            module = sb.trigger('*:coverage-apply', moduleName, module)[1];
-                        }
-
-                        sb.trigger('async:before-callback', moduleName, module);
-                        module = sb.eval(module);
-                    } else {
-                        sb.trigger('async:before-callback', moduleName, module);
-                    }
-                    // 4. Then callback it
-                    callback(sb.register(moduleName, module));
-                } else {
-                    sb.trigger('*:request-error', moduleName, module);
-                    callback();
-                }
-            }
-        };
-        xhr.open('get', moduleName);
-        xhr.send();
-
-        return returnResult;
-
+        return sb.trigger('*:preload', moduleName, callback, 'async')[0];
     };
+
+}(sandbox));
+
+/**
+ * Internal module
+ */
+
+/**
+ * @name sandbox
+ */
+(function (sb) {
+    /**
+     * Loads any JavaScript file a non-LMD module
+     *
+     * @param {String|Array} moduleName path to file
+     * @param {Function}     [callback]   callback(result) undefined on error HTMLScriptElement on success
+     */
+    sb.on('*:load-script', function (moduleName, callback) {
+        var readyState = 'readyState',
+            isNotLoaded = 1,
+            head;
+
+        var script = sb.document.createElement("script");
+        sb.global.setTimeout(script.onreadystatechange = script.onload = function (e) {
+            e = e || sb.global.event;
+            if (isNotLoaded &&
+                (!e ||
+                !script[readyState] ||
+                script[readyState] == "loaded" ||
+                script[readyState] == "complete")) {
+
+                isNotLoaded = 0;
+                // register or cleanup
+                if (!e) {
+                    sb.trigger('*:request-error', moduleName);
+                }
+                callback(e ? sb.register(moduleName, script) : head.removeChild(script) && sb.undefined); // e === undefined if error
+            }
+        }, 3000, 0);
+
+        script.src = moduleName;
+        head = sb.document.getElementsByTagName("head")[0];
+        head.insertBefore(script, head.firstChild);
+
+        return [moduleName, callback];
+    });
 
 }(sandbox));
 
@@ -299,9 +369,7 @@
         }
 
         var module = replacement[0][2],
-            readyState = 'readyState',
-            isNotLoaded = 1,
-            head;
+            readyState = 'readyState';
 
         callback = replacement[1];
         moduleName = replacement[0][1];
@@ -314,27 +382,7 @@
         }
 
 
-        var script = sb.document.createElement("script");
-        sb.global.setTimeout(script.onreadystatechange = script.onload = function (e) {
-            e = e || sb.global.event;
-            if (isNotLoaded &&
-                (!e ||
-                !script[readyState] ||
-                script[readyState] == "loaded" ||
-                script[readyState] == "complete")) {
-
-                isNotLoaded = 0;
-                // register or cleanup
-                if (!e) {
-                    sb.trigger('*:request-error', moduleName, module);
-                }
-                callback(e ? sb.register(moduleName, script) : head.removeChild(script) && sb.undefined); // e === undefined if error
-            }
-        }, 3000, 0);
-
-        script.src = moduleName;
-        head = sb.document.getElementsByTagName("head")[0];
-        head.insertBefore(script, head.firstChild);
+        sb.trigger('*:load-script', moduleName, callback);
 
         return returnResult;
 
@@ -408,11 +456,14 @@
 
         (function poll() {
             if (isNotLoaded) {
+                var sheets = sb.document.styleSheets,
+                    j = 0,
+                    k = sheets.length;
+
                 try {
-                    var sheets = sb.document.styleSheets;
-                    for (var j = 0, k = sheets.length; j < k; j++) {
+                    for (; j < k; j++) {
                         if((sheets[j].ownerNode || sheets[j].owningElement).id == id &&
-                           (sheets[j].cssRules || sheets[j].rules).length) {
+                            (sheets[j].cssRules || sheets[j].rules).length) {
 //#JSCOVERAGE_IF 0
                             return onload(1);
 //#JSCOVERAGE_ENDIF
@@ -421,6 +472,7 @@
                     // if we get here, its not in document.styleSheets (we never saw the ID)
                     throw 1;
                 } catch(e) {
+                    
                     // Keep polling
                     sb.global.setTimeout(poll, 90);
                 }
@@ -535,8 +587,9 @@ sb.on('*:request-indexof', function (arrayIndexOf) {
 
 
 
-    main(lmd_trigger('lmd-register:decorate-require', "main", require)[1], output.exports, output);
-})/*DO NOT ADD ; !*/(this,function main(require) {
+    main(lmd_trigger('lmd-register:decorate-require', 'main', lmd_require)[1], output.exports, output);
+})/*DO NOT ADD ; !*/
+(this,function main(require) {
     // Common Worker or Browser
     var i18n = require('i18n'),
         text = i18n.hello +  ', lmd',
@@ -635,4 +688,4 @@ module.exports = function(message) {
 "config": {
     "worker": "./out/index.development.lmd.js"
 }
-},{},{})
+},{},{});

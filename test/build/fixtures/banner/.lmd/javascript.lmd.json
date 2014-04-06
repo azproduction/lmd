@@ -1,0 +1,7 @@
+{
+    "banner": "console.log('banner');",
+    "root": "../js",
+    "modules": {
+        "main": "main.js"
+    }
+}

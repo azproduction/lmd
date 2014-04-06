@@ -1,0 +1,7 @@
+{
+    "root": "./",
+    "output": "../index.js",
+    "bundles": {
+        "sub": "./bundles.lmd.json"
+    }
+}

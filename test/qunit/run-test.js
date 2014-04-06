@@ -3,6 +3,7 @@ var httpServer = require('http-server'),
     colors = require('colors');
 
 var port = 8080,
+    xDomainPort = 8081,
     host = '127.0.0.1',
     phantomJsIndex = __dirname + "/phantomjs-index.js";
 
@@ -62,22 +63,27 @@ function runTestInPhantomJsEnvironment(runner, url, callback) {
     ps.on('exit', callback);
 }
 
-var server = startHttpServer(port, host, function () {
-    var url = "http://" + host + ":" + port + "/index.html";
+var xDomainServer = startHttpServer(xDomainPort, host, function () {
 
-    runTestInPhantomJsEnvironment(phantomJsIndex, url, function (code) {
-        console.log('\ninfo'.green + ':    Stopping http-server');
+    var server = startHttpServer(port, host, function () {
+        var url = "http://" + host + ":" + port + "/index.html";
 
-        server.close();
-        if (code === 127) {
-            console.log('ERRO'.red.inverse + ':    phantomjs bin required to tun this test!'.red);
-        }
+        runTestInPhantomJsEnvironment(phantomJsIndex, url, function (code) {
+            console.log('\ninfo'.green + ':    Stopping http-server');
 
-        if (!code) {
-            console.log('info'.green + ':    Exit process with code ' + code);
-        } else {
-            console.log('ERRO'.red.inverse + ':    Exit process with code '.red + code);
-        }
-        process.exit(code);
+            server.close();
+            xDomainServer.close();
+            if (code === 127) {
+                console.log('ERRO'.red.inverse + ':    phantomjs bin required to tun this test!'.red);
+            }
+
+            if (!code) {
+                console.log('info'.green + ':    Exit process with code ' + code);
+            } else {
+                console.log('ERRO'.red.inverse + ':    Exit process with code '.red + code);
+            }
+            process.exit(code);
+        });
     });
+
 });

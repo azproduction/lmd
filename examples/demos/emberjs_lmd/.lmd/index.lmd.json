@@ -1,0 +1,18 @@
+{
+    "name": "Ember.js+lmd example",
+    "description": "This example uses file glob and string interpolation.\nSee:\n  - examples/features/interpolation\n  - examples/features/glob",
+
+    "root": "../js/",
+    "output": "../compiled/index.lmd.js",
+
+    "modules": {
+        "index": "index.js",
+        "router": "router.js",
+        "resolver": "resolver.js",
+        "${file}": "{models,helpers,templates,views,controllers,routes}/**/*.{js,hbs}"
+    },
+    "mixins": ["./lib.lmd.json"],
+
+    "main": "index",
+    "match": true
+}

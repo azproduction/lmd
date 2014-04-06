@@ -1,0 +1,31 @@
+{
+    "name": "Ember.js+lmd example libraries",
+    "modules": {
+        "jquery": {
+            "path": "../bower_components/jquery/dist/jquery.js",
+            "exports": "jQuery"
+        },
+        "handlebars": {
+            "path": "../bower_components/handlebars/handlebars.js",
+            "exports": "window.Handlebars = Handlebars"
+        },
+        "ember": {
+            "path": "../bower_components/ember/ember.js",
+            "require": {
+                "jQuery": "jquery",
+                "Handlebars": "handlebars"
+            },
+            "exports": "Ember"
+        },
+        "ds": {
+            "path": [
+                "../bower_components/ember-data/ember-data.js",
+                "../bower_components/ember-localstorage-adapter/localstorage_adapter.js"
+            ],
+            "require": {
+                "Ember": "ember"
+            },
+            "exports": "DS"
+        }
+    }
+}

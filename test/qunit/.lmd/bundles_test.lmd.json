@@ -1,0 +1,22 @@
+{
+    "name": "Bundle test - DOM Environment",
+    "root": "../modules/",
+
+    "output": "../out/bundles_test.lmd.js",
+
+    "modules": {
+        "main": "bundles_main.js",
+
+        "testcase_lmd_bundle": "test_case/testcase_lmd_bundle/testcase_lmd_bundle.js"
+
+    },
+
+    "version": "latest",
+    "main": "main",
+    "global": "this",
+
+    "warn": true,
+    "log": true,
+
+    "depends": "*.lmd.json"
+}
