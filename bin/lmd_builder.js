@@ -6,7 +6,7 @@
  */
 
 var fs = require('fs'),
-    Stream = require('stream'),
+    inherits = require('util').inherits,
     path = require('path'),
     uglifyCompress = require("uglify-js"),
     csso = require('csso'),
@@ -14,6 +14,7 @@ var fs = require('fs'),
     colors = require('colors'),
     parser = uglifyCompress.parser,
     uglify = uglifyCompress.uglify,
+    DataStream = require(__dirname + '/../lib/data_stream.js'),
     lmdCoverage = require(__dirname + '/../lib/coverage_apply.js'),
     common = require(__dirname + '/../lib/lmd_common.js'),
     Writer = require(__dirname + '/../lib/lmd_writer.js'),
@@ -43,6 +44,7 @@ var LMD_PLUGINS = common.LMD_PLUGINS;
  *      .pipe(process.stdout);
  */
 var LmdBuilder = function (configFile, options) {
+    DataStream.call(this);
     this.options = options || {};
     var self = this;
 
@@ -72,12 +74,12 @@ var LmdBuilder = function (configFile, options) {
             if (configFile) {
                 var buildResult = self.build(self.buildConfig);
 
-                self.emit('data', buildResult.source);
-                self.style.emit('data', buildResult.style);
-                self.sourceMap.emit('data', buildResult.sourceMap.toString());
+                self.write(buildResult.source);
+                self.style.write(buildResult.style);
+                self.sourceMap.write(buildResult.sourceMap.toString());
                 self._streamBundles(buildResult.bundles);
             } else {
-                self.log.emit('data', 'lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.js(on)'.green + ' [output.lmd.js]\n');
+                self.log.write('lmd usage:\n\t    ' + 'lmd'.blue + ' ' + 'config.lmd.js(on)'.green + ' [output.lmd.js]\n');
             }
         } else {
             self.printFatalErrors(self.buildConfig);
@@ -104,6 +106,7 @@ var LmdBuilder = function (configFile, options) {
  *      .log.pipe(process.stdout);
  */
 LmdBuilder.watch = function (configFile, options) {
+    DataStream.call(this);
     this.options = options || {};
     var self = this;
 
@@ -132,7 +135,7 @@ LmdBuilder.watch = function (configFile, options) {
                 self.fsWatch(self.watchConfig);
                 return;
             } else {
-                self.log.emit('data', 'ERRO'.red.inverse + ':' + '    Check your config file. "output" parameter should be a {String} eg "../path"'.red + '\n');
+                self.log.write('ERRO'.red.inverse + ':' + '    Check your config file. "output" parameter should be a {String} eg "../path"'.red + '\n');
                 return;
             }
         } else {
@@ -142,9 +145,9 @@ LmdBuilder.watch = function (configFile, options) {
     });
 };
 
+inherits(LmdBuilder, DataStream);
 // Share prototype
-LmdBuilder.watch.prototype =
-LmdBuilder.prototype = new Stream();
+LmdBuilder.watch.prototype = LmdBuilder.prototype;
 
 /**
  * Applies defaults
@@ -200,27 +203,22 @@ LmdBuilder.prototype.init = function () {
      *
      * @type {Stream}
      */
-    this.log = new Stream();
-    this.log.readable = true;
+    this.log = new DataStream();
 
     /**
      * Source Map
      *
      * @type {Stream}
      */
-    this.sourceMap = new Stream();
-    this.sourceMap.readable = true;
+    this.sourceMap = new DataStream();
 
     /**
      * Style
      *
      * @type {Stream}
      */
-    this.style = new Stream();
-    this.style.readable = true;
+    this.style = new DataStream();
 
-    // LmdBuilder is readable stream
-    this.readable = true;
     process.once('exit', this._closeStreams);
 };
 
@@ -348,25 +346,10 @@ LmdBuilder.prototype.printFatalErrors = function (buildConfig) {
  * Closes all streams and make it unreadable
  */
 LmdBuilder.prototype.closeStreams = function () {
-    if (this.readable) {
-        this.emit('end');
-        this.readable = false;
-    }
-
-    if (this.log.readable) {
-        this.log.emit('end');
-        this.log.readable = false;
-    }
-
-    if (this.sourceMap.readable) {
-        this.sourceMap.emit('end');
-        this.sourceMap.readable = false;
-    }
-
-    if (this.style.readable) {
-        this.style.emit('end');
-        this.style.readable = false;
-    }
+    this.end();
+    this.log.end();
+    this.style.end();
+    this.sourceMap.end();
 
     this._closeBundleStreams();
     process.removeListener('exit', this._closeStreams);
@@ -1152,7 +1135,7 @@ LmdBuilder.prototype.patchLmdSource = function (lmd_js, config) {
  */
 LmdBuilder.prototype.configure = function () {
     if (!this.configFile) {
-        this.log.emit('data', 'lmd usage:\n\t    lmd config.lmd.js(on) [output.lmd.js]\n');
+        this.log.write('lmd usage:\n\t    lmd config.lmd.js(on) [output.lmd.js]\n');
         return false;
     }
     return true;
@@ -1188,7 +1171,7 @@ LmdBuilder.prototype.fsWatch = function (config) {
     }
 
     var log = function (test) {
-            self.log.emit('data', test);
+            self.log.write(test);
         },
         rebuild = function (stat, filename) {
             if (stat && filename) {
@@ -1337,7 +1320,7 @@ LmdBuilder.prototype.addPaddingToText = function (padding, text) {
  */
 LmdBuilder.prototype.error = function (text) {
     text = this.formatLog(text);
-    this.log.emit('data', this.addPaddingToText('ERRO'.red.inverse, text));
+    this.log.write(this.addPaddingToText('ERRO'.red.inverse, text));
 };
 
 /**
@@ -1351,7 +1334,7 @@ LmdBuilder.prototype.error = function (text) {
 LmdBuilder.prototype.warn = function (text, isWarn) {
     if (isWarn) {
         text = this.formatLog(text);
-        this.log.emit('data', this.addPaddingToText('warn'.yellow, text));
+        this.log.write(this.addPaddingToText('warn'.yellow, text));
     }
 };
 
@@ -1365,7 +1348,7 @@ LmdBuilder.prototype.warn = function (text, isWarn) {
  */
 LmdBuilder.prototype.info = function (text) {
     text = this.formatLog(text);
-    this.log.emit('data', this.addPaddingToText('info'.green, text));
+    this.log.write(this.addPaddingToText('info'.green, text));
 };
 
 /**
@@ -1734,15 +1717,15 @@ LmdBuilder.prototype._initBundlesStreams = function (bundles) {
     var self = this;
 
     Object.keys(bundles).forEach(function (bundleName) {
-        var stream = new Stream();
+        var stream = new DataStream();
         stream.readable = self._has(bundles[bundleName], 'modules');
 
         self.bundles[bundleName] = stream;
 
-        stream.sourceMap = new Stream();
+        stream.sourceMap = new DataStream();
         stream.sourceMap.readable = self._has(bundles[bundleName], 'modules');
 
-        stream.style = new Stream();
+        stream.style = new DataStream();
         stream.style.readable = self._has(bundles[bundleName], 'styles');
     });
 };
@@ -1760,9 +1743,9 @@ LmdBuilder.prototype._streamBundles = function (bundles) {
         var bundle = bundles[bundleName],
             stream = self.bundles[bundleName];
 
-        stream.emit('data', bundle.source);
-        stream.style.emit('data', bundle.style);
-        stream.sourceMap.emit('data', bundle.sourceMap.toString());
+        stream.write(bundle.source);
+        stream.style.write(bundle.style);
+        stream.sourceMap.write(bundle.sourceMap.toString());
     });
 };
 
@@ -1778,21 +1761,9 @@ LmdBuilder.prototype._closeBundleStreams = function () {
 
     Object.keys(self.bundles).forEach(function (bundleName) {
         var stream = self.bundles[bundleName];
-
-        if (stream.readable) {
-            stream.emit('end');
-            stream.readable = false;
-        }
-
-        if (stream.style.readable) {
-            stream.style.emit('end');
-            stream.style.readable = false;
-        }
-
-        if (stream.sourceMap.readable) {
-            stream.sourceMap.emit('end');
-            stream.sourceMap.readable = false;
-        }
+        stream.end();
+        stream.style.end();
+        stream.sourceMap.end();
     });
 };
 
