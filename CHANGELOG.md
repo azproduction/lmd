@@ -1,3 +1,7 @@
+**v1.13.x**
+
+  - #181 Streams2 API (fully backward compatible)
+
 **v1.12.x**
 
   - #166 Ember.js example. See [demo](http://lmdjs.org/examples/demos/emberjs_lmd/), [code](examples/demos/emberjs_lmd/)
