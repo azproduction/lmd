@@ -33,7 +33,8 @@
         "optimist": ">= 0.3.5",
         "lodash-template": "1.0.0",
         "glob": ">= 3.1.14",
-        "csso": ">= 1.3.10"
+        "csso": ">= 1.3.10",
+        "readable-stream": "~1.0.0"
     },
     "devDependencies": {
         "http-server": ">= 0.5.1",
