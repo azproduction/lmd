@@ -1,0 +1,13 @@
+{
+    "root": "../js",
+    "www_root": "../",
+    "modules": {
+        "main": "main.js",
+        "umd_module": {
+            "path": "umd_module.js",
+            "type": "amd"
+        }
+    },
+    "main": "main",
+    "amd": true
+}

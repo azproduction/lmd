@@ -5,7 +5,8 @@ var path = require('path'),
     Stream = require('stream'),
     vow = require('vow'),
     parser = require('uglify-js').parser,
-    expect = require('chai').expect;
+    expect = require('chai').expect,
+    readStream = require('./lib/read_stream');
 
 var Builder = require('../..'),
     SUB_BUNDLE_SEPARATOR = require('../../lib/lmd_common').SUB_BUNDLE_SEPARATOR;
@@ -14,30 +15,6 @@ var fixtures = path.join(__dirname, 'fixtures', 'bundles');
 
 function cfgPath(name) {
     return path.join(fixtures, '.lmd', name + '.lmd.json');
-}
-
-function readStream(stream) {
-    var promise = vow.promise(),
-        body = '';
-
-    if (!stream.readable) {
-        promise.reject(new Error('stream is not readable'));
-        return promise;
-    }
-
-    stream.on('data', function (chunk) {
-        body += chunk;
-    });
-
-    stream.on('end', function () {
-        promise.fulfill(body);
-    });
-
-    stream.on('error', function (error) {
-        promise.reject(error);
-    });
-
-    return promise;
 }
 
 describe('lmd', function() {

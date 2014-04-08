@@ -1,0 +1,11 @@
+{
+    "root": "../js",
+    "modules": {
+        "main": "main.js",
+        "umd_module": {
+            "path": "umd_module.js",
+            "type": "ololo"
+        }
+    },
+    "ie": false
+}
