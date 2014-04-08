@@ -66,6 +66,11 @@ var define = function (name, deps, module) {
     amdModules[currentModule] = module;
 };
 
+// #183 define.amd should be defined
+define.amd = {
+    jQuery: true
+};
+
 sb.require.define = define;
 
 // First called this than called few of define
