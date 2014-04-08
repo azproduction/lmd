@@ -1,6 +1,6 @@
 {
     "name": "lmd",
-    "version": "1.13.0",
+    "version": "1.13.1",
     "description": "LMD: Lazy Module Declaration",
     "keywords": [
         "lmd", "amd", "module",

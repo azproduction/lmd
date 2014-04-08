@@ -1,5 +1,7 @@
 **v1.13.x**
 
+  - #184 Type hint for modules. See [demo](http://lmdjs.org/examples/features/type_hint/), [code](examples/features/type_hint/)
+  - #183 define.amd should be defined
   - #181 Streams2 API (fully backward compatible)
 
 **v1.12.x**
