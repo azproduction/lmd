@@ -4,7 +4,8 @@
 var path = require('path'),
     Stream = require('stream'),
     vow = require('vow'),
-    expect = require('chai').expect;
+    expect = require('chai').expect,
+    readStream = require('./lib/read_stream');
 
 // disable colors
 require('colors').mode = 'none';
@@ -15,30 +16,6 @@ var fixtures = path.join(__dirname, 'fixtures', 'sandbox');
 
 function cfgPath(name) {
     return path.join(fixtures, '.lmd', name + '.lmd.json');
-}
-
-function readStream(stream) {
-    var promise = vow.promise(),
-        body = '';
-
-    if (!stream.readable) {
-        promise.reject(new Error('stream is not readable'));
-        return promise;
-    }
-
-    stream.on('data', function (chunk) {
-        body += chunk;
-    });
-
-    stream.on('end', function () {
-        promise.fulfill(body);
-    });
-
-    stream.on('error', function (error) {
-        promise.reject(error);
-    });
-
-    return promise;
 }
 
 describe('lmd', function() {

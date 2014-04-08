@@ -9,7 +9,7 @@ test: test_plugins test_builder build_examples
 # Build time tests
 test_builder:
 	@echo 'travis_fold:start:test_builder'
-	$(MOCHA) -u bdd -R spec --recursive test/build
+	$(MOCHA) -u bdd -R spec test/build
 	@echo 'travis_fold:end:test_builder'
 
 # Client-side tests of all plugins
