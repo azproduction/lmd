@@ -114,4 +114,10 @@
         equal(true, amd_sandbox, "Should be sandboxed");
     });
 
+    test("AMD define.amd", function () {
+        var define_amd = require('amd_amd_define_amd');
+
+        equal(true, define_amd, "Should be defined");
+    });
+
 });
