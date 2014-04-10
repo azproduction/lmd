@@ -1,5 +1,6 @@
 **v1.13.x**
 
+  - #185 Uncaught error for absent 'www_root'
   - #184 Type hint for modules. See [demo](http://lmdjs.org/examples/features/type_hint/), [code](examples/features/type_hint/)
   - #183 define.amd should be defined
   - #181 Streams2 API (fully backward compatible)
