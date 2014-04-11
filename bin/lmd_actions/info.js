@@ -499,8 +499,10 @@ module.exports = function (cli, argv, cwd) {
         cli.ok('');
     }
 
-    if (rawConfig.mixins) {
-        cli.ok('Mixins LMD Package `' + (rawConfig.mixins + '').green + '`');
+    if (config.mixins) {
+        cli.ok('Mixins LMD Package ' + config.mixins.map(function (mixin) {
+            return mixin.green;
+        }).join(', '));
         cli.ok('');
     }
 
