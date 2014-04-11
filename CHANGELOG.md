@@ -1,5 +1,6 @@
 **v1.13.x**
 
+  - #187 Mixins in command line overrides mixins in config file
   - #185 Uncaught error for absent 'www_root'
   - #184 Type hint for modules. See [demo](http://lmdjs.org/examples/features/type_hint/), [code](examples/features/type_hint/)
   - #183 define.amd should be defined
