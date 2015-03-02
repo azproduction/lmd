@@ -66,7 +66,7 @@
                 return !!(sheet.cssRules || sheet.rules).length;
             } catch (e) {
                 // In case of access error assume that css is loaded
-                return true;
+                return false;
             }
         }
 
