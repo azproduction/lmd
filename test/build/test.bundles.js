@@ -91,9 +91,9 @@ describe('lmd', function() {
             var build = new Builder(cfgPath('flatten')),
                 bundles = build.buildConfig.bundles;
 
-            expect(bundles).to.have.deep.property('a');
+            expect(bundles).to.have.property('a');
             expect(bundles).to.not.have.deep.property('a.bundles');
-            expect(bundles).to.have.deep.property('a' + SUB_BUNDLE_SEPARATOR + 'b');
+            expect(bundles).to.have.property('a' + SUB_BUNDLE_SEPARATOR + 'b');
         });
 
         it('constructs output using host bundle output name', function () {

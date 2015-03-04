@@ -1,50 +1,57 @@
 {
-    "name": "lmd",
-    "version": "1.13.3",
-    "description": "LMD: Lazy Module Declaration",
-    "keywords": [
-        "lmd", "amd", "module",
-        "components", "styles", "builder",
-        "optimizer", "cli", "tool"
-    ],
-    "homepage": "http://lmdjs.org/",
-    "license": "MIT",
-    "author": {
-        "name": "Mikhail Davydov",
-        "email": "i@azproduction.ru"
-    },
-    "bin": {
-        "lmd": "./bin/lmd"
-    },
-    "main": "./bin/lmd_builder.js",
-    "scripts": {
-        "test": "make test"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git@github.com:azproduction/lmd.git"
-    },
-    "dependencies": {
-        "uglify-js": "1.3.4",
-        "jade": "0.26.1",
-        "express": "2.5.9",
-        "colors": "= 0.6.0-1",
-        "source-map": ">= 0.1.3",
-        "optimist": ">= 0.3.5",
-        "lodash-template": "1.0.0",
-        "glob": ">= 3.1.14",
-        "csso": ">= 1.3.10",
-        "readable-stream": "~1.0.0"
-    },
-    "devDependencies": {
-        "http-server": ">= 0.5.1",
-        "colors": ">= 0.6.0",
-        "mocha": "1.11.0",
-        "chai": "*",
-        "vow": "0.3.12"
-    },
-    "engines": {
-        "node": ">= 0.8.0"
-    },
-    "preferGlobal": true
+  "name": "lmd",
+  "version": "1.13.3",
+  "description": "LMD: Lazy Module Declaration",
+  "keywords": [
+    "lmd",
+    "amd",
+    "module",
+    "components",
+    "styles",
+    "builder",
+    "optimizer",
+    "cli",
+    "tool"
+  ],
+  "homepage": "http://lmdjs.org/",
+  "license": "MIT",
+  "author": {
+    "name": "Mikhail Davydov",
+    "email": "i@azproduction.ru"
+  },
+  "bin": {
+    "lmd": "./bin/lmd"
+  },
+  "main": "./bin/lmd_builder.js",
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:azproduction/lmd.git"
+  },
+  "dependencies": {
+    "uglify-js": "1.3.4",
+    "jade": "0.26.1",
+    "express": "2.5.9",
+    "colors": "0.6.0-1",
+    "source-map": "~0.1.3",
+    "optimist": "~0.3.5",
+    "lodash-template": "1.0.0",
+    "glob": "~3.1.14",
+    "csso": "~1.3.10",
+    "readable-stream": "~1.0.0"
+  },
+  "devDependencies": {
+    "chai": "*",
+    "colors": "~0.6.0",
+    "http-server": "~0.5.1",
+    "mocha": "1.11.0",
+    "phantomjs": "1.9.16",
+    "vow": "0.3.12"
+  },
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "preferGlobal": true
 }

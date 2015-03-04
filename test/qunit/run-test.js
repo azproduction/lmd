@@ -7,6 +7,8 @@ var port = 8080,
     host = '127.0.0.1',
     phantomJsIndex = __dirname + "/phantomjs-index.js";
 
+var PHANTOM_BINARY = __dirname + '/../../node_modules/.bin/phantomjs';
+
 function startHttpServer(port, host, callback) {
     var options = {
         root: __dirname,
@@ -38,7 +40,7 @@ function startHttpServer(port, host, callback) {
 function runTestInPhantomJsEnvironment(runner, url, callback) {
     console.log('info'.green + ':    Starting up phantomjs, with runner ' + runner.green + ' and url ' + url.green);
 
-    var ps = childProcess.spawn('phantomjs', [runner, url]);
+    var ps = childProcess.spawn(PHANTOM_BINARY, [runner, url]);
 
     process.stdout.write('test'.cyan + ':    ');
     ps.stdout.on('data', function(buffer) {

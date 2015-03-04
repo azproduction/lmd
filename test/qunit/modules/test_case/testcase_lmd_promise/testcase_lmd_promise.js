@@ -213,13 +213,13 @@
             ok(require('./modules/loader/non_lmd_module.js' + rnd) === script_tag, "should cache script tag on success");
 
             // some external
-            return require.js('http://yandex.ru/jquery.js' + rnd);
+            return require.js('http://localhost/' + rnd);
         })
         .then(function () {
             ok(false, "Should not be resolved");
         }, function () {
             ok(true, "Should be rejected");
-            ok(typeof require('http://yandex.ru/jquery.js' + rnd) === "undefined", "should not cache errorous modules");
+            ok(typeof require('http://localhost/' + rnd) === "undefined", "should not cache errorous modules");
 
             require.js('module_as_string').then(function (module_as_string) {
                 require.async('module_as_string').then(function (module_as_string_expected) {

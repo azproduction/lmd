@@ -75,7 +75,7 @@ if ($P.WRAP_MODULE) {
 
 var async_plain = function (module, contentTypeOrExtension) {
     // its NOT a JSON ant its a plain code
-    if (!(/json$/).test(contentTypeOrExtension)/*if ($P.WRAP_MODULE) {*/ && async_is_plain_code(module)/*}*/) {
+    if (!(/json/).test(contentTypeOrExtension)/*if ($P.WRAP_MODULE) {*/ && async_is_plain_code(module)/*}*/) {
         // its not a JSON and its a Plain LMD module - wrap it
         module = '(function(require,exports,module){\n' + module + '\n})';
     }
