@@ -11,6 +11,7 @@ var fs = require('fs'),
     uglifyCompress = require("uglify-js"),
     csso = require('csso'),
     SourceMapGenerator = require('source-map').SourceMapGenerator,
+    SourceMapConsumer = require('source-map').SourceMapConsumer,
     colors = require('colors'),
     parser = uglifyCompress.parser,
     uglify = uglifyCompress.uglify,
@@ -1396,12 +1397,13 @@ LmdBuilder.prototype.getModuleOffset = function (source, tokenIndex) {
  * Generates source map, removes source map tokens
  *
  * @param {Object}  modules          in package modules
+ * @param {Object}  modulesInfo      information about package modules
  * @param {String}  sourceWithTokens source with sourcemap tokens
- * @param {String}  config          module config
+ * @param {String}  config           module config
  *
  * @return {Object} {source: cleanSource, sourceMap: sourceMap}
  */
-LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, config) {
+LmdBuilder.prototype.createSourceMap = function (modules, modulesInfo, sourceWithTokens, config) {
     var configRoot = String(config.root || config.path || ''),
         configOutput = String(config.output || ''),
         configWwwRoot = String(config.www_root || ''),
@@ -1418,6 +1420,12 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
 
     var self = this,
         module,
+        moduleInfo,
+        originalSourceMapDetect = /sourceMappingURL=(.*)*/,
+        hasOriginalSourceMap,
+        originalSourceMapPath,
+        originalSourceMap,
+        first,
         sourceMapsApplied = 0,
         sourceMapSkipped = [];
 
@@ -1430,6 +1438,7 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
 
     for (var moduleName in modules) {
         module = modules[moduleName];
+        moduleInfo = modulesInfo[moduleName];
         if (this.isModuleCanBeUnderSourceMap(module)) {
             var token = self.createToken(module.path),
                 tokenIndex = sourceWithTokens.indexOf(token);
@@ -1442,20 +1451,62 @@ LmdBuilder.prototype.createSourceMap = function (modules, sourceWithTokens, conf
                 // #174 replace back slashes with front slashes
                 source = path.relative(root, module.path).replace(/\\/g, '/');
 
-            // add mapping for each line
-            for (var i = 0; i < module.lines; i++) {
-                sourceMap.addMapping({
-                    generated: {
-                        // only first line can be with column offset
-                        column: i ? 0 : offset.column,
-                        line: offset.line + i
-                    },
-                    original: {
-                        column: 0,
-                        line: i + 1
-                    },
-                    source: source
+            hasOriginalSourceMap = false;
+
+            try {
+                // detect original sourceMap in module code [sourceMappingURL=...]
+                if (originalSourceMapDetect.test(moduleInfo.code)) {
+                    originalSourceMapPath = path.resolve(path.dirname(path.relative(root, module.path)),
+                        originalSourceMapDetect.exec(moduleInfo.code)[1]);
+
+                    if (fs.existsSync(originalSourceMapPath)) {
+                        hasOriginalSourceMap = true;
+                        originalSourceMap = JSON.parse(fs.readFileSync(originalSourceMapPath));
+                    }
+                }
+                // find sourceMap in module directory
+                if (!hasOriginalSourceMap && fs.existsSync(module.path + '.map')) {
+                    hasOriginalSourceMap = true;
+                    originalSourceMap = JSON.parse(fs.readFileSync(module.path + '.map'));
+                }
+            } catch (e) {}
+
+            if (hasOriginalSourceMap) {
+                originalSourceMap = new SourceMapConsumer(originalSourceMap);
+
+                first = true;
+                // move original source map => result source map
+                originalSourceMap.eachMapping(function (mapping) {
+                    sourceMap.addMapping({
+                        generated: {
+                            // only first line can be with column offset
+                            column: (first ? offset.column : 0) +  mapping.generatedColumn,
+                            line: offset.line - 1 + mapping.generatedLine
+                        },
+                        original: {
+                            column: mapping.originalColumn,
+                            line: mapping.originalLine
+                        },
+                        source: mapping.source
+                    });
+                    first = false;
                 });
+            } else {
+                // add mapping for each line
+                for (var i = 0; i < module.lines; i++) {
+                    sourceMap.addMapping({
+                        generated: {
+                            // only first line can be with column offset
+                            column: i ? 0 : offset.column,
+                            line: offset.line + i
+                        },
+                        original: {
+                            column: 0,
+                            line: i + 1
+                        },
+                        source: source
+                    });
+                }
             }
 
             // remove token
@@ -1674,7 +1725,7 @@ LmdBuilder.prototype._build = function (config, isBundle) {
         }
 
         if (config.sourcemap) {
-            var sourceMapResult = this.createSourceMap(modules, lmdFile, config);
+            var sourceMapResult = this.createSourceMap(modules, modulesInfo[common.ROOT_BUNDLE_ID], lmdFile, config);
 
             lmdFile = sourceMapResult.source;
             sourceMap = sourceMapResult.sourceMap;
