@@ -1,5 +1,11 @@
 # LMD: Lazy Module Declaration [![Build Status](https://secure.travis-ci.org/azproduction/lmd.png?branch=master)](http://travis-ci.org/azproduction/lmd) [![NPM version](https://badge.fury.io/js/lmd.png)](http://badge.fury.io/js/lmd) [![Dependency Status](https://gemnasium.com/azproduction/lmd.png)](https://gemnasium.com/azproduction/lmd)
 
+### :warning: Project is no longer supported
+
+Please consider moving to [webpack](http://webpack.github.io/). As LMD uses CommonJS modules it should be straightforward. 
+
+----
+
 New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getting-started),
 [Wiki](https://github.com/azproduction/lmd/wiki/) and [examples](examples/)
 
