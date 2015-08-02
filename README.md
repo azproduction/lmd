@@ -12,7 +12,7 @@ New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getti
    - You can use strings as string without any "template" plugins
    - You can use JSON file as Object
  - Total and honest isolation
-   - LMD package is fully-zero-isolated from globals (globals cant access LMD-pacakge, but LMD can)
+   - LMD package is fully-zero-isolated from globals (globals can't access LMD-package, but LMD can)
    - Modules are isolated from LMD and from each module
    - Modules can be sandboxed (3-party modules, can exports only)
    - Plugins are isolated from LMD and from each module
