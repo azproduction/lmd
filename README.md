@@ -57,7 +57,7 @@ New to LMD? See [Getting Started](https://github.com/azproduction/lmd/wiki/Getti
 
   * All builders/loaders stuff
   * [GUI for LMD](images/lmd_gui_prototype.png) (in development)
-  * [Build Analyzer](images/coverage_package.png) (1-click code coverage, depends, startup perfomance)
+  * [Build Analyzer](images/coverage_package.png) (1-click code coverage, depends, startup performance)
   * Smart and simple CLI tool
 
 ![](images/lmd_cli.png)
